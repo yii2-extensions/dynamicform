@@ -1,8 +1,8 @@
 # Yii2 Extension for Making Dynamic Forms
 
-[![Latest Version](https://img.shields.io/github/release/wbraganca/yii2-dynamicform.svg?style=flat-square)](https://github.com/yii2-extensions/dynamicform/releases)
+[![Latest Version](https://img.shields.io/github/release/yii2-extensions/dynamicform.svg?style=flat-square)](https://github.com/yii2-extensions/dynamicform/releases)
 [![Software License](http://img.shields.io/badge/license-BSD3-brightgreen.svg?style=flat-square)](LICENSE.md)
-[![Total Downloads](https://img.shields.io/packagist/dt/wbraganca/yii2-dynamicform.svg?style=flat-square)](https://packagist.org/packages/wbraganca/yii2-dynamicform)
+[![Total Downloads](https://img.shields.io/packagist/dt/yii2-extensions/dynamicform.svg?style=flat-square)](https://packagist.org/packages/yii2-extensions/dynamicform)
 
 
 It is widget to yii2 framework to clone form elements in a nested manner, maintaining accessibility.
