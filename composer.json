@@ -1,0 +1,49 @@
+{
+    "name": "yii2-extensions/dynamicform",
+    "description": "Yii2 Dynamic form widget for  cloning form elements in a nested manner while maintaining accessibility.",
+    "keywords": [
+        "yii2",
+        "extension",
+        "widget",
+        "yii2-dynamicform",
+        "copy DOM element",
+        "dynamic form",
+        "Yii2 extensions"
+    ],
+    "type": "yii2-extension",
+    "license": "BSD-3-Clause",
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "support": {
+        "issues": "https://github.com/yii2-extensions/dynamicform/issues",
+        "wiki": "https://github.com/yii2-extensions/dynamicform/wiki/",
+        "source": "https://github.com/yii2-extensions/dynamicform"
+    },
+    "authors": [
+        {
+            "name": "Wanderson Bragança",
+            "email": "wanderson.wbc@gmail.com",
+            "homepage": "http://wbraganca.com"
+        },
+        {
+            "name": "Stefano Mtangoo",
+            "email": "mwinjilisti@gmail.com",
+            "homepage": "http://hosannahighertech.co.tz"
+        }
+    ],
+    "require": {
+        "yiisoft/yii2": "^2.0.49",
+        "symfony/css-selector": "^6.4||^7.0",
+        "symfony/dom-crawler": "^6.4||^7.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Yii2\\Extensions\\DynamicForm\\": "src"
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "yiisoft/yii2-composer": true
+        }
+    }
+}
