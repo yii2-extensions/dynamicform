@@ -33,7 +33,7 @@ to the require section of your `composer.json` file.
 To explain usage of this extension we are going to have a sample scenario where we are building address book  for customers.
 Each customer can have multiple addresses. See the image below for further details. 
 
-![Database](images/scenario.jpg)
+![Database](images/scenario.jpeg)
 
 
 ### Models
