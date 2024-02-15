@@ -311,7 +311,7 @@ use Yii2\Extensions\DynamicForm\DynamicFormWidget;
     </div>
 
     <div class="form-group">
-        <?= Html::submitButton($modelAddress->isNewRecord ? 'Create' : 'Update', ['class' => 'btn btn-primary']) ?>
+        <?= Html::submitButton($modelCustomer->isNewRecord ? 'Create' : 'Update', ['class' => 'btn btn-primary']) ?>
     </div>
 
     <?php ActiveForm::end(); ?>
