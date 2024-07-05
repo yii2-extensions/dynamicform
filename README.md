@@ -206,7 +206,78 @@ class CustomerController extends Controller
     }
 }
 ```
- 
+
+#### 2alt. Alternatively Update Action when primary key of modelsAddress is not "id"
+```php
+<?php
+
+namespace app\controllers;
+
+use Yii2\Extensions\DynamicForm\Models\Model; //Very important. Do not mix this with yii\base\Model
+
+class CustomerController extends Controller
+{
+    public function actionUpdate($id)
+    {
+        $modelCustomer = $this->findModel($id);
+        $modelsAddress = $modelCustomer->addresses;
+
+        // indicate here the real primary key of your model modelCustomer
+        $pk = "pk_table_modelCustomer";
+
+        if ($modelCustomer->load(Yii::$app->request->post())) {
+
+            $oldIDs = ArrayHelper::map($modelsAddress, $pk, $pk);
+            $modelsAddress = Model::createMultiplePkNotId(Address::classname(), $modelsAddress, $pk);
+            Model::loadMultiple($modelsAddress, Yii::$app->request->post());
+            $deletedIDs = array_diff($oldIDs, array_filter(ArrayHelper::map($modelsAddress, $pk, $pk)));
+
+            // ajax validation
+            if (Yii::$app->request->isAjax) {
+                Yii::$app->response->format = Response::FORMAT_JSON;
+                return ArrayHelper::merge(
+                    ActiveForm::validateMultiple($modelsAddress),
+                    ActiveForm::validate($modelCustomer)
+                );
+            }
+
+            // validate all models
+            $valid = $modelCustomer->validate();
+            $valid = Model::validateMultiple($modelsAddress) && $valid;
+
+            if ($valid) {
+                $transaction = \Yii::$app->db->beginTransaction();
+                try {
+                    if ($flag = $modelCustomer->save(false)) {
+                        if (! empty($deletedIDs)) {
+                            Address::deleteAll([$pk => $deletedIDs]);
+                        }
+                        foreach ($modelsAddress as $modelAddress) {
+                            $modelAddress->customer_id = $modelCustomer->id;
+                            if (! ($flag = $modelAddress->save(false))) {
+                                $transaction->rollBack();
+                                break;
+                            }
+                        }
+                    }
+                    if ($flag) {
+                        $transaction->commit();
+                        return $this->redirect(['view', 'id' => $modelCustomer->id]);
+                    }
+                } catch (Exception $e) {
+                    $transaction->rollBack();
+                }
+            }
+        }
+
+        return $this->render('update', [
+            'modelCustomer' => $modelCustomer,
+            'modelsAddress' => (empty($modelsAddress)) ? [new Address] : $modelsAddress
+        ]);
+    }
+}
+```
+
 
 ### The View
 The View presents our complex form that will dynamically add or remove items. At the hear of it is the `DynamicFormWidget`
