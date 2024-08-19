@@ -154,12 +154,15 @@ class CustomerController extends Controller
         $modelCustomer = $this->findModel($id);
         $modelsAddress = $modelCustomer->addresses;
 
+        // primary key of $modelsAddress
+        $pkey = 'address_id';
+
         if ($modelCustomer->load(Yii::$app->request->post())) {
 
-            $oldIDs = ArrayHelper::map($modelsAddress, 'id', 'id');
-            $modelsAddress = Model::createMultiple(Address::classname(), $modelsAddress);
+            $oldIDs = ArrayHelper::map($modelsAddress, $pkey, $pkey);
+            $modelsAddress = Model::createMultiple(Address::classname(), $modelsAddress, $pkey);
             Model::loadMultiple($modelsAddress, Yii::$app->request->post());
-            $deletedIDs = array_diff($oldIDs, array_filter(ArrayHelper::map($modelsAddress, 'id', 'id')));
+            $deletedIDs = array_diff($oldIDs, array_filter(ArrayHelper::map($modelsAddress, $pkey, $pkey)));
 
             // ajax validation
             if (Yii::$app->request->isAjax) {
@@ -179,7 +182,7 @@ class CustomerController extends Controller
                 try {
                     if ($flag = $modelCustomer->save(false)) {
                         if (! empty($deletedIDs)) {
-                            Address::deleteAll(['id' => $deletedIDs]);
+                            Address::deleteAll([$pkey => $deletedIDs]);
                         }
                         foreach ($modelsAddress as $modelAddress) {
                             $modelAddress->customer_id = $modelCustomer->id;
@@ -206,7 +209,7 @@ class CustomerController extends Controller
     }
 }
 ```
- 
+
 
 ### The View
 The View presents our complex form that will dynamically add or remove items. At the hear of it is the `DynamicFormWidget`

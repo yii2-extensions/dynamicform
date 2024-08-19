@@ -1,6 +1,11 @@
 # yii2-dynamicform change Log
 
 
+## [v2.0.4 (2024-08-19)](https://github.com/yii2-extensions/dynamicform/compare/v2.0.4...v2.0.3)
+
+- Bug #2: Fixed Fixed case when primary key is not named "id".
+
+
 ## [v2.0.3 (2020-05-18)](https://github.com/yii2-extensions/dynamicform/compare/v2.0.3...v2.0.2)
 
 - Enh: Updated composer.json ('symfony/dom-crawler': '~2.8|~3.0' and 'symfony/css-selector': '~2.8|~3.0').
