@@ -434,6 +434,20 @@
             });
         }
 
+        // "TomSelect"
+        var $hasTomSelect = $(widgetOptionsRoot.widgetItem).find('select');
+        if ($hasTomSelect.length > 0 && typeof TomSelect !== 'undefined') {
+            $hasTomSelect.each(function () {
+                if (!this.tomselect) {
+                    new TomSelect(this, {
+                        plugins: ['remove_button', 'dropdown_input'],
+                        width: '100%',
+                        allowEmptyOption: true
+                    });
+                }
+            });
+        }
+
         // "kartik-v/yii2-widget-select2"
         var $hasSelect2 = $(widgetOptionsRoot.widgetItem).find('[data-krajee-select2]');
         if ($hasSelect2.length > 0) {
