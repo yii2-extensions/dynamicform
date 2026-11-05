@@ -228,6 +228,20 @@ describe('nested widgets', () => {
     ]);
   });
 
+  test('an outer template without inner rows is cloned as is while other outer rows have several', () => {
+    const { dynamicform_houses: housesOptions } = mount(nestedForm({ rooms: [], otherHouses: [['h1', ['r10', 'r11']]] }));
+
+    insert(housesOptions, document.querySelector('.add-house'));
+
+    expect(inputs(), 'The clone must keep the empty inner body of the template.').toEqual([
+      'house-0-name|House[0][name]',
+      'house-1-name|House[1][name]',
+      'room-1-0-name|Room[1][0][name]',
+      'room-1-1-name|Room[1][1][name]',
+      'house-2-name|House[2][name]',
+    ]);
+  });
+
   test('inner rows are numbered within their outer row', () => {
     const fixture = nestedForm();
     const { dynamicform_houses: housesOptions, dynamicform_rooms: roomsOptions } = mount(fixture);

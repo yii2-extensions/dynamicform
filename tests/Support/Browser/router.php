@@ -51,12 +51,21 @@ $scenarios = [
     'last-row' => ['min' => 0],
     // Window load is gated by an image whose response the browser test holds, to click before the POS_LOAD init.
     'preload' => ['loadGate' => true],
-    // Insert selector containing double quotes, emitted by PHP into the click handler.
-    'quoted-selector' => ['clientValidation' => false, 'insertButton' => 'button[data-role="add"]'],
+    // Insert and delete selectors containing double and single quotes, emitted by PHP into the click handlers.
+    'quoted-selector' => ['insertButton' => 'button[data-role="add"]', 'deleteButton' => "button[data-role='remove']"],
+    // A form id with quotes, CSS syntax and an end tag. Yii's ActiveForm script selects the form with `#id`, which such
+    // an id breaks, so the form renders without its client script.
+    'special-form-id' => ['formId' => "dynamic-form.\"v1'</script>:[x]", 'clientScript' => false],
     // Houses containing rooms: one outer and one inner widget, both rendered through begin()/end().
     'nested' => ['view' => 'nested'],
+    // Two houses rendered by the server: the inner widget is rendered once per house with compatible options.
+    'nested-repeated' => ['view' => 'nested', 'houses' => [['h0', ['r00']], ['h1', ['r10', 'r11']]]],
+    // Outer and inner widgets configured with the same insert and delete selectors.
+    'nested-shared-buttons' => ['view' => 'nested', 'sharedButtons' => true],
     // Two forms on one page, each with its own widget and model.
     'two-forms' => ['view' => 'two-forms'],
+    // Two forms whose widgets use the same container name with different options.
+    'two-forms-same-container' => ['view' => 'two-forms', 'sameContainer' => true],
 ];
 
 if ($route !== 'health' && !isset($scenarios[$name])) {
@@ -120,11 +129,17 @@ $scenario = array_replace(
     [
         'name' => $name,
         'clientValidation' => true,
+        'clientScript' => true,
+        'formId' => 'dynamic-form',
         'min' => 1,
         'persisted' => true,
         'loadGate' => false,
         'view' => 'form',
         'insertButton' => '.add-item',
+        'deleteButton' => '.remove-item',
+        'houses' => [['h0', ['r00']]],
+        'sharedButtons' => false,
+        'sameContainer' => false,
         'submitUrl' => "/{$variant}/submit/{$name}",
     ],
     $scenarios[$name],

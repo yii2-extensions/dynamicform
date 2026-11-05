@@ -46,7 +46,7 @@ export function rowIdentities(rows) {
 
 /** Returns the ids of the attributes registered in `yiiActiveForm`, sorted. */
 export function validatorIds(formId) {
-  return window.jQuery(`#${formId}`).data('yiiActiveForm').attributes.map((attribute) => attribute.id).sort();
+  return window.jQuery(document.getElementById(formId)).data('yiiActiveForm').attributes.map((attribute) => attribute.id).sort();
 }
 
 /**

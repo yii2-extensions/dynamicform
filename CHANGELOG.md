@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## 1.0.3 Under development
 
 - chore: isolate quality tools, add PHP-rendered browser and compatibility tests, and align repository config with the template.
+- fix: scope widget registration per page, form and container, and route encoded click handlers and events to the owning container.
 
 ## 1.0.2 May 20, 2026
 
