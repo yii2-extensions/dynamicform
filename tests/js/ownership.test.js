@@ -1,7 +1,6 @@
 import { beforeAll, describe, expect, test } from 'vitest';
 
 import { namesIn, tableRowsForm, twoFormsPage, twoRootsForm } from './fixtures/roots.js';
-import { defectTest } from './support/defect-test.js';
 import { insert, mount, remove } from './support/dom.js';
 import { loadEnvironment } from './support/environment.js';
 import { validatorIds } from './support/state.js';
@@ -48,7 +47,7 @@ describe('several roots', () => {
     });
   });
 
-  defectTest('ownership-same-container-class', 'a container class reused in another form is renumbered separately', () => {
+  test('a container class reused in another form is renumbered separately', () => {
     const { dynamicform_first: first } = mount(twoFormsPage({ sameContainer: true }));
 
     insert(first, document.querySelector('.add-a'));

@@ -18,10 +18,6 @@ export const knownDefects = {
     'F-10: the row-index pattern rewrites the literal key 2024 of the existing row (Phase 4A)',
     'Literal key 2024 must survive; only the row index may change.',
   ),
-  'ownership-same-container-class': both(
-    'N-06: rows are selected by container class across the page, so another form with that class is renumbered (C08, D02)',
-    'The other form must keep its indexes.',
-  ),
   'values-defaults': both(
     'N-07: clones keep the template value attributes, so a form reset fills new rows with the first row values (Phase 4B)',
     'Reset must restore saved values and a blank clone.',

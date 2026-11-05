@@ -34,7 +34,9 @@
         init: function (widgetOptions) {
             return this.each(function () {
                 widgetOptions.template = _parseTemplate(widgetOptions);
-                _attachValidation(widgetOptions);
+                _containersOf($(this), widgetOptions).each(function () {
+                    _attachValidation(_rootOf($(this)));
+                });
             });
         },
 
@@ -47,11 +49,13 @@
         },
 
         updateContainer: function () {
-            var widgetOptions = eval($(this).attr('data-dynamicform'));
-            _prepare(widgetOptions);
-            _updateAttributes(widgetOptions);
-            _restoreSpecialJs(widgetOptions);
-            _fixFormValidaton(widgetOptions);
+            return this.each(function () {
+                var $root = _rootOf($(this));
+                _prepare($root, _optionsOf($(this)));
+                _updateAttributes($root);
+                _restoreSpecialJs($root);
+                _fixFormValidaton($root);
+            });
         }
     };
 
@@ -90,9 +94,34 @@
         return $template;
     };
 
-    var _getWidgetOptionsRoot = function (widgetOptions) {
-        var $root = $('.' + widgetOptions.widgetContainer).first().parents('div[data-dynamicform]').last();
-        return $root.length ? window[$root.attr('data-dynamicform')] : widgetOptions;
+    // The outermost dynamic-form container an element belongs to; it owns the rows, the validators and the form, so
+    // another container with the same class elsewhere on the page is never touched.
+    var _rootOf = function ($element) {
+        return $element.parents('div[data-dynamicform]').addBack().filter('div[data-dynamicform]').first();
+    };
+
+    var _optionsOf = function ($container) {
+        return window[$container.attr('data-dynamicform')];
+    };
+
+    var _containersOf = function ($element, widgetOptions) {
+        return $element.find('.' + widgetOptions.widgetContainer).addBack('.' + widgetOptions.widgetContainer);
+    };
+
+    // The ActiveForm of a root: the enclosing form, or the configured id when the container is rendered outside it.
+    var _formOf = function ($root) {
+        var $form = $root.closest('form');
+        return $form.length > 0 ? $form : $('#' + _optionsOf($root).formId);
+    };
+
+    // Validator templates and the ids registered through this root, kept on the root element.
+    var _validationState = function ($root) {
+        var state = $root.data('dynamicformValidation');
+        if (!state) {
+            state = { templates: {}, ids: [] };
+            $root.data('dynamicformValidation', state);
+        }
+        return state;
     };
 
     var _count = function ($elem, widgetOptions) {
@@ -101,10 +130,11 @@
 
     var _addItem = function (widgetOptions, e, $elem) {
         var $container = $elem.closest('.' + widgetOptions.widgetContainer);
+        var $root = _rootOf($container);
         var count = _count($elem, widgetOptions);
 
         if (count < widgetOptions.limit) {
-            _prepare(widgetOptions);
+            _prepare($root, widgetOptions);
             var $toclone = $(widgetOptions.template);
             var $newclone = $toclone.clone(false, false);
 
@@ -114,9 +144,9 @@
                 $container.find(widgetOptions.widgetBody).append($newclone);
             }
 
-            _updateAttributes(widgetOptions);
-            _restoreSpecialJs(widgetOptions);
-            _fixFormValidaton(widgetOptions);
+            _updateAttributes($root);
+            _restoreSpecialJs($root);
+            _fixFormValidaton($root);
             $container.triggerHandler(events.afterInsert, $newclone);
         } else {
             // trigger a custom event for hooking
@@ -144,11 +174,11 @@
     // Calls back for every element of the widget rows that has a validator: its own registration when it was rendered
     // with one, otherwise the template of its field. Inputs and the wrappers ActiveForm registers for radio and
     // checkbox lists count; the wrapper name comes from the inputs inside it.
-    var _eachValidated = function (root, callback) {
-        $('.' + root.widgetContainer).find('[id]').each(function () {
+    var _eachValidated = function ($root, callback) {
+        var state = _validationState($root);
+        $root.find('[id]').each(function () {
             var id = $(this).attr('id');
-            var attribute = $(this).data('dynamicformAttribute')
-                || (root.validationTemplates || {})[_validationKey(id, _inputLevel($(this)))];
+            var attribute = $(this).data('dynamicformAttribute') || state.templates[_validationKey(id, _inputLevel($(this)))];
             var name = $(this).attr('name') || $(this).find('[name]').first().attr('name');
             if (attribute && name !== undefined) {
                 callback(id, name, attribute);
@@ -169,20 +199,17 @@
     };
 
     // Ids of the validated fields of the root widget and of the widgets nested in it, as `{}` templates.
-    var _templateKeys = function (root) {
+    var _templateKeys = function ($root) {
         var keys = {};
         var collect = function (options) {
-            $.each(options.fields || [], function () {
+            $.each((options && options.fields) || [], function () {
                 keys[this.id] = true;
             });
         };
 
-        collect(root);
-        $('.' + root.widgetContainer).find('div[data-dynamicform]').each(function () {
-            var options = window[$(this).attr('data-dynamicform')];
-            if (options) {
-                collect(options);
-            }
+        collect(_optionsOf($root));
+        $root.find('div[data-dynamicform]').each(function () {
+            collect(_optionsOf($(this)));
         });
 
         return keys;
@@ -191,25 +218,22 @@
     // Copies the validators ActiveForm registered for the widget rows: those declared in `fields`, including rows the
     // server removed for `min` 0, and those bound to an input inside the container. The copy is also kept on the
     // element itself, so a renumbered row keeps its own rule while new rows take the field template.
-    var _rememberValidation = function (widgetOptions) {
-        var root = _getWidgetOptionsRoot(widgetOptions);
-        var data = $('#' + root.formId).data('yiiActiveForm');
-        root.validationTemplates = root.validationTemplates || {};
-        root.validationIds = root.validationIds || [];
+    var _rememberValidation = function ($root) {
+        var data = _formOf($root).data('yiiActiveForm');
+        var state = _validationState($root);
         if (!data) {
             return;
         }
-        var keys = _templateKeys(root);
-        var $container = $('.' + root.widgetContainer);
+        var keys = _templateKeys($root);
         $.each(data.attributes, function () {
-            var $input = $container.find('[id="' + this.id + '"]');
+            var $input = $root.find('[id="' + this.id + '"]');
             var key = $input.length > 0 ? _validationKey(this.id, _inputLevel($input)) : _templateKeyFor(keys, this.id);
             if (key !== this.id && (keys[key] || $input.length > 0)) {
                 var copy = $.extend(true, {}, this);
-                root.validationTemplates[key] = copy;
+                state.templates[key] = copy;
                 $input.data('dynamicformAttribute', copy);
-                if (root.validationIds.indexOf(this.id) === -1) {
-                    root.validationIds.push(this.id);
+                if (state.ids.indexOf(this.id) === -1) {
+                    state.ids.push(this.id);
                 }
             }
         });
@@ -217,40 +241,40 @@
 
     // Rows can be inserted before the window load initialization (jQuery 3 may run it before ActiveForm's DOM ready
     // handler), so the template is parsed and the validators are discovered again before every change.
-    var _prepare = function (widgetOptions) {
+    var _prepare = function ($root, widgetOptions) {
         if (typeof widgetOptions.template === 'string') {
             widgetOptions.template = _parseTemplate(widgetOptions);
         }
-        _rememberValidation(widgetOptions);
+        _rememberValidation($root);
     };
 
     // Gives a validator to every row that lacks one, such as rows inserted before the window load initialization.
     // ActiveForm initializes on DOM ready, which jQuery 3 may run after that handler, so the step waits for it.
-    var _attachValidation = function (widgetOptions) {
-        var root = _getWidgetOptionsRoot(widgetOptions);
-        var $form = $('#' + root.formId);
+    var _attachValidation = function ($root) {
+        var $form = _formOf($root);
         if (!$form.data('yiiActiveForm')) {
             $form.one('afterInit', function () {
-                _attachValidation(widgetOptions);
+                _attachValidation($root);
             });
             return;
         }
-        _rememberValidation(widgetOptions);
-        _eachValidated(root, function (id, name, attribute) {
+        var state = _validationState($root);
+        _rememberValidation($root);
+        _eachValidated($root, function (id, name, attribute) {
             if ($form.yiiActiveForm('find', id) === undefined) {
-                _fixFormValidatonInput(root, attribute, id, name);
-                root.validationIds.push(id);
+                _fixFormValidatonInput($form, attribute, id, name);
+                state.ids.push(id);
             }
         });
     };
 
-    var _removeValidations = function (widgetOptions) {
-        var root = _getWidgetOptionsRoot(widgetOptions);
-        var $form = $('#' + root.formId);
-        (root.validationIds || []).forEach(function (id) {
+    var _removeValidations = function ($root) {
+        var $form = _formOf($root);
+        var state = _validationState($root);
+        state.ids.forEach(function (id) {
             $form.yiiActiveForm('remove', id);
         });
-        root.validationIds = [];
+        state.ids = [];
     };
 
     var _deleteItem = function (widgetOptions, e, $elem) {
@@ -259,16 +283,17 @@
         if (count > widgetOptions.min) {
             var $todelete = $elem.closest(widgetOptions.widgetItem);
             var $container = $elem.closest('.' + widgetOptions.widgetContainer);
+            var $root = _rootOf($container);
 
             // trigger a custom event for hooking
             var eventResult = $container.triggerHandler(events.beforeDelete, $todelete);
             if (eventResult !== false) {
-                _prepare(widgetOptions);
-                _removeValidations(widgetOptions);
+                _prepare($root, widgetOptions);
+                _removeValidations($root);
                 $todelete.remove();
-                _updateAttributes(widgetOptions);
-                _restoreSpecialJs(widgetOptions);
-                _fixFormValidaton(widgetOptions);
+                _updateAttributes($root);
+                _restoreSpecialJs($root);
+                _fixFormValidaton($root);
                 $container.triggerHandler(events.afterDelete);
             }
         }
@@ -355,10 +380,8 @@
         return name;
     };
 
-    var _updateAttributes = function (widgetOptions) {
-        var widgetOptionsRoot = _getWidgetOptionsRoot(widgetOptions);
-
-        $('.' + widgetOptionsRoot.widgetContainer).find(widgetOptionsRoot.widgetItem).each(function (index) {
+    var _updateAttributes = function ($root) {
+        $root.find(_optionsOf($root).widgetItem).each(function (index) {
             $(this).find('*').each(function () {
                 // update "id" attribute
                 _updateAttrID($(this), index);
@@ -369,7 +392,7 @@
         });
     };
 
-    var _fixFormValidatonInput = function (widgetOptions, attribute, id, name) {
+    var _fixFormValidatonInput = function ($form, attribute, id, name) {
         if (attribute !== undefined) {
             attribute = $.extend(true, {}, attribute);
             attribute.id = id;
@@ -379,23 +402,24 @@
             attribute.value = $("#" + id).val();
             attribute.status = 0;
 
-            if ($("#" + widgetOptions.formId).yiiActiveForm("find", id) !== undefined) {
-                $("#" + widgetOptions.formId).yiiActiveForm("remove", id);
+            if ($form.yiiActiveForm("find", id) !== undefined) {
+                $form.yiiActiveForm("remove", id);
             }
 
-            $("#" + widgetOptions.formId).yiiActiveForm("add", attribute);
+            $form.yiiActiveForm("add", attribute);
         }
     };
 
-    var _fixFormValidaton = function (widgetOptions) {
-        var root = _getWidgetOptionsRoot(widgetOptions);
-        if (!$('#' + root.formId).data('yiiActiveForm')) {
+    var _fixFormValidaton = function ($root) {
+        var $form = _formOf($root);
+        if (!$form.data('yiiActiveForm')) {
             return;
         }
-        _removeValidations(root);
-        _eachValidated(root, function (id, name, attribute) {
-            _fixFormValidatonInput(root, attribute, id, name);
-            root.validationIds.push(id);
+        var state = _validationState($root);
+        _removeValidations($root);
+        _eachValidated($root, function (id, name, attribute) {
+            _fixFormValidatonInput($form, attribute, id, name);
+            state.ids.push(id);
         });
     };
 
@@ -415,9 +439,8 @@
         $elem.depdrop(configDepdrop);
     };
 
-    var _restoreSpecialJs = function (widgetOptions) {
-        var widgetOptionsRoot = _getWidgetOptionsRoot(widgetOptions);
-        var $items = $('.' + widgetOptionsRoot.widgetContainer).find(widgetOptionsRoot.widgetItem);
+    var _restoreSpecialJs = function ($root) {
+        var $items = $root.find(_optionsOf($root).widgetItem);
 
         // "jquery.inputmask"
         var $hasInputmask = $items.find('[data-plugin-inputmask]');
