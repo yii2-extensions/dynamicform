@@ -518,8 +518,9 @@
             });
         }
 
-        // "TomSelect"
-        var $hasTomSelect = $items.find('select.tomselected');
+        // "TomSelect": `data-tomselect` marks the selects in the server markup, so clones carry it; `tomselected` is
+        // the class TomSelect itself adds to an initialized select.
+        var $hasTomSelect = $items.find('select[data-tomselect], select.tomselected');
         if ($hasTomSelect.length > 0 && typeof TomSelect !== 'undefined') {
             $hasTomSelect.each(function () {
                 if (!this.tomselect) {

@@ -52,6 +52,12 @@ $valid = Model::validateMultiple($modelsAddress);
 
 The third argument names the primary key; it defaults to `id`.
 
+## Enhanced controls
+
+Rows are cloned from the server markup, so a control enhanced on the client needs a marker that survives cloning. Add
+`data-tomselect` to the selects that [TomSelect](https://tom-select.js.org/) should initialize in inserted rows; Kartik
+widgets are detected through their own `data-krajee-*` attributes.
+
 ## JavaScript events
 
 The container triggers jQuery events when rows are inserted or deleted. Returning `false` from `beforeDelete` cancels

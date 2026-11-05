@@ -61,7 +61,7 @@ class Address extends ActiveRecord
 ## Create action
 
 `Model::createMultiple()` creates one `Address` per posted row; the rows are loaded, validated and saved inside one
-transaction.
+transaction, which is rolled back when any save is vetoed.
 
 ```php
 namespace app\controllers;
@@ -120,6 +120,10 @@ class CustomerController extends Controller
                         $transaction->commit();
 
                         return $this->redirect(['view', 'id' => $modelCustomer->id]);
+                    }
+
+                    if ($transaction->isActive) {
+                        $transaction->rollBack();
                     }
                 } catch (Exception $e) {
                     $transaction->rollBack();
@@ -216,6 +220,10 @@ class CustomerController extends Controller
                         $transaction->commit();
 
                         return $this->redirect(['view', 'id' => $modelCustomer->id]);
+                    }
+
+                    if ($transaction->isActive) {
+                        $transaction->rollBack();
                     }
                 } catch (Exception $e) {
                     $transaction->rollBack();

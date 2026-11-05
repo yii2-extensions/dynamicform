@@ -1,6 +1,7 @@
-import { beforeAll, describe, expect, test } from 'vitest';
+import { beforeAll, describe, expect, test, vi } from 'vitest';
 
 import { controlsForm } from './fixtures/controls.js';
+import { buttons, select, widgetOptions } from './fixtures/markup.js';
 import { enhanceSelect2, select2Form } from './fixtures/select2.js';
 import { defectTest } from './support/defect-test.js';
 import { insert, mount } from './support/dom.js';
@@ -148,5 +149,35 @@ describe('Select2 controls', () => {
       },
       'Multiple clone must be empty and enhanced once.',
     ).toEqual({ original: ['a', 'b'], clone: [], name: 'FormModel[1][tags][]', containers: 1 });
+  });
+});
+
+describe('TomSelect controls', () => {
+  test('a cloned select marked with data-tomselect is enhanced once and the original is not re-enhanced', () => {
+    const constructed = [];
+
+    vi.stubGlobal(
+      'TomSelect',
+      class {
+        constructor(select) {
+          select.tomselect = this;
+          constructed.push(select.id);
+        }
+      },
+    );
+
+    const row = (index) =>
+      `<div class="item">${select(`formmodel-${index}-kind`, `FormModel[${index}][kind]`, { a: 'A', b: 'B' }, { attributes: ' data-tomselect' })}${buttons()}</div>`;
+    const fixture = {
+      html: `<form id="tom-form"><div class="dynamic_form" data-dynamicform="dynamicform_tom"><div class="items">${row(0)}</div></div></form>`,
+      widgets: { dynamicform_tom: widgetOptions({ widgetContainer: 'dynamic_form', formId: 'tom-form', template: row(0) }) },
+      validation: { 'tom-form': [] },
+    };
+
+    mount(fixture);
+    new window.TomSelect(document.getElementById('formmodel-0-kind'));
+    insert(fixture.widgets.dynamicform_tom, document.querySelector('.add-item'));
+
+    expect(constructed, 'Only the clone may be enhanced by the plugin.').toEqual(['formmodel-0-kind', 'formmodel-1-kind']);
   });
 });
