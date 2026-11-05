@@ -1,0 +1,12 @@
+includes:
+    - phar://phpstan.phar/conf/bleedingEdge.neon
+
+parameters:
+    bootstrapFiles:
+        - tests/bootstrap.php
+    level: max
+    phpVersion: 80100
+    paths:
+        - src
+        - tests
+    tmpDir: runtime/phpstan

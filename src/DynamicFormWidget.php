@@ -1,32 +1,53 @@
 <?php
 
-/**
- * @link      https://github.com/yii2-extensions/dynamicform
- * @copyright Copyright (c) 2014  - 2024 Wanderson Bragança, Yii community, et al
- * @license   https://github.com/yii2-extensions/dynamicform/blob/master/LICENSE
- */
-
 namespace Yii2\Extensions\DynamicForm;
 
+use Symfony\Component\DomCrawler\Crawler;
 use Yii;
+use yii\base\InvalidConfigException;
+use yii\base\Model;
 use yii\helpers\Html;
 use yii\helpers\Json;
-use yii\base\InvalidConfigException;
-use Symfony\Component\DomCrawler\Crawler;
+use yii\web\View;
 
 /**
  * Yii2 Dynamic form widget for  cloning form elements in a nested manner while maintaining accessibility.
- *
- * @author Wanderson Bragança <wanderson.wbc@gmail.com>
- * @author Stefano Mtangoo <mwinjilisti@gmail.com>
  */
 class DynamicFormWidget extends \yii\base\Widget
 {
-    const WIDGET_NAME = 'dynamicform';
+    public const WIDGET_NAME = 'dynamicform';
     /**
      * @var string
      */
-    public $widgetContainer;
+    public $deleteButton;
+    /**
+     * @var list<string> fields to be validated.
+     */
+    public $formFields;
+    /**
+     * @var string form ID
+     */
+    public $formId;
+    /**
+     * @var string
+     */
+    public $insertButton;
+    /**
+     * @var string 'bottom' or 'top';
+     */
+    public $insertPosition = 'bottom';
+    /**
+     * @var int
+     */
+    public $limit = 999;
+    /**
+     * @var int
+     */
+    public $min = 1;
+    /**
+     * @var Model the model used for the form
+     */
+    public $model;
     /**
      * @var string
      */
@@ -34,55 +55,27 @@ class DynamicFormWidget extends \yii\base\Widget
     /**
      * @var string
      */
+    public $widgetContainer;
+    /**
+     * @var string
+     */
     public $widgetItem;
     /**
-     * @var string
+     * @var string the Json encoded options.
      */
-    public $limit = 999;
-    /**
-     * @var string
-     */
-    public $insertButton;
-    /**
-     * @var string
-     */
-    public $deleteButton;
-    /**
-     * @var string 'bottom' or 'top';
-     */
-    public $insertPosition = 'bottom';
-    /**
-     * @var Model|ActiveRecord the model used for the form
-     */
-    public $model;
-    /**
-     * @var string form ID
-     */
-    public $formId;
-    /**
-     * @var array fields to be validated.
-     */
-    public $formFields;
-    /**
-     * @var integer
-     */
-    public $min = 1;
-    /**
-     * @var string
-     */
-    private $_options;
-    /**
-     * @var array
-     */
-    private $_insertPositions = ['bottom', 'top'];
+    private $_encodedOptions = '';
     /**
      * @var string the hashed global variable name storing the pluginOptions.
      */
     private $_hashVar;
     /**
-     * @var string the Json encoded options.
+     * @var list<string>
      */
-    private $_encodedOptions = '';
+    private $_insertPositions = ['bottom', 'top'];
+    /**
+     * @var array<string, mixed>
+     */
+    private $_options = [];
 
     /**
      * Initializes the widget.
@@ -94,7 +87,7 @@ class DynamicFormWidget extends \yii\base\Widget
         parent::init();
 
         if (empty($this->widgetContainer) || (preg_match('/^\w{1,}$/', $this->widgetContainer) === 0)) {
-            throw new InvalidConfigException('Invalid configuration to property "widgetContainer". 
+            throw new InvalidConfigException('Invalid configuration to property "widgetContainer".
                 Allowed only alphanumeric characters plus underline: [A-Za-z0-9_]');
         }
         if (empty($this->widgetBody)) {
@@ -120,6 +113,111 @@ class DynamicFormWidget extends \yii\base\Widget
     }
 
     /**
+     * Registers the needed assets.
+     *
+     * @param View $view The View object
+     */
+    public function registerAssets($view)
+    {
+        DynamicFormAsset::register($view);
+
+        // add a click handler for the clone button
+        $js = 'jQuery("#' . $this->formId . '").on("click", "' . $this->insertButton . '", function(e) {' . "\n";
+        $js .= "    e.preventDefault();\n";
+        $js .= '    jQuery(".' . $this->widgetContainer . '").triggerHandler("beforeInsert", [jQuery(this)]);' . "\n";
+        $js .= '    jQuery(".' . $this->widgetContainer . '").yiiDynamicForm("addItem", ' . $this->_hashVar . ", e, jQuery(this));\n";
+        $js .= "});\n";
+        $view->registerJs($js, $view::POS_READY);
+
+        // add a click handler for the remove button
+        $js = 'jQuery("#' . $this->formId . '").on("click", "' . $this->deleteButton . '", function(e) {' . "\n";
+        $js .= "    e.preventDefault();\n";
+        $js .= '    jQuery(".' . $this->widgetContainer . '").yiiDynamicForm("deleteItem", ' . $this->_hashVar . ", e, jQuery(this));\n";
+        $js .= "});\n";
+        $view->registerJs($js, $view::POS_READY);
+
+        $js = 'jQuery("#' . $this->formId . '").yiiDynamicForm(' . $this->_hashVar . ');' . "\n";
+        $view->registerJs($js, $view::POS_LOAD);
+    }
+
+    /**
+     * Register the actual widget.
+     *
+     * @return bool
+     */
+    public function registerHashVarWidget()
+    {
+        if (!isset(Yii::$app->params[self::WIDGET_NAME][$this->widgetContainer])) {
+            Yii::$app->params[self::WIDGET_NAME][$this->widgetContainer] = $this->_hashVar;
+            return true;
+        }
+
+        return false;
+    }
+
+    public function run()
+    {
+        $content = ob_get_clean();
+
+        $crawler = new Crawler();
+
+        $crawler->addHTMLContent($content, \Yii::$app->charset);
+
+        $results = $crawler->filter($this->widgetItem);
+        $template = $results->first()->getNode(0);
+
+        if ($template === null) {
+            throw new InvalidConfigException('The "widgetItem" selector must match at least one template item.');
+        }
+
+        $document = new \DOMDocument('1.0', \Yii::$app->charset);
+
+        $document->appendChild($document->importNode($template, true));
+
+        $this->_options['template'] = trim($document->saveHTML());
+
+        if ($this->min === 0 && (!$this->model->canGetProperty('isNewRecord') || $this->model->isNewRecord)) {
+            $content = $this->removeItems($content);
+        }
+
+        $this->hashOptions();
+
+        $view = $this->getView();
+        $widgetRegistered = $this->registerHashVarWidget();
+        $this->_hashVar = $this->getHashVarName();
+
+        if ($widgetRegistered) {
+            $this->registerOptions($view);
+            $this->registerAssets($view);
+        }
+
+        echo Html::tag('div', $content, ['class' => $this->widgetContainer, 'data-dynamicform' => $this->_hashVar]);
+    }
+
+    /**
+     * Returns the hashed variable.
+     *
+     * @return string
+     */
+    protected function getHashVarName()
+    {
+        if (isset(Yii::$app->params[self::WIDGET_NAME][$this->widgetContainer])) {
+            return Yii::$app->params[self::WIDGET_NAME][$this->widgetContainer];
+        }
+
+        return $this->_hashVar;
+    }
+
+    /**
+     * Generates a hashed variable to store the options.
+     */
+    protected function hashOptions()
+    {
+        $this->_encodedOptions = Json::htmlEncode($this->_options);
+        $this->_hashVar = self::WIDGET_NAME . '_' . hash('crc32', $this->_encodedOptions);
+    }
+
+    /**
      * Initializes the widget options.
      */
     protected function initOptions()
@@ -138,7 +236,7 @@ class DynamicFormWidget extends \yii\base\Widget
         foreach ($this->formFields as $field) {
             $this->_options['fields'][] = [
                 'id' => Html::getInputId($this->model, '[{}]' . $field),
-                'name' => Html::getInputName($this->model, '[{}]' . $field)
+                'name' => Html::getInputName($this->model, '[{}]' . $field),
             ];
         }
 
@@ -157,102 +255,6 @@ class DynamicFormWidget extends \yii\base\Widget
     }
 
     /**
-     * Generates a hashed variable to store the options.
-     */
-    protected function hashOptions()
-    {
-        $this->_encodedOptions = Json::encode($this->_options);
-        $this->_hashVar = self::WIDGET_NAME . '_' . hash('crc32', $this->_encodedOptions);
-    }
-
-    /**
-     * Returns the hashed variable.
-     *
-     * @return string
-     */
-    protected function getHashVarName()
-    {
-        if (isset(Yii::$app->params[self::WIDGET_NAME][$this->widgetContainer])) {
-            return Yii::$app->params[self::WIDGET_NAME][$this->widgetContainer];
-        }
-
-        return $this->_hashVar;
-    }
-
-    /**
-     * Register the actual widget.
-     *
-     * @return boolean
-     */
-    public function registerHashVarWidget()
-    {
-        if (!isset(Yii::$app->params[self::WIDGET_NAME][$this->widgetContainer])) {
-            Yii::$app->params[self::WIDGET_NAME][$this->widgetContainer] = $this->_hashVar;
-            return true;
-        }
-
-        return false;
-    }
-
-    /**
-     * Registers the needed assets.
-     *
-     * @param View $view The View object
-     */
-    public function registerAssets($view)
-    {
-        DynamicFormAsset::register($view);
-
-        // add a click handler for the clone button
-        $js = 'jQuery("#' . $this->formId . '").on("click", "' . $this->insertButton . '", function(e) {' . "\n";
-        $js .= "    e.preventDefault();\n";
-        $js .= '    jQuery(".' .  $this->widgetContainer . '").triggerHandler("beforeInsert", [jQuery(this)]);' . "\n";
-        $js .= '    jQuery(".' .  $this->widgetContainer . '").yiiDynamicForm("addItem", ' . $this->_hashVar . ", e, jQuery(this));\n";
-        $js .= "});\n";
-        $view->registerJs($js, $view::POS_READY);
-
-        // add a click handler for the remove button
-        $js = 'jQuery("#' . $this->formId . '").on("click", "' . $this->deleteButton . '", function(e) {' . "\n";
-        $js .= "    e.preventDefault();\n";
-        $js .= '    jQuery(".' .  $this->widgetContainer . '").yiiDynamicForm("deleteItem", ' . $this->_hashVar . ", e, jQuery(this));\n";
-        $js .= "});\n";
-        $view->registerJs($js, $view::POS_READY);
-
-        $js = 'jQuery("#' . $this->formId . '").yiiDynamicForm(' . $this->_hashVar . ');' . "\n";
-        $view->registerJs($js, $view::POS_LOAD);
-    }
-
-    /**
-     * @inheritdoc
-     */
-    public function run()
-    {
-        $content = ob_get_clean();
-        $crawler = new Crawler();
-        $crawler->addHTMLContent($content, \Yii::$app->charset);
-        $results = $crawler->filter($this->widgetItem);
-        $document = new \DOMDocument('1.0', \Yii::$app->charset);
-        $document->appendChild($document->importNode($results->first()->getNode(0), true));
-        $this->_options['template'] = trim($document->saveHTML());
-
-        if (isset($this->_options['min']) && $this->_options['min'] === 0 && $this->model->isNewRecord) {
-            $content = $this->removeItems($content);
-        }
-
-        $this->hashOptions();
-        $view = $this->getView();
-        $widgetRegistered = $this->registerHashVarWidget();
-        $this->_hashVar = $this->getHashVarName();
-
-        if ($widgetRegistered) {
-            $this->registerOptions($view);
-            $this->registerAssets($view);
-        }
-
-        echo Html::tag('div', $content, ['class' => $this->widgetContainer, 'data-dynamicform' => $this->_hashVar]);
-    }
-
-    /**
      * Clear HTML widgetBody. Required to work with zero or more items.
      *
      * @param string $content
@@ -267,6 +269,6 @@ class DynamicFormWidget extends \yii\base\Widget
             }
         });
 
-        return $crawler->html();
+        return $crawler->filter('body')->html();
     }
 }

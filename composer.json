@@ -1,6 +1,7 @@
 {
     "name": "yii2-extensions/dynamicform",
-    "description": "Yii2 Dynamic form widget for  cloning form elements in a nested manner while maintaining accessibility.",
+    "type": "yii2-extension",
+    "description": "Yii2 widget for cloning nested form elements while maintaining accessibility and client validation.",
     "keywords": [
         "yii2",
         "extension",
@@ -10,10 +11,7 @@
         "dynamic form",
         "Yii2 extensions"
     ],
-    "type": "yii2-extension",
     "license": "BSD-3-Clause",
-    "minimum-stability": "dev",
-    "prefer-stable": true,
     "support": {
         "issues": "https://github.com/yii2-extensions/dynamicform/issues",
         "wiki": "https://github.com/yii2-extensions/dynamicform/wiki/",
@@ -32,18 +30,99 @@
         }
     ],
     "require": {
+        "php": ">=8.1",
+        "ext-dom": "*",
         "yiisoft/yii2": "^2.0.49",
         "symfony/css-selector": "^6.4||^7.0",
         "symfony/dom-crawler": "^6.4||^7.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^10.5"
     },
     "autoload": {
         "psr-4": {
             "Yii2\\Extensions\\DynamicForm\\": "src"
         }
     },
+    "autoload-dev": {
+        "psr-4": {
+            "Yii2\\Extensions\\DynamicForm\\Tests\\": "tests"
+        }
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-main": "2.0.x-dev"
+        }
+    },
     "config": {
+        "sort-packages": true,
         "allow-plugins": {
             "yiisoft/yii2-composer": true
         }
-    }
+    },
+    "scripts": {
+        "actionlint": "actionlint",
+        "check-dependencies": "tools/vendor/bin/composer-require-checker check --config-file=composer-require-checker.json composer.json",
+        "codespell": "codespell --config .github/linters/.codespellrc",
+        "ecs": "tools/vendor/bin/ecs check --fix",
+        "ecs-check": "tools/vendor/bin/ecs check --ansi",
+        "editorconfig-checker": "editorconfig-checker -config .github/linters/.editorconfig-checker.json",
+        "gitleaks": "gitleaks git --config .github/linters/.gitleaks.toml --redact",
+        "markdownlint": "markdownlint-cli2 --config .github/linters/.markdown-lint.yml '**/*.md'",
+        "mutation": [
+            "Composer\\Config::disableProcessTimeout",
+            "@php -d memory_limit=-1 tools/vendor/bin/infection"
+        ],
+        "mutation-static": "@mutation --static-analysis-tool=phpstan",
+        "prettier": "prettier --check --config .prettierrc.json --ignore-path .prettierignore '**/*.md' '**/*.{yml,yaml}'",
+        "quality": [
+            "@actionlint",
+            "@codespell",
+            "@editorconfig-checker",
+            "@markdownlint",
+            "@prettier",
+            "@yamllint"
+        ],
+        "rector": "tools/vendor/bin/rector process",
+        "rector-check": "tools/vendor/bin/rector process --dry-run",
+        "security": [
+            "@zizmor",
+            "@gitleaks"
+        ],
+        "static": "tools/vendor/bin/phpstan --memory-limit=-1",
+        "tests": "phpunit",
+        "tools-install": "@composer --working-dir=tools install",
+        "tools-verify": "@php tools/verify-graph.php",
+        "yamllint": "yamllint -c .github/linters/.yamllint.yml .github",
+        "zizmor": "zizmor --persona=pedantic .github"
+    },
+    "scripts-descriptions": {
+        "actionlint": "Lints GitHub Actions workflows with actionlint.",
+        "check-dependencies": "Verifies that used symbols are declared as Composer dependencies.",
+        "codespell": "Checks spelling with codespell.",
+        "ecs": "Applies coding standard fixes with ECS.",
+        "ecs-check": "Checks coding standards with ECS without modifying files.",
+        "editorconfig-checker": "Checks files against the EditorConfig rules.",
+        "gitleaks": "Scans Git history for secrets with Gitleaks.",
+        "markdownlint": "Lints Markdown files with markdownlint-cli2.",
+        "mutation": "Runs mutation testing with Infection.",
+        "mutation-static": "Runs mutation testing with Infection and PHPStan static analysis.",
+        "prettier": "Checks Markdown and YAML formatting with Prettier.",
+        "quality": "Runs all repository quality checks.",
+        "rector": "Applies automated refactoring with Rector.",
+        "rector-check": "Previews Rector refactoring without modifying files.",
+        "security": "Runs the workflow security and secret scanning checks.",
+        "static": "Runs static analysis with PHPStan.",
+        "tests": "Runs PHPUnit.",
+        "tools-install": "Installs the isolated quality-tool graph in tools/vendor (requires the documented tool host).",
+        "tools-verify": "Verifies that the tool graph does not shadow root Yii, PHPUnit or Symfony classes.",
+        "yamllint": "Lints YAML files with yamllint.",
+        "zizmor": "Audits GitHub Actions workflows with zizmor."
+    },
+    "repositories": [
+        {
+            "type": "composer",
+            "url": "https://asset-packagist.org"
+        }
+    ]
 }

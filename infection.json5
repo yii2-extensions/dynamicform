@@ -1,0 +1,20 @@
+{
+    "$schema": "tools/vendor/infection/infection/resources/schema.json",
+    "source": {
+        "directories": ["src"]
+    },
+    "phpUnit": {
+        "configDir": ".",
+        "customPath": "vendor/bin/phpunit"
+    },
+    "phpStan": {
+        "configDir": ".",
+        "customPath": "tools/vendor/bin/phpstan"
+    },
+    "tmpDir": "runtime/infection",
+    "logs": {
+        "text": "runtime/infection/infection.log",
+        "summary": "runtime/infection/summary.log",
+        "json": "runtime/infection/infection.json"
+    }
+}
