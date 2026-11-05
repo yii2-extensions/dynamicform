@@ -103,7 +103,7 @@ describe('row validators', () => {
 });
 
 describe('template discovery', () => {
-  defectTest('validation-zero-start', 'rows inserted into an initially empty form are validated (zero start)', async () => {
+  test('rows inserted into an initially empty form are validated (zero start)', async () => {
     mount(tabularForm({ rows: [], template: {}, min: 0 }));
 
     insert(options(), firstInsertButton());
@@ -115,7 +115,21 @@ describe('template discovery', () => {
     });
   });
 
-  defectTest('validation-before-init', 'a row inserted before the window-load initialization is validated', async () => {
+  test('options without a fields list still clone the validators bound to the rendered inputs', async () => {
+    const fixture = tabularForm();
+
+    delete fixture.widgets.dynamicform_rows.fields;
+    mount(fixture);
+
+    insert(options(), insertButton(0));
+
+    expect(await validate('dynamic-form'), 'The inserted row must run the rule of the rendered row.').toEqual({
+      'formmodel-0-name': '',
+      'formmodel-1-name': blankError,
+    });
+  });
+
+  test('a row inserted before the window-load initialization is validated', async () => {
     const fixture = tabularForm();
 
     mount(fixture, { init: false });

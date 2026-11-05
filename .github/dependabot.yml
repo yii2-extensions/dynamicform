@@ -21,18 +21,6 @@ updates:
       default-days: 7
     versioning-strategy: increase-if-necessary
 
-  # Maintain dependencies for the isolated Composer tool graph
-  - package-ecosystem: "composer"
-    directory: "/tools"
-    schedule:
-      interval: "daily"
-    cooldown:
-      default-days: 7
-    groups:
-      tools:
-        patterns: ["*"]
-    versioning-strategy: increase-if-necessary
-
   # Maintain dependencies for npm
   - package-ecosystem: "npm"
     directory: "/"

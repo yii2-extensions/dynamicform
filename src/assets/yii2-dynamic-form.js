@@ -48,6 +48,7 @@
 
         updateContainer: function () {
             var widgetOptions = eval($(this).attr('data-dynamicform'));
+            _prepare(widgetOptions);
             _updateAttributes(widgetOptions);
             _restoreSpecialJs(widgetOptions);
             _fixFormValidaton(widgetOptions);
@@ -103,6 +104,7 @@
         var count = _count($elem, widgetOptions);
 
         if (count < widgetOptions.limit) {
+            _prepare(widgetOptions);
             var $toclone = $(widgetOptions.template);
             var $newclone = $toclone.clone(false, false);
 
@@ -126,25 +128,56 @@
         return id.replace(/-\d+(?=-)/g, '-{}');
     };
 
+    // Ids of the validated fields of the root widget and of the widgets nested in it, as `{}` templates.
+    var _templateKeys = function (root) {
+        var keys = {};
+        var collect = function (options) {
+            $.each(options.fields || [], function () {
+                keys[this.id] = true;
+            });
+        };
+
+        collect(root);
+        $('.' + root.widgetContainer).find('div[data-dynamicform]').each(function () {
+            var options = window[$(this).attr('data-dynamicform')];
+            if (options) {
+                collect(options);
+            }
+        });
+
+        return keys;
+    };
+
+    // Copies the validators ActiveForm registered for the widget rows: those declared in `fields`, including rows the
+    // server removed for `min` 0, and those bound to an input inside the container.
     var _rememberValidation = function (widgetOptions) {
         var root = _getWidgetOptionsRoot(widgetOptions);
-        var $form = $('#' + root.formId);
-        var data = $form.data('yiiActiveForm');
+        var data = $('#' + root.formId).data('yiiActiveForm');
         root.validationTemplates = root.validationTemplates || {};
         root.validationIds = root.validationIds || [];
         if (!data) {
             return;
         }
-        $('.' + root.widgetContainer).find('input, textarea, select').each(function () {
-            var id = $(this).attr('id');
-            var attribute = id && $form.yiiActiveForm('find', id);
-            if (attribute) {
-                root.validationTemplates[_validationKey(id)] = $.extend(true, {}, attribute);
-                if (root.validationIds.indexOf(id) === -1) {
-                    root.validationIds.push(id);
+        var keys = _templateKeys(root);
+        var $container = $('.' + root.widgetContainer);
+        $.each(data.attributes, function () {
+            var key = _validationKey(this.id);
+            if (key !== this.id && (keys[key] || $container.find('[id="' + this.id + '"]').length > 0)) {
+                root.validationTemplates[key] = $.extend(true, {}, this);
+                if (root.validationIds.indexOf(this.id) === -1) {
+                    root.validationIds.push(this.id);
                 }
             }
         });
+    };
+
+    // Rows can be inserted before the window load initialization (jQuery 3 may run it before ActiveForm's DOM ready
+    // handler), so the template is parsed and the validators are discovered again before every change.
+    var _prepare = function (widgetOptions) {
+        if (typeof widgetOptions.template === 'string') {
+            widgetOptions.template = _parseTemplate(widgetOptions);
+        }
+        _rememberValidation(widgetOptions);
     };
 
     var _removeValidations = function (widgetOptions) {
@@ -166,6 +199,7 @@
             // trigger a custom event for hooking
             var eventResult = $container.triggerHandler(events.beforeDelete, $todelete);
             if (eventResult !== false) {
+                _prepare(widgetOptions);
                 _removeValidations(widgetOptions);
                 $todelete.remove();
                 _updateAttributes(widgetOptions);
@@ -205,8 +239,11 @@
                 newID = matches[1] + '-' + identifiers.join('-') + '-' + matches[3];
                 $elem.attr('id', newID);
             } else {
-                // Non-tabular IDs must stay stable across repeated updates.
-                newID = id;
+                // Non-tabular ids get the row index; the original id is kept so repeated updates stay stable.
+                var baseID = $elem.attr('data-dynamicform-id') || id;
+                $elem.attr('data-dynamicform-id', baseID);
+                newID = baseID + '-' + index;
+                $elem.attr('id', newID);
             }
         }
 

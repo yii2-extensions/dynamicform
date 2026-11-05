@@ -4,14 +4,6 @@ This package provides a consistent set of [Composer](https://getcomposer.org/) s
 [npm](https://www.npmjs.com/) scripts for the jQuery plugin and the browser acceptance tests. Applications install only
 the PHP package.
 
-Static analysis, coding standards, mutation testing and the dependency checker need a newer PHP than the supported
-runtime floor, so they are installed separately on a PHP 8.5 host before their scripts run:
-
-```bash
-composer tools-install
-composer tools-verify
-```
-
 Tool references:
 
 - [Actionlint](https://github.com/rhysd/actionlint) for GitHub Actions workflow linting.

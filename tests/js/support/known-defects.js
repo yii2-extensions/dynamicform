@@ -35,10 +35,6 @@ export const knownDefects = {
     },
   },
   'identity-custom-ids': {
-    source: {
-      finding: 'F-09: custom non-tabular ids are copied unchanged, so rows share ids (Phase 4A)',
-      failure: 'Custom ids must be unique per row and labels must point inside their row.',
-    },
     production: {
       finding: 'F-09: the 1.0.2 algorithm rewrites custom ids again on every update (Phase 4A)',
       failure: 'Custom ids must be stable across updates.',
@@ -100,23 +96,7 @@ export const knownDefects = {
       failure: 'Clone must be blank and enhanced once.',
     },
   },
-  'validation-zero-start': {
-    source: {
-      finding: 'F-01: init() snapshots validators from visible rows, so a form without rows has no template (Phase 4C)',
-      failure: 'Both inserted rows must run the required rule.',
-    },
-  },
-  'validation-before-init': {
-    source: {
-      finding: 'F-01: a row inserted before init() is never given a validator (Phase 4C)',
-      failure: 'Row inserted before init must run the required rule.',
-    },
-  },
   'validation-before-init-blank': {
-    source: {
-      finding: 'N-01: a row inserted before init() clones the unparsed template and copies existing values (Phase 4B/4C)',
-      failure: 'Row inserted before init must be blank.',
-    },
     production: {
       finding: 'N-01: a row inserted before init() clones the unparsed template and copies existing values (Phase 4B/4C)',
       failure: 'Row inserted before init must be blank.',

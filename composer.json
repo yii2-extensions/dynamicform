@@ -37,7 +37,14 @@
         "symfony/dom-crawler": "^6.4||^7.0"
     },
     "require-dev": {
-        "phpunit/phpunit": "^10.5"
+        "infection/infection": "^0.27 || ^0.35",
+        "maglnet/composer-require-checker": "^4.7",
+        "php-forge/coding-standard": "^0.3",
+        "phpstan/extension-installer": "^1.4",
+        "phpstan/phpstan-phpunit": "^2.0",
+        "phpstan/phpstan-strict-rules": "^2.0.3",
+        "phpunit/phpunit": "^10.5",
+        "yii2-extensions/phpstan": "^0.4 || ^0.5"
     },
     "autoload": {
         "psr-4": {
@@ -57,21 +64,23 @@
     "config": {
         "sort-packages": true,
         "allow-plugins": {
+            "infection/extension-installer": true,
+            "phpstan/extension-installer": true,
             "yiisoft/yii2-composer": true
         }
     },
     "scripts": {
         "actionlint": "actionlint",
-        "check-dependencies": "tools/vendor/bin/composer-require-checker check --config-file=composer-require-checker.json composer.json",
+        "check-dependencies": "composer-require-checker check --config-file=composer-require-checker.json composer.json",
         "codespell": "codespell --config .github/linters/.codespellrc",
-        "ecs": "tools/vendor/bin/ecs check --fix",
-        "ecs-check": "tools/vendor/bin/ecs check --ansi",
+        "ecs": "ecs check --fix",
+        "ecs-check": "ecs check --ansi",
         "editorconfig-checker": "editorconfig-checker -config .github/linters/.editorconfig-checker.json",
         "gitleaks": "gitleaks git --config .github/linters/.gitleaks.toml --redact",
         "markdownlint": "markdownlint-cli2 --config .github/linters/.markdown-lint.yml '**/*.md'",
         "mutation": [
             "Composer\\Config::disableProcessTimeout",
-            "@php -d memory_limit=-1 tools/vendor/bin/infection"
+            "@php -d memory_limit=-1 vendor/bin/infection"
         ],
         "mutation-static": "@mutation --static-analysis-tool=phpstan",
         "prettier": "prettier --check --config .prettierrc.json --ignore-path .prettierignore '**/*.md' '**/*.{yml,yaml}'",
@@ -83,16 +92,14 @@
             "@prettier",
             "@yamllint"
         ],
-        "rector": "tools/vendor/bin/rector process",
-        "rector-check": "tools/vendor/bin/rector process --dry-run",
+        "rector": "rector process",
+        "rector-check": "rector process --dry-run",
         "security": [
             "@zizmor",
             "@gitleaks"
         ],
-        "static": "tools/vendor/bin/phpstan --memory-limit=-1",
+        "static": "phpstan --memory-limit=-1",
         "tests": "phpunit",
-        "tools-install": "@composer --working-dir=tools install",
-        "tools-verify": "@php tools/verify-graph.php",
         "yamllint": "yamllint -c .github/linters/.yamllint.yml .github",
         "zizmor": "zizmor --persona=pedantic .github"
     },
@@ -114,8 +121,6 @@
         "security": "Runs the workflow security and secret scanning checks.",
         "static": "Runs static analysis with PHPStan.",
         "tests": "Runs PHPUnit.",
-        "tools-install": "Installs the isolated quality-tool graph in tools/vendor (requires the documented tool host).",
-        "tools-verify": "Verifies that the tool graph does not shadow root Yii, PHPUnit or Symfony classes.",
         "yamllint": "Lints YAML files with yamllint.",
         "zizmor": "Audits GitHub Actions workflows with zizmor."
     },

@@ -1,5 +1,5 @@
 {
-    "$schema": "tools/vendor/infection/infection/resources/schema.json",
+    "$schema": "vendor/infection/infection/resources/schema.json",
     "source": {
         "directories": ["src"]
     },
@@ -9,7 +9,7 @@
     },
     "phpStan": {
         "configDir": ".",
-        "customPath": "tools/vendor/bin/phpstan"
+        "customPath": "vendor/bin/phpstan"
     },
     "tmpDir": "runtime/infection",
     "logs": {
