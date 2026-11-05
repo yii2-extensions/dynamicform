@@ -223,15 +223,15 @@ class DynamicFormWidget extends \yii\base\Widget
     protected function initOptions()
     {
         $this->_options['widgetContainer'] = $this->widgetContainer;
-        $this->_options['widgetBody']      = $this->widgetBody;
-        $this->_options['widgetItem']      = $this->widgetItem;
-        $this->_options['limit']           = $this->limit;
-        $this->_options['insertButton']    = $this->insertButton;
-        $this->_options['deleteButton']    = $this->deleteButton;
-        $this->_options['insertPosition']  = $this->insertPosition;
-        $this->_options['formId']          = $this->formId;
-        $this->_options['min']             = $this->min;
-        $this->_options['fields']          = [];
+        $this->_options['widgetBody'] = $this->widgetBody;
+        $this->_options['widgetItem'] = $this->widgetItem;
+        $this->_options['limit'] = $this->limit;
+        $this->_options['insertButton'] = $this->insertButton;
+        $this->_options['deleteButton'] = $this->deleteButton;
+        $this->_options['insertPosition'] = $this->insertPosition;
+        $this->_options['formId'] = $this->formId;
+        $this->_options['min'] = $this->min;
+        $this->_options['fields'] = [];
 
         foreach ($this->formFields as $field) {
             $this->_options['fields'][] = [
