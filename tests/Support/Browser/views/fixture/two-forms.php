@@ -3,10 +3,12 @@
 declare(strict_types=1);
 
 /**
- * Renders two forms on one page, each with its own DynamicFormWidget container and model.
+ * Renders two forms on one page, each with its own DynamicFormWidget, model and limit.
+ *
+ * `sameContainer` gives both widgets the container name `dynamicform_wrapper`.
  *
  * @var yii\web\View $this
- * @var array{name: string, clientValidation: bool, submitUrl: string} $scenario
+ * @var array{name: string, clientValidation: bool, sameContainer: bool, submitUrl: string} $scenario
  */
 
 use yii\widgets\ActiveForm;
@@ -16,14 +18,15 @@ use Yii2\Extensions\DynamicForm\Tests\Support\FormModel;
 $this->title = 'DynamicForm ' . $scenario['name'];
 
 $forms = [
-    'form-a' => ['dynamicform_a', [new FormModel(['name' => 'a0'])]],
+    'form-a' => ['dynamicform_a', 2, [new FormModel(['name' => 'a0'])]],
     'form-b' => [
         'dynamicform_b',
+        4,
         [new FormModel(['formName' => 'House', 'name' => 'b0']), new FormModel(['formName' => 'House', 'name' => 'b1'])],
     ],
 ];
 
-foreach ($forms as $formId => [$container, $models]) {
+foreach ($forms as $formId => [$container, $limit, $models]) {
     $form = ActiveForm::begin([
         'id' => $formId,
         'action' => $scenario['submitUrl'],
@@ -31,10 +34,10 @@ foreach ($forms as $formId => [$container, $models]) {
     ]);
 
     DynamicFormWidget::begin([
-        'widgetContainer' => $container,
+        'widgetContainer' => $scenario['sameContainer'] ? 'dynamicform_wrapper' : $container,
         'widgetBody' => '.items',
         'widgetItem' => '.item',
-        'limit' => 4,
+        'limit' => $limit,
         'min' => 1,
         'insertButton' => '.add-item',
         'deleteButton' => '.remove-item',

@@ -9,10 +9,13 @@ declare(strict_types=1);
  * @var array{
  *   name: string,
  *   clientValidation: bool,
+ *   clientScript: bool,
+ *   formId: string,
  *   min: int,
  *   persisted: bool,
  *   loadGate: bool,
  *   insertButton: string,
+ *   deleteButton: string,
  *   submitUrl: string
  * } $scenario
  */
@@ -29,9 +32,10 @@ $models = [
 ];
 
 $form = ActiveForm::begin([
-    'id' => 'dynamic-form',
+    'id' => $scenario['formId'],
     'action' => $scenario['submitUrl'],
     'enableClientValidation' => $scenario['clientValidation'],
+    'enableClientScript' => $scenario['clientScript'],
 ]);
 
 DynamicFormWidget::begin([
@@ -41,9 +45,9 @@ DynamicFormWidget::begin([
     'limit' => 4,
     'min' => $scenario['min'],
     'insertButton' => $scenario['insertButton'],
-    'deleteButton' => '.remove-item',
+    'deleteButton' => $scenario['deleteButton'],
     'model' => $models[0],
-    'formId' => 'dynamic-form',
+    'formId' => $scenario['formId'],
     'formFields' => ['name', 'code'],
 ]);
 ?>
@@ -56,7 +60,7 @@ DynamicFormWidget::begin([
         <?= $form->field($model, "[{$i}]name")->textInput() ?>
         <?= $form->field($model, "[{$i}]code")->textInput() ?>
         <button type="button" class="add-item" data-role="add">Add row</button>
-        <button type="button" class="remove-item">Remove row</button>
+        <button type="button" class="remove-item" data-role="remove">Remove row</button>
     </div>
 <?php endforeach; ?>
 </div>

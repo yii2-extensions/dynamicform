@@ -22,6 +22,17 @@ server removes the rendered rows and the form starts empty.
 
 Every option is documented in the PHPDoc of its property in `src/DynamicFormWidget.php`.
 
+## Several widgets on a page
+
+A page registers each widget once per `formId` and `widgetContainer`. A widget rendered again with the same form and
+container, such as an inner widget rendered once per outer row, reuses that registration, so it must be configured with
+the same options; only its rendered rows may differ. Rendering the same container in the same form with other options
+throws `InvalidConfigException` naming the options that differ. Forms are independent: two forms may use the same
+container name with different options.
+
+Insert and delete buttons act on the widget whose container holds them most closely, so nested widgets may share button
+selectors. Place the buttons of a widget inside its container and outside the containers nested in it.
+
 ## Rows
 
 Render one field per attribute with the tabular syntax `[{$i}]attribute`. Keep the hidden primary key of stored rows so
@@ -60,8 +71,9 @@ widgets are detected through their own `data-krajee-*` attributes.
 
 ## JavaScript events
 
-The container triggers jQuery events when rows are inserted or deleted. Returning `false` from `beforeDelete` cancels
-the deletion.
+The container that owns the clicked button triggers jQuery events when rows are inserted or deleted; containers of other
+widgets, including other renderings of a nested widget, are not notified. `beforeInsert` receives the clicked button and
+cannot cancel the insertion. Returning `false` from `beforeDelete` cancels the deletion.
 
 ```javascript
 $(".dynamicform_wrapper").on("beforeInsert", function (e, item) {

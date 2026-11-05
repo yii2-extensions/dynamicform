@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, test } from 'vitest';
 
-import { namesIn, tableRowsForm, twoFormsPage, twoRootsForm } from './fixtures/roots.js';
+import { namesIn, rootOutsideForm, tableRowsForm, twoFormsPage, twoRootsForm } from './fixtures/roots.js';
 import { insert, mount, remove } from './support/dom.js';
 import { loadEnvironment } from './support/environment.js';
 import { validatorIds } from './support/state.js';
@@ -59,6 +59,33 @@ describe('several roots', () => {
       a: ['a-0-name|A[0][name]|a0', 'a-1-name|A[1][name]|'],
       b: ['b-0-name|B[0][name]|b0', 'b-1-name|B[1][name]|b1'],
     });
+  });
+});
+
+describe('form lookup', () => {
+  test('validators of a form take the values of its own rows when another form renders the same ids', () => {
+    const $ = window.jQuery;
+    const { dynamicform_second: second } = mount(twoFormsPage({ sameModel: true }));
+
+    insert(second, document.querySelector('.add-b'));
+
+    expect(
+      ['a-0-name', 'a-1-name', 'a-2-name'].map((id) => $('#form-b').yiiActiveForm('find', id).value),
+      'Validator values must come from the inputs of form B.',
+    ).toEqual(['b0', 'b1', '']);
+    expect(validatorIds('form-a'), 'Form A must keep its own validator.').toEqual(['a-0-name']);
+  });
+
+  test('a root outside its form registers its validators in the form found by the configured id', () => {
+    const fixture = rootOutsideForm();
+    const { dynamicform_outside: outside } = mount(fixture);
+
+    insert(outside, document.querySelector('.add-a'));
+
+    expect(validatorIds(fixture.formId), 'Inserted row must be validated in the configured form.').toEqual([
+      'a-0-name',
+      'a-1-name',
+    ]);
   });
 });
 

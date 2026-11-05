@@ -21,13 +21,18 @@ function house(index, name, rooms) {
   );
 }
 
-export function nestedForm({ rooms = ['r00'] } = {}) {
+/**
+ * `rooms` are the rooms of the first house, whose markup becomes the outer template; `otherHouses` lists further
+ * `[name, rooms]` houses rendered after it.
+ */
+export function nestedForm({ rooms = ['r00'], otherHouses = [] } = {}) {
   const firstHouse = house(0, 'h0', rooms);
+  const others = otherHouses.map(([name, houseRooms], index) => house(index + 1, name, houseRooms)).join('');
 
   return {
     html:
       '<form id="nested-form"><div class="dynamicform_outer" data-dynamicform="dynamicform_houses">' +
-      `<div class="houses">${firstHouse}</div><button type="button" class="add-house">Add house</button></div></form>`,
+      `<div class="houses">${firstHouse}${others}</div><button type="button" class="add-house">Add house</button></div></form>`,
     widgets: {
       dynamicform_houses: widgetOptions({
         widgetContainer: 'dynamicform_outer',

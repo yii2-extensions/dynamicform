@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace Yii2\Extensions\DynamicForm\Tests;
 
+use Closure;
 use PHPUnit\Framework\Attributes\{DataProviderExternal, Group};
 use PHPUnit\Framework\ExpectationFailedException;
+use ReflectionProperty;
+use WeakMap;
 use Yii;
 use yii\base\{InvalidCallException, InvalidConfigException};
 use yii\helpers\Json;
@@ -14,6 +17,7 @@ use yii\widgets\ActiveFormAsset;
 use Yii2\Extensions\DynamicForm\{DynamicFormAsset, DynamicFormWidget};
 use Yii2\Extensions\DynamicForm\Tests\Provider\DynamicFormWidgetProvider;
 use Yii2\Extensions\DynamicForm\Tests\Support\{
+    FormModel,
     InspectableDynamicFormWidget,
     KnownDefect,
     TestCase,
@@ -21,6 +25,8 @@ use Yii2\Extensions\DynamicForm\Tests\Support\{
 };
 
 use function array_keys;
+use function array_slice;
+use function array_values;
 use function count;
 use function html_entity_decode;
 use function mb_strlen;
@@ -63,6 +69,38 @@ final class DynamicFormWidgetTest extends TestCase
         );
     }
 
+    public function testDiscardsRegistrationsOfEndedPagesWhenTheViewIsReused(): void
+    {
+        // A long-lived process reuses one view for many pages, each with its own form ids.
+        foreach (['page-1', 'page-2', 'page-3'] as $formId) {
+            WidgetRenderer::render(['formId' => $formId]);
+
+            self::webView()->clear();
+        }
+
+        WidgetRenderer::render(['formId' => 'current']);
+        WidgetRenderer::render(['formId' => 'current', 'widgetContainer' => 'nested_form']);
+
+        $registrations = (new ReflectionProperty(DynamicFormWidget::class, 'registrations'))->getValue();
+
+        self::assertInstanceOf(
+            WeakMap::class,
+            $registrations,
+            'Registrations must be kept per view.',
+        );
+        $page = $registrations[self::webView()] ?? null;
+
+        self::assertIsArray(
+            $page,
+            'The reused view must hold the registrations of its current page.',
+        );
+        self::assertSame(
+            ['dynamicform/current/dynamic_form', 'dynamicform/current/nested_form'],
+            array_keys($page),
+            'Only the registrations of the current page may be retained.',
+        );
+    }
+
     public function testEmitsInitEventBeforeValidatingTheConfiguration(): void
     {
         $events = [];
@@ -83,6 +121,62 @@ final class DynamicFormWidgetTest extends TestCase
             ['init'],
             $events,
             'Init event must be triggered once.',
+        );
+    }
+
+    public function testEncodesFormIdAndSelectorsInTheGeneratedScripts(): void
+    {
+        $html = WidgetRenderer::render(
+            [
+                'formId' => "form\"a'b</script>&",
+                'insertButton' => 'button[data-role="add"]',
+                'deleteButton' => "[data-role='remove'] > b",
+            ],
+        );
+
+        self::assertSame(
+            <<<HTML
+                <div class="dynamic_form" data-dynamicform="dynamicform_81ae8e79"><div class="items"><div class="item">Row</div></div></div>
+                HTML,
+            $html,
+            'Container must reference the hashed variable.',
+        );
+        self::assertSame(
+            [
+                <<<'JS'
+                    jQuery(document.getElementById("form\u0022a\u0027b\u003C\/script\u003E\u0026")).on("click", "button[data-role=\u0022add\u0022]", function(e) {
+                        e.preventDefault();
+                        var $container = jQuery(this).closest("div[data-dynamicform]");
+                        if ($container.attr("data-dynamicform") === "dynamicform_81ae8e79") {
+                            $container.triggerHandler("beforeInsert", [jQuery(this)]);
+                            $container.yiiDynamicForm("addItem", dynamicform_81ae8e79, e, jQuery(this));
+                        }
+                    });
+
+                    JS,
+                <<<'JS'
+                    jQuery(document.getElementById("form\u0022a\u0027b\u003C\/script\u003E\u0026")).on("click", "[data-role=\u0027remove\u0027] \u003E b", function(e) {
+                        e.preventDefault();
+                        var $container = jQuery(this).closest("div[data-dynamicform]");
+                        if ($container.attr("data-dynamicform") === "dynamicform_81ae8e79") {
+                            $container.yiiDynamicForm("deleteItem", dynamicform_81ae8e79, e, jQuery(this));
+                        }
+                    });
+
+                    JS,
+            ],
+            self::registeredJs(View::POS_READY),
+            'Form id and selectors must be emitted as HTML-safe JavaScript string literals.',
+        );
+        self::assertSame(
+            [
+                <<<'JS'
+                    jQuery(document.getElementById("form\u0022a\u0027b\u003C\/script\u003E\u0026")).yiiDynamicForm(dynamicform_81ae8e79);
+
+                    JS,
+            ],
+            self::registeredJs(View::POS_LOAD),
+            'Initialization must look up the form by its encoded id.',
         );
     }
 
@@ -123,12 +217,23 @@ final class DynamicFormWidgetTest extends TestCase
             'Unregistered containers must use their own hashed variable.',
         );
 
-        Yii::$app->params = [DynamicFormWidget::WIDGET_NAME => ['dynamic_form' => 'dynamicform_registered']];
+        WidgetRenderer::render(['widgetContainer' => 'nested_form']);
+        $widget->callRegisterOptions(self::webView());
 
         self::assertSame(
-            'dynamicform_registered',
+            'dynamicform_f0f724cb',
             $widget->callGetHashVarName(),
-            'Registered containers must use the registered variable.',
+            'Options declared without a registration must not count as a registration.',
+        );
+
+        self::webView()->clear();
+
+        WidgetRenderer::render([], '<div class="items"><div class="item">Row 1</div></div>');
+
+        self::assertSame(
+            'dynamicform_0b052ad0',
+            $widget->callGetHashVarName(),
+            'A container registered in the same form of the page must use the registered variable.',
         );
     }
 
@@ -185,9 +290,51 @@ final class DynamicFormWidgetTest extends TestCase
             'Bundle must be registered.',
         );
         self::assertSame(
-            ["jQuery(\"#test-form\").yiiDynamicForm(dynamicform_f0f724cb);\n"],
+            ["jQuery(document.getElementById(\"test-form\")).yiiDynamicForm(dynamicform_f0f724cb);\n"],
             self::registeredJs(View::POS_LOAD),
             'Initialization must use the hashed variable.',
+        );
+    }
+
+    /**
+     * @param Closure(View): void $startPage Ends the current page of the view or replaces the view.
+     */
+    #[DataProviderExternal(DynamicFormWidgetProvider::class, 'newPages')]
+    public function testRegistersAgainInANewPage(Closure $startPage): void
+    {
+        WidgetRenderer::render();
+
+        $scripts = self::webView()->js;
+
+        $startPage(self::webView());
+
+        // A head script of the application registered first in the new page must not revive the ended registration.
+        self::webView()->registerJs("var application = {};\n", View::POS_HEAD);
+
+        self::assertSame(
+            <<<HTML
+                <div class="dynamic_form" data-dynamicform="dynamicform_a2c36ba3"><div class="items"><div class="item">Row</div></div></div>
+                HTML,
+            WidgetRenderer::render(),
+            'Container must reference its own variable in the new page.',
+        );
+
+        foreach ($scripts as $position => $registered) {
+            self::assertIsArray(
+                $registered,
+                'Registered scripts must be grouped by position.',
+            );
+            self::assertSame(
+                array_values($registered),
+                array_slice(self::registeredJs($position), -count($registered)),
+                'New page must declare the options, handlers and initialization again.',
+            );
+        }
+
+        self::assertSame(
+            [],
+            Yii::$app->params,
+            'Registry must not be kept in the application parameters.',
         );
     }
 
@@ -233,27 +380,37 @@ final class DynamicFormWidgetTest extends TestCase
         );
     }
 
-    public function testRegistersHashVarWidgetOncePerContainer(): void
+    public function testRegistersHashVarWidgetOncePerPage(): void
     {
         $widget = new InspectableDynamicFormWidget(WidgetRenderer::config());
 
         ob_end_clean();
 
-        // `run()` hashes the options before registering; the registry stores that variable name.
+        // `run()` hashes the options, registers the widget and then declares the options in the page.
         $widget->callHashOptions();
 
         self::assertTrue(
             $widget->registerHashVarWidget(),
             'First registration must succeed.',
         );
+
+        $widget->callRegisterOptions(self::webView());
+
         self::assertFalse(
             $widget->registerHashVarWidget(),
-            'Repeated registration must be refused.',
+            'Repeated registration in the same page must be refused.',
         );
         self::assertSame(
-            [DynamicFormWidget::WIDGET_NAME => ['dynamic_form' => 'dynamicform_f0f724cb']],
+            [],
             Yii::$app->params,
-            'Registry must map the container name to its variable.',
+            'Registry must not be kept in the application parameters.',
+        );
+
+        self::webView()->clear();
+
+        self::assertTrue(
+            $widget->registerHashVarWidget(),
+            'Registration must succeed again once the page is cleared.',
         );
     }
 
@@ -261,7 +418,6 @@ final class DynamicFormWidgetTest extends TestCase
     {
         $html = WidgetRenderer::render();
 
-        // The beforeInsert line targets every container with the class; owner targeting is pending (F-11, Phase 3C).
         self::assertSame(
             <<<HTML
                 <div class="dynamic_form" data-dynamicform="dynamicform_a2c36ba3"><div class="items"><div class="item">Row</div></div></div>
@@ -282,26 +438,32 @@ final class DynamicFormWidgetTest extends TestCase
         self::assertSame(
             [
                 <<<'JS'
-                    jQuery("#test-form").on("click", ".add", function(e) {
+                    jQuery(document.getElementById("test-form")).on("click", ".add", function(e) {
                         e.preventDefault();
-                        jQuery(".dynamic_form").triggerHandler("beforeInsert", [jQuery(this)]);
-                        jQuery(".dynamic_form").yiiDynamicForm("addItem", dynamicform_a2c36ba3, e, jQuery(this));
+                        var $container = jQuery(this).closest("div[data-dynamicform]");
+                        if ($container.attr("data-dynamicform") === "dynamicform_a2c36ba3") {
+                            $container.triggerHandler("beforeInsert", [jQuery(this)]);
+                            $container.yiiDynamicForm("addItem", dynamicform_a2c36ba3, e, jQuery(this));
+                        }
                     });
 
                     JS,
                 <<<'JS'
-                    jQuery("#test-form").on("click", ".remove", function(e) {
+                    jQuery(document.getElementById("test-form")).on("click", ".remove", function(e) {
                         e.preventDefault();
-                        jQuery(".dynamic_form").yiiDynamicForm("deleteItem", dynamicform_a2c36ba3, e, jQuery(this));
+                        var $container = jQuery(this).closest("div[data-dynamicform]");
+                        if ($container.attr("data-dynamicform") === "dynamicform_a2c36ba3") {
+                            $container.yiiDynamicForm("deleteItem", dynamicform_a2c36ba3, e, jQuery(this));
+                        }
                     });
 
                     JS,
             ],
             self::registeredJs(View::POS_READY),
-            'Insert and delete handlers must be delegated from the form.',
+            'Handlers must be delegated from the form and act only on the container that owns the button.',
         );
         self::assertSame(
-            ["jQuery(\"#test-form\").yiiDynamicForm(dynamicform_a2c36ba3);\n"],
+            ["jQuery(document.getElementById(\"test-form\")).yiiDynamicForm(dynamicform_a2c36ba3);\n"],
             self::registeredJs(View::POS_LOAD),
             'Plugin must be initialized on window load.',
         );
@@ -347,6 +509,90 @@ final class DynamicFormWidgetTest extends TestCase
             ],
             'Each container must register its own options, handlers and initialization.',
         );
+        self::assertSame(
+            <<<HTML
+                <div class="dynamic_form" data-dynamicform="dynamicform_a2c36ba3"><div class="items"><div class="item">Row 1</div></div></div>
+                HTML,
+            WidgetRenderer::render([], '<div class="items"><div class="item">Row 1</div></div>'),
+            'Registering another container must keep the first registration.',
+        );
+        self::assertCount(
+            2,
+            self::registeredJs(View::POS_HEAD),
+            'Repeated rendering of the first container must not declare its options again.',
+        );
+    }
+
+    public function testRegistersTheSameContainerInEachFormIndependently(): void
+    {
+        $page = self::renderPage(
+            static function (): void {
+                echo WidgetRenderer::render();
+                echo WidgetRenderer::render(
+                    [
+                        'formId' => 'other-form',
+                        'formFields' => ['code'],
+                        'limit' => 2,
+                    ],
+                    '<div class="items"><div class="item">Other</div></div>',
+                );
+            },
+        );
+
+        $options = self::DEFAULT_OPTIONS;
+        [$ready, $load] = self::scriptWrapperOpenings();
+
+        self::assertSame(
+            <<<HTML
+                <script>var dynamicform_a2c36ba3 = {$options};
+
+                var dynamicform_ce0f18cb = {"widgetContainer":"dynamic_form","widgetBody":".items","widgetItem":".item","limit":2,"insertButton":".add","deleteButton":".remove","insertPosition":"bottom","formId":"other-form","min":1,"fields":[{"id":"formmodel-{}-code","name":"FormModel[{}][code]"}],"template":"\u003Cdiv class=\u0022item\u0022\u003EOther\u003C\/div\u003E"};
+                </script><div class="dynamic_form" data-dynamicform="dynamicform_a2c36ba3"><div class="items"><div class="item">Row</div></div></div><div class="dynamic_form" data-dynamicform="dynamicform_ce0f18cb"><div class="items"><div class="item">Other</div></div></div><script>{$ready}
+                jQuery(document.getElementById("test-form")).on("click", ".add", function(e) {
+                    e.preventDefault();
+                    var \$container = jQuery(this).closest("div[data-dynamicform]");
+                    if (\$container.attr("data-dynamicform") === "dynamicform_a2c36ba3") {
+                        \$container.triggerHandler("beforeInsert", [jQuery(this)]);
+                        \$container.yiiDynamicForm("addItem", dynamicform_a2c36ba3, e, jQuery(this));
+                    }
+                });
+
+                jQuery(document.getElementById("test-form")).on("click", ".remove", function(e) {
+                    e.preventDefault();
+                    var \$container = jQuery(this).closest("div[data-dynamicform]");
+                    if (\$container.attr("data-dynamicform") === "dynamicform_a2c36ba3") {
+                        \$container.yiiDynamicForm("deleteItem", dynamicform_a2c36ba3, e, jQuery(this));
+                    }
+                });
+
+                jQuery(document.getElementById("other-form")).on("click", ".add", function(e) {
+                    e.preventDefault();
+                    var \$container = jQuery(this).closest("div[data-dynamicform]");
+                    if (\$container.attr("data-dynamicform") === "dynamicform_ce0f18cb") {
+                        \$container.triggerHandler("beforeInsert", [jQuery(this)]);
+                        \$container.yiiDynamicForm("addItem", dynamicform_ce0f18cb, e, jQuery(this));
+                    }
+                });
+
+                jQuery(document.getElementById("other-form")).on("click", ".remove", function(e) {
+                    e.preventDefault();
+                    var \$container = jQuery(this).closest("div[data-dynamicform]");
+                    if (\$container.attr("data-dynamicform") === "dynamicform_ce0f18cb") {
+                        \$container.yiiDynamicForm("deleteItem", dynamicform_ce0f18cb, e, jQuery(this));
+                    }
+                });
+
+                });</script>
+                <script>{$load}
+                jQuery(document.getElementById("test-form")).yiiDynamicForm(dynamicform_a2c36ba3);
+
+                jQuery(document.getElementById("other-form")).yiiDynamicForm(dynamicform_ce0f18cb);
+
+                });</script>
+                HTML,
+            $page,
+            'Each form must declare its own options, handlers and initialization for the shared container name.',
+        );
     }
 
     public function testRendersCompletePageWithOptionsBeforeContentAndHandlersAfterIt(): void
@@ -358,25 +604,32 @@ final class DynamicFormWidgetTest extends TestCase
         );
 
         $options = self::DEFAULT_OPTIONS;
+        [$ready, $load] = self::scriptWrapperOpenings();
 
         self::assertSame(
             <<<HTML
                 <script>var dynamicform_a2c36ba3 = {$options};
-                </script><div class="dynamic_form" data-dynamicform="dynamicform_a2c36ba3"><div class="items"><div class="item">Row</div></div></div><script>jQuery(function (\$) {
-                jQuery("#test-form").on("click", ".add", function(e) {
+                </script><div class="dynamic_form" data-dynamicform="dynamicform_a2c36ba3"><div class="items"><div class="item">Row</div></div></div><script>{$ready}
+                jQuery(document.getElementById("test-form")).on("click", ".add", function(e) {
                     e.preventDefault();
-                    jQuery(".dynamic_form").triggerHandler("beforeInsert", [jQuery(this)]);
-                    jQuery(".dynamic_form").yiiDynamicForm("addItem", dynamicform_a2c36ba3, e, jQuery(this));
+                    var \$container = jQuery(this).closest("div[data-dynamicform]");
+                    if (\$container.attr("data-dynamicform") === "dynamicform_a2c36ba3") {
+                        \$container.triggerHandler("beforeInsert", [jQuery(this)]);
+                        \$container.yiiDynamicForm("addItem", dynamicform_a2c36ba3, e, jQuery(this));
+                    }
                 });
 
-                jQuery("#test-form").on("click", ".remove", function(e) {
+                jQuery(document.getElementById("test-form")).on("click", ".remove", function(e) {
                     e.preventDefault();
-                    jQuery(".dynamic_form").yiiDynamicForm("deleteItem", dynamicform_a2c36ba3, e, jQuery(this));
+                    var \$container = jQuery(this).closest("div[data-dynamicform]");
+                    if (\$container.attr("data-dynamicform") === "dynamicform_a2c36ba3") {
+                        \$container.yiiDynamicForm("deleteItem", dynamicform_a2c36ba3, e, jQuery(this));
+                    }
                 });
 
                 });</script>
-                <script>jQuery(window).on('load', function () {
-                jQuery("#test-form").yiiDynamicForm(dynamicform_a2c36ba3);
+                <script>{$load}
+                jQuery(document.getElementById("test-form")).yiiDynamicForm(dynamicform_a2c36ba3);
 
                 });</script>
                 HTML,
@@ -411,29 +664,51 @@ final class DynamicFormWidgetTest extends TestCase
         );
     }
 
-    public function testReusesTheFirstRegistrationForTheSameContainerInAnotherForm(): void
+    public function testReusesTheCompatibleRegistrationForRepeatedRenderingsInOneForm(): void
     {
-        // Characterization of the accepted collision (F-08); the registry scope is pending decision D02.
-        WidgetRenderer::render();
-
-        $html = WidgetRenderer::render(
-            [
-                'formId' => 'other-form',
-                'formFields' => ['code'],
-            ],
+        // A nested widget renders once per outer row: the options match, the first row of each rendering differs.
+        $page = self::renderPage(
+            static function (): void {
+                echo WidgetRenderer::render();
+                echo WidgetRenderer::render(
+                    ['model' => new FormModel(['name' => 'Saved'])],
+                    '<div class="items"><div class="item">Row 1</div></div>',
+                );
+            },
         );
+
+        $options = self::DEFAULT_OPTIONS;
+        [$ready, $load] = self::scriptWrapperOpenings();
 
         self::assertSame(
             <<<HTML
-                <div class="dynamic_form" data-dynamicform="dynamicform_a2c36ba3"><div class="items"><div class="item">Row</div></div></div>
+                <script>var dynamicform_a2c36ba3 = {$options};
+                </script><div class="dynamic_form" data-dynamicform="dynamicform_a2c36ba3"><div class="items"><div class="item">Row</div></div></div><div class="dynamic_form" data-dynamicform="dynamicform_a2c36ba3"><div class="items"><div class="item">Row 1</div></div></div><script>{$ready}
+                jQuery(document.getElementById("test-form")).on("click", ".add", function(e) {
+                    e.preventDefault();
+                    var \$container = jQuery(this).closest("div[data-dynamicform]");
+                    if (\$container.attr("data-dynamicform") === "dynamicform_a2c36ba3") {
+                        \$container.triggerHandler("beforeInsert", [jQuery(this)]);
+                        \$container.yiiDynamicForm("addItem", dynamicform_a2c36ba3, e, jQuery(this));
+                    }
+                });
+
+                jQuery(document.getElementById("test-form")).on("click", ".remove", function(e) {
+                    e.preventDefault();
+                    var \$container = jQuery(this).closest("div[data-dynamicform]");
+                    if (\$container.attr("data-dynamicform") === "dynamicform_a2c36ba3") {
+                        \$container.yiiDynamicForm("deleteItem", dynamicform_a2c36ba3, e, jQuery(this));
+                    }
+                });
+
+                });</script>
+                <script>{$load}
+                jQuery(document.getElementById("test-form")).yiiDynamicForm(dynamicform_a2c36ba3);
+
+                });</script>
                 HTML,
-            $html,
-            'Second form must reference the first registration.',
-        );
-        self::assertSame(
-            ['var dynamicform_a2c36ba3 = ' . self::DEFAULT_OPTIONS . ";\n"],
-            self::registeredJs(View::POS_HEAD),
-            'Second form must not register its own options.',
+            $page,
+            'Repeated rendering must reference the first registration without declaring options or handlers again.',
         );
     }
 
@@ -460,6 +735,54 @@ final class DynamicFormWidgetTest extends TestCase
                     'A container name with a line feed must be rejected.',
                 );
             },
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $overrides
+     * @param string $content Markup echoed between `begin()` and `end()`.
+     */
+    #[DataProviderExternal(DynamicFormWidgetProvider::class, 'incompatibleRenderings')]
+    public function testThrowInvalidConfigExceptionForIncompatibleRenderingInTheSameForm(
+        array $overrides,
+        string $content,
+        string $message,
+    ): void {
+        WidgetRenderer::render();
+
+        $scripts = self::webView()->js;
+        $level = ob_get_level();
+
+        try {
+            WidgetRenderer::render($overrides, $content);
+
+            self::fail(
+                'Incompatible rendering must be rejected.',
+            );
+        } catch (InvalidConfigException $exception) {
+            self::assertSame(
+                $message,
+                $exception->getMessage(),
+                'Message must name the container, the form and the differing options.',
+            );
+        }
+
+        self::assertSame(
+            $level,
+            ob_get_level(),
+            'Rejected rendering must not leave an output buffer.',
+        );
+        self::assertSame(
+            $scripts,
+            self::webView()->js,
+            'Rejected rendering must not register scripts.',
+        );
+        self::assertSame(
+            <<<HTML
+                <div class="dynamic_form" data-dynamicform="dynamicform_a2c36ba3"><div class="items"><div class="item">Row 1</div></div></div>
+                HTML,
+            WidgetRenderer::render([], '<div class="items"><div class="item">Row 1</div></div>'),
+            'Registry must keep the first registration after the rejection.',
         );
     }
 

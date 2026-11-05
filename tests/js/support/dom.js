@@ -24,7 +24,7 @@ export function mount(fixture, { init = true } = {}) {
 
   for (const [formId, attributes] of Object.entries(fixture.validation ?? {})) {
     // jsdom has no layout, so ActiveForm's scroll-to-first-error measurement is disabled.
-    $(`#${formId}`).yiiActiveForm(attributes, { scrollToError: false });
+    $(document.getElementById(formId)).yiiActiveForm(attributes, { scrollToError: false });
   }
 
   if (init) {
@@ -34,12 +34,12 @@ export function mount(fixture, { init = true } = {}) {
   return fixture.widgets;
 }
 
-/** Runs the window-load initialization of every widget of the fixture, in declaration order. */
+/** Runs the window-load initialization of every widget of the fixture, in declaration order, as PHP emits it. */
 export function initialize(fixture) {
   const $ = window.jQuery;
 
   for (const options of Object.values(fixture.widgets)) {
-    $(`#${options.formId}`).yiiDynamicForm(options);
+    $(document.getElementById(options.formId)).yiiDynamicForm(options);
   }
 }
 

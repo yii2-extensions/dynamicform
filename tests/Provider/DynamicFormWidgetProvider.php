@@ -4,17 +4,87 @@ declare(strict_types=1);
 
 namespace Yii2\Extensions\DynamicForm\Tests\Provider;
 
+use Closure;
 use stdClass;
-use Yii2\Extensions\DynamicForm\Tests\Support\{PersistedFormModel, RecordStateFormModel};
+use Yii;
+use yii\web\View;
+use Yii2\Extensions\DynamicForm\Tests\Support\{FormModel, PersistedFormModel, RecordStateFormModel, WidgetRenderer};
+
+use function ob_end_clean;
+use function ob_start;
 
 /**
  * Data provider for {@see \Yii2\Extensions\DynamicForm\Tests\DynamicFormWidgetTest} test cases.
- *
- * Provides invalid configurations with their complete exception messages, rendered fragments with the expected
- * container content and template, and configurations that rely on weak scalar comparisons.
  */
 final class DynamicFormWidgetProvider
 {
+    /**
+     * @return iterable<string, array{array<string, mixed>, string, string}>
+     */
+    public static function incompatibleRenderings(): iterable
+    {
+        $message = static fn(string $options): string => 'The "widgetContainer" "dynamic_form" is already registered '
+            . 'in the form "test-form" with different options: '
+            . $options
+            . '. Widgets sharing a container in one form must use the same options.';
+
+        yield 'widgetBody' => [
+            ['widgetBody' => '.rows'],
+            WidgetRenderer::DEFAULT_CONTENT,
+            $message('widgetBody'),
+        ];
+        yield 'widgetItem' => [
+            ['widgetItem' => '.row'],
+            '<div class="items"><div class="row">Row</div></div>',
+            $message('widgetItem'),
+        ];
+        yield 'limit' => [
+            ['limit' => 2],
+            WidgetRenderer::DEFAULT_CONTENT,
+            $message('limit'),
+        ];
+        yield 'limit as a numeric string' => [
+            ['limit' => '999'],
+            WidgetRenderer::DEFAULT_CONTENT,
+            $message('limit'),
+        ];
+        yield 'insertButton' => [
+            ['insertButton' => '.plus'],
+            WidgetRenderer::DEFAULT_CONTENT,
+            $message('insertButton'),
+        ];
+        yield 'deleteButton' => [
+            ['deleteButton' => '.minus'],
+            WidgetRenderer::DEFAULT_CONTENT,
+            $message('deleteButton'),
+        ];
+        yield 'insertPosition' => [
+            ['insertPosition' => 'top'],
+            WidgetRenderer::DEFAULT_CONTENT,
+            $message('insertPosition'),
+        ];
+        yield 'min' => [
+            ['min' => 2],
+            WidgetRenderer::DEFAULT_CONTENT,
+            $message('min'),
+        ];
+        yield 'formFields' => [
+            ['formFields' => ['code']],
+            WidgetRenderer::DEFAULT_CONTENT,
+            $message('formFields'),
+        ];
+        yield 'model with another form name' => [
+            ['model' => new FormModel(['formName' => 'House'])],
+            WidgetRenderer::DEFAULT_CONTENT,
+            $message('formFields'),
+        ];
+        yield 'several options' => [
+            ['limit' => 2, 'insertButton' => '.plus', 'min' => 0],
+            WidgetRenderer::DEFAULT_CONTENT,
+            $message('limit, insertButton, min'),
+        ];
+    }
+
     /**
      * @return iterable<string, array{array<string, mixed>, string, 2?: string}>
      */
@@ -97,9 +167,44 @@ final class DynamicFormWidgetProvider
     }
 
     /**
-     * Fragments rendered between `begin()` and `end()`, with the expected container content and the first item that
-     * becomes the client template.
+     * Ways the page of a view ends, or the view is replaced, between two renderings of one widget.
      *
+     * @return iterable<string, array{Closure(View): void}>
+     */
+    public static function newPages(): iterable
+    {
+        yield 'cleared view' => [
+            static function (View $view): void {
+                $view->clear();
+            },
+        ];
+        yield 'ended page' => [
+            static function (View $view): void {
+                ob_start();
+                $view->beginPage();
+                $view->endPage();
+                ob_end_clean();
+            },
+        ];
+        yield 'ended AJAX page' => [
+            static function (View $view): void {
+                ob_start();
+                $view->beginPage();
+                $view->head();
+                $view->beginBody();
+                $view->endBody();
+                $view->endPage(true);
+                ob_end_clean();
+            },
+        ];
+        yield 'new view component' => [
+            static function (): void {
+                Yii::$app->set('view', new View());
+            },
+        ];
+    }
+
+    /**
      * @return iterable<string, array{array<string, mixed>, string, string, string}>
      */
     public static function renderedFragments(): iterable
@@ -174,8 +279,6 @@ final class DynamicFormWidgetProvider
     }
 
     /**
-     * Configurations accepted through weak scalar comparisons; they characterize the current coercion contract.
-     *
      * @return iterable<string, array{array<string, mixed>, string, string, mixed}>
      */
     public static function weakScalarConfigurations(): iterable

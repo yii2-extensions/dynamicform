@@ -39,14 +39,17 @@ export function twoRootsForm() {
   };
 }
 
-/** Two forms with their own widgets; `sameContainer` reuses one container class for both. */
-export function twoFormsPage({ sameContainer = false } = {}) {
+/**
+ * Two forms with their own widgets; `sameContainer` reuses one container class for both and `sameModel` renders the
+ * rows of both forms with the same model, so both forms contain the same input ids.
+ */
+export function twoFormsPage({ sameContainer = false, sameModel = false } = {}) {
   const a = root({ formId: 'form-a', container: 'dynamicform_wrapper', variable: 'dynamicform_first', model: 'A', values: ['a0'], insertClass: 'add-a' });
   const b = root({
     formId: 'form-b',
     container: sameContainer ? 'dynamicform_wrapper' : 'dynamicform_other',
     variable: 'dynamicform_second',
-    model: 'B',
+    model: sameModel ? 'A' : 'B',
     values: ['b0', 'b1'],
     insertClass: 'add-b',
   });
@@ -55,6 +58,22 @@ export function twoFormsPage({ sameContainer = false } = {}) {
     html: `<form id="form-a">${a.html}</form><form id="form-b">${b.html}</form>`,
     widgets: { dynamicform_first: a.options, dynamicform_second: b.options },
     validation: { 'form-a': a.attributes, 'form-b': b.attributes },
+  };
+}
+
+/**
+ * A root rendered after the form it belongs to, whose `formId` contains quotes and CSS syntax; only the configured id
+ * links the rows to the form.
+ */
+export function rootOutsideForm() {
+  const formId = 'form."a\'b:[x]';
+  const a = root({ formId, container: 'dynamicform_outside', variable: 'dynamicform_outside', model: 'A', values: ['a0'], insertClass: 'add-a' });
+
+  return {
+    formId,
+    html: `<form id="${formId.replace(/"/g, '&quot;')}"></form>${a.html}`,
+    widgets: { dynamicform_outside: a.options },
+    validation: { [formId]: a.attributes },
   };
 }
 

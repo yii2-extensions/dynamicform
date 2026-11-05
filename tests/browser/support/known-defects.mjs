@@ -4,11 +4,6 @@
 // the listed variant into an expected failure; Playwright fails the run if that case unexpectedly passes, so remove the
 // entry together with the fix. `pageErrors` lists exact uncaught error messages that are themselves the defect; any
 // other page issue still fails the run. Do not add entries to hide fixture errors or unexplained failures.
-const ownerTarget =
-  'F-11: the PHP insert handler triggers beforeInsert on every container with the class, not on the owner (Phase 3C)';
-const quotedSelector =
-  'F-12: PHP interpolates the selector into a double-quoted JavaScript literal, so the inline handler script is invalid (Phase 3C)';
-
 export const knownDefects = {
   'rendered-insert-delete': { variants: {} },
   'rendered-payload': { variants: {} },
@@ -20,11 +15,12 @@ export const knownDefects = {
   'rendered-last-row': { variants: {} },
   'rendered-nested-payload': { variants: {} },
   'rendered-nested-validation': { variants: {} },
-  'rendered-before-insert-owner': { variants: { source: ownerTarget, production: ownerTarget } },
+  'rendered-before-insert-owner': { variants: {} },
+  'rendered-nested-repeated': { variants: {} },
+  'rendered-nested-shared-buttons': { variants: {} },
   'rendered-two-forms': { variants: {} },
   'rendered-two-forms-validators': { variants: {} },
-  'rendered-quoted-selector': {
-    variants: { source: quotedSelector, production: quotedSelector },
-    pageErrors: { source: ['missing ) after argument list'], production: ['missing ) after argument list'] },
-  },
+  'rendered-two-forms-same-container': { variants: {} },
+  'rendered-quoted-selector': { variants: {} },
+  'rendered-special-form-id': { variants: {} },
 };

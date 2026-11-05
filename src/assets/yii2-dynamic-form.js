@@ -62,11 +62,12 @@
     var _parseTemplate = function (widgetOptions) {
 
         var $template = $(widgetOptions.template);
+        // A nested widget in the template keeps only its first row.
         $template.find('div[data-dynamicform]').each(function () {
-            var widgetOptions = eval($(this).attr('data-dynamicform'));
-            if ($(widgetOptions.widgetItem).length > 1) {
-                var item = $(this).find(widgetOptions.widgetItem).first()[0].outerHTML;
-                $(this).find(widgetOptions.widgetBody).html(item);
+            var nestedOptions = _optionsOf($(this));
+            var $items = $(this).find(nestedOptions.widgetItem);
+            if ($items.length > 1) {
+                $(this).find(nestedOptions.widgetBody).html($items.first()[0].outerHTML);
             }
         });
 
@@ -108,10 +109,11 @@
         return $element.find('.' + widgetOptions.widgetContainer).addBack('.' + widgetOptions.widgetContainer);
     };
 
-    // The ActiveForm of a root: the enclosing form, or the configured id when the container is rendered outside it.
+    // The ActiveForm of a root: the enclosing form, or the element with the configured id when the container is
+    // rendered outside it. The id is looked up as is, so it needs no CSS escaping.
     var _formOf = function ($root) {
         var $form = $root.closest('form');
-        return $form.length > 0 ? $form : $('#' + _optionsOf($root).formId);
+        return $form.length > 0 ? $form : $(window.document.getElementById(_optionsOf($root).formId));
     };
 
     // Validator templates and the ids registered through this root, kept on the root element.
@@ -181,7 +183,7 @@
             var attribute = $(this).data('dynamicformAttribute') || state.templates[_validationKey(id, _inputLevel($(this)))];
             var name = $(this).attr('name') || $(this).find('[name]').first().attr('name');
             if (attribute && name !== undefined) {
-                callback(id, name, attribute);
+                callback(id, name, attribute, $(this));
             }
         });
     };
@@ -260,9 +262,9 @@
         }
         var state = _validationState($root);
         _rememberValidation($root);
-        _eachValidated($root, function (id, name, attribute) {
+        _eachValidated($root, function (id, name, attribute, $input) {
             if ($form.yiiActiveForm('find', id) === undefined) {
-                _fixFormValidatonInput($form, attribute, id, name);
+                _fixFormValidatonInput($form, attribute, id, name, $input);
                 state.ids.push(id);
             }
         });
@@ -299,8 +301,30 @@
         }
     };
 
+    // Returns the row identifiers of an id or name: the first becomes the root row index, each following one the
+    // position of the row of the widget nested at that level.
+    var _rowIdentifiers = function ($elem, identifiers, index) {
+        identifiers[0] = index;
+
+        if (identifiers.length > 1) {
+            var widgetsOptions = [];
+            $elem.parents('div[data-dynamicform]').each(function (i) {
+                widgetsOptions[i] = _optionsOf($(this));
+            });
+
+            widgetsOptions = widgetsOptions.reverse();
+            for (var i = identifiers.length - 1; i >= 1; i--) {
+                if (widgetsOptions[i]) {
+                    identifiers[i] = $elem.closest(widgetsOptions[i].widgetItem).index();
+                }
+            }
+        }
+
+        return identifiers;
+    };
+
     var _updateAttrID = function ($elem, index) {
-        var widgetOptions = eval($elem.closest('div[data-dynamicform]').attr('data-dynamicform'));
+        var widgetOptions = _optionsOf($elem.closest('div[data-dynamicform]'));
         var id = $elem.attr('id');
         var newID = id;
 
@@ -308,22 +332,7 @@
             var matches = id.match(regexID);
             if (matches && matches.length === 4) {
                 matches[2] = matches[2].substring(1, matches[2].length - 1);
-                var identifiers = matches[2].split('-');
-                identifiers[0] = index;
-
-                if (identifiers.length > 1) {
-                    var widgetsOptions = [];
-                    $elem.parents('div[data-dynamicform]').each(function (i) {
-                        widgetsOptions[i] = eval($(this).attr('data-dynamicform'));
-                    });
-
-                    widgetsOptions = widgetsOptions.reverse();
-                    for (var i = identifiers.length - 1; i >= 1; i--) {
-                        if (widgetsOptions[i]) {
-                            identifiers[i] = $elem.closest(widgetsOptions[i].widgetItem).index();
-                        }
-                    }
-                }
+                var identifiers = _rowIdentifiers($elem, matches[2].split('-'), index);
 
                 newID = matches[1] + '-' + identifiers.join('-') + '-' + matches[3];
                 $elem.attr('id', newID);
@@ -355,22 +364,7 @@
 
             if (matches && matches.length === 4) {
                 matches[2] = matches[2].replace(/\]\[/g, "-").replace(/\]|\[/g, '');
-                var identifiers = matches[2].split('-');
-                identifiers[0] = index;
-
-                if (identifiers.length > 1) {
-                    var widgetsOptions = [];
-                    $elem.parents('div[data-dynamicform]').each(function (i) {
-                        widgetsOptions[i] = eval($(this).attr('data-dynamicform'));
-                    });
-
-                    widgetsOptions = widgetsOptions.reverse();
-                    for (var i = identifiers.length - 1; i >= 1; i--) {
-                        if (widgetsOptions[i]) {
-                            identifiers[i] = $elem.closest(widgetsOptions[i].widgetItem).index();
-                        }
-                    }
-                }
+                var identifiers = _rowIdentifiers($elem, matches[2].split('-'), index);
 
                 name = matches[1] + '[' + identifiers.join('][') + ']' + matches[3];
                 $elem.attr('name', name);
@@ -392,14 +386,16 @@
         });
     };
 
-    var _fixFormValidatonInput = function ($form, attribute, id, name) {
+    // Registers the validator of one row element; its initial value comes from that element, not from a page-wide id
+    // lookup, because another form may render the same ids.
+    var _fixFormValidatonInput = function ($form, attribute, id, name, $input) {
         if (attribute !== undefined) {
             attribute = $.extend(true, {}, attribute);
             attribute.id = id;
             attribute.container = ".field-" + id;
             attribute.input = "#" + id;
             attribute.name = name;
-            attribute.value = $("#" + id).val();
+            attribute.value = $input.val();
             attribute.status = 0;
 
             if ($form.yiiActiveForm("find", id) !== undefined) {
@@ -417,8 +413,8 @@
         }
         var state = _validationState($root);
         _removeValidations($root);
-        _eachValidated($root, function (id, name, attribute) {
-            _fixFormValidatonInput($form, attribute, id, name);
+        _eachValidated($root, function (id, name, attribute, $input) {
+            _fixFormValidatonInput($form, attribute, id, name, $input);
             state.ids.push(id);
         });
     };

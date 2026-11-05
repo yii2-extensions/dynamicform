@@ -4,7 +4,8 @@
 
 - [`PHP`](https://www.php.net/downloads) 8.1 or higher with the `dom` extension.
 - [`Composer`](https://getcomposer.org/download/) for dependency management.
-- [`Yii2`](https://github.com/yiisoft/yii2) 2.0.49 or higher.
+- [`Yii2`](https://github.com/yiisoft/yii2) 2.0.49 or higher, or the `22.0.x` development line, which needs PHP 8.3 or
+  higher; the application opts into it by requiring `yiisoft/yii2:22.0.x-dev`.
 
 ## Installation
 
