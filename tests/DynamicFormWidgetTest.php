@@ -7,6 +7,8 @@ namespace Yii2\Extensions\DynamicForm\Tests;
 use Closure;
 use PHPUnit\Framework\Attributes\{DataProviderExternal, Group};
 use PHPUnit\Framework\ExpectationFailedException;
+use ReflectionProperty;
+use WeakMap;
 use Yii;
 use yii\base\{InvalidCallException, InvalidConfigException};
 use yii\helpers\Json;
@@ -64,6 +66,38 @@ final class DynamicFormWidgetTest extends TestCase
             ['bottom', 999, 1, 'dynamicform'],
             [$widget->insertPosition, $widget->limit, $widget->min, DynamicFormWidget::WIDGET_NAME],
             'Defaults: bottom insertion, limit 999, minimum 1, registry key `dynamicform`.',
+        );
+    }
+
+    public function testDiscardsRegistrationsOfEndedPagesWhenTheViewIsReused(): void
+    {
+        // A long-lived process reuses one view for many pages, each with its own form ids.
+        foreach (['page-1', 'page-2', 'page-3'] as $formId) {
+            WidgetRenderer::render(['formId' => $formId]);
+
+            self::webView()->clear();
+        }
+
+        WidgetRenderer::render(['formId' => 'current']);
+        WidgetRenderer::render(['formId' => 'current', 'widgetContainer' => 'nested_form']);
+
+        $registrations = (new ReflectionProperty(DynamicFormWidget::class, 'registrations'))->getValue();
+
+        self::assertInstanceOf(
+            WeakMap::class,
+            $registrations,
+            'Registrations must be kept per view.',
+        );
+        $page = $registrations[self::webView()] ?? null;
+
+        self::assertIsArray(
+            $page,
+            'The reused view must hold the registrations of its current page.',
+        );
+        self::assertSame(
+            ['dynamicform/current/dynamic_form', 'dynamicform/current/nested_form'],
+            array_keys($page),
+            'Only the registrations of the current page may be retained.',
         );
     }
 
@@ -274,8 +308,8 @@ final class DynamicFormWidgetTest extends TestCase
 
         $startPage(self::webView());
 
-        // Another container registered first in the new page must not revive the registration of the ended page.
-        WidgetRenderer::render(['widgetContainer' => 'nested_form']);
+        // A head script of the application registered first in the new page must not revive the ended registration.
+        self::webView()->registerJs("var application = {};\n", View::POS_HEAD);
 
         self::assertSame(
             <<<HTML
@@ -506,13 +540,14 @@ final class DynamicFormWidgetTest extends TestCase
         );
 
         $options = self::DEFAULT_OPTIONS;
+        [$ready, $load] = self::scriptWrapperOpenings();
 
         self::assertSame(
             <<<HTML
                 <script>var dynamicform_a2c36ba3 = {$options};
 
                 var dynamicform_ce0f18cb = {"widgetContainer":"dynamic_form","widgetBody":".items","widgetItem":".item","limit":2,"insertButton":".add","deleteButton":".remove","insertPosition":"bottom","formId":"other-form","min":1,"fields":[{"id":"formmodel-{}-code","name":"FormModel[{}][code]"}],"template":"\u003Cdiv class=\u0022item\u0022\u003EOther\u003C\/div\u003E"};
-                </script><div class="dynamic_form" data-dynamicform="dynamicform_a2c36ba3"><div class="items"><div class="item">Row</div></div></div><div class="dynamic_form" data-dynamicform="dynamicform_ce0f18cb"><div class="items"><div class="item">Other</div></div></div><script>jQuery(function (\$) {
+                </script><div class="dynamic_form" data-dynamicform="dynamicform_a2c36ba3"><div class="items"><div class="item">Row</div></div></div><div class="dynamic_form" data-dynamicform="dynamicform_ce0f18cb"><div class="items"><div class="item">Other</div></div></div><script>{$ready}
                 jQuery(document.getElementById("test-form")).on("click", ".add", function(e) {
                     e.preventDefault();
                     var \$container = jQuery(this).closest("div[data-dynamicform]");
@@ -548,7 +583,7 @@ final class DynamicFormWidgetTest extends TestCase
                 });
 
                 });</script>
-                <script>jQuery(window).on('load', function () {
+                <script>{$load}
                 jQuery(document.getElementById("test-form")).yiiDynamicForm(dynamicform_a2c36ba3);
 
                 jQuery(document.getElementById("other-form")).yiiDynamicForm(dynamicform_ce0f18cb);
@@ -569,11 +604,12 @@ final class DynamicFormWidgetTest extends TestCase
         );
 
         $options = self::DEFAULT_OPTIONS;
+        [$ready, $load] = self::scriptWrapperOpenings();
 
         self::assertSame(
             <<<HTML
                 <script>var dynamicform_a2c36ba3 = {$options};
-                </script><div class="dynamic_form" data-dynamicform="dynamicform_a2c36ba3"><div class="items"><div class="item">Row</div></div></div><script>jQuery(function (\$) {
+                </script><div class="dynamic_form" data-dynamicform="dynamicform_a2c36ba3"><div class="items"><div class="item">Row</div></div></div><script>{$ready}
                 jQuery(document.getElementById("test-form")).on("click", ".add", function(e) {
                     e.preventDefault();
                     var \$container = jQuery(this).closest("div[data-dynamicform]");
@@ -592,7 +628,7 @@ final class DynamicFormWidgetTest extends TestCase
                 });
 
                 });</script>
-                <script>jQuery(window).on('load', function () {
+                <script>{$load}
                 jQuery(document.getElementById("test-form")).yiiDynamicForm(dynamicform_a2c36ba3);
 
                 });</script>
@@ -642,11 +678,12 @@ final class DynamicFormWidgetTest extends TestCase
         );
 
         $options = self::DEFAULT_OPTIONS;
+        [$ready, $load] = self::scriptWrapperOpenings();
 
         self::assertSame(
             <<<HTML
                 <script>var dynamicform_a2c36ba3 = {$options};
-                </script><div class="dynamic_form" data-dynamicform="dynamicform_a2c36ba3"><div class="items"><div class="item">Row</div></div></div><div class="dynamic_form" data-dynamicform="dynamicform_a2c36ba3"><div class="items"><div class="item">Row 1</div></div></div><script>jQuery(function (\$) {
+                </script><div class="dynamic_form" data-dynamicform="dynamicform_a2c36ba3"><div class="items"><div class="item">Row</div></div></div><div class="dynamic_form" data-dynamicform="dynamicform_a2c36ba3"><div class="items"><div class="item">Row 1</div></div></div><script>{$ready}
                 jQuery(document.getElementById("test-form")).on("click", ".add", function(e) {
                     e.preventDefault();
                     var \$container = jQuery(this).closest("div[data-dynamicform]");
@@ -665,7 +702,7 @@ final class DynamicFormWidgetTest extends TestCase
                 });
 
                 });</script>
-                <script>jQuery(window).on('load', function () {
+                <script>{$load}
                 jQuery(document.getElementById("test-form")).yiiDynamicForm(dynamicform_a2c36ba3);
 
                 });</script>

@@ -25,12 +25,22 @@ jobs:
       extensions: runkit7
       php-version: '["8.1","8.2","8.3","8.4","8.5"]'
 
-  phpunit-symfony-64:
+  phpunit-compatibility:
+    uses: yii2-framework/actions/.github/workflows/phpunit.yml@f0e06ea5cc965cff4431177d448add7b7c98668b # v2.0.1
+    secrets:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+    with:
+      composer-command: require yiisoft/yii2:22.0.x-dev
+      concurrency-group: phpunit-compatibility-${{ github.workflow }}-${{ github.ref }}
+      extensions: runkit7
+      php-version: '["8.3","8.4","8.5"]'
+
+  phpunit-crawler:
     uses: yii2-framework/actions/.github/workflows/phpunit.yml@f0e06ea5cc965cff4431177d448add7b7c98668b # v2.0.1
     secrets:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     with:
       composer-command: update --with symfony/css-selector:^6.4 --with symfony/dom-crawler:^6.4
-      concurrency-group: phpunit-symfony-64-${{ github.workflow }}-${{ github.ref }}
+      concurrency-group: phpunit-crawler-${{ github.workflow }}-${{ github.ref }}
       extensions: runkit7
       php-version: '["8.2","8.3","8.4","8.5"]'

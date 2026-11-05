@@ -14,6 +14,7 @@ use yii\helpers\Json;
 use yii\web\View;
 
 use function array_diff_key;
+use function array_intersect_key;
 use function implode;
 use function in_array;
 use function is_array;
@@ -214,7 +215,10 @@ class DynamicFormWidget extends \yii\base\Widget
 
         $registrations = self::$registrations ??= new WeakMap();
 
-        $page = $registrations[$view] ?? [];
+        // Keep only the registrations whose options the current page still declares, so a view reused for many pages
+        // does not accumulate the registrations of ended pages.
+        $scripts = $view->js[View::POS_HEAD] ?? [];
+        $page = is_array($scripts) ? array_intersect_key($registrations[$view] ?? [], $scripts) : [];
 
         $page[$this->registrationKey()] = [
             'hashVar' => $this->_hashVar,

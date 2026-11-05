@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Yii2\Extensions\DynamicForm\Tests\Support;
 
+use ReflectionClass;
+use ReflectionMethod;
 use Yii;
 use yii\di\Container;
 use yii\web\{Application, AssetManager, View};
@@ -12,6 +14,7 @@ use function array_keys;
 use function dirname;
 use function ob_get_clean;
 use function ob_start;
+use function strstr;
 
 /**
  * Creates an isolated Yii web application for each test.
@@ -97,6 +100,33 @@ abstract class TestCase extends \PHPUnit\Framework\TestCase
         $view->endPage();
 
         return (string) ob_get_clean();
+    }
+
+    /**
+     * Returns the first line of the `POS_READY` and `POS_LOAD` script wrappers of the installed Yii.
+     *
+     * Yii 2.0 opens them with jQuery callbacks; Yii 22.0 builds DOM event listeners through `View::wrapReadyScript()`
+     * and `View::wrapLoadScript()`. Both close the wrapper with `});` on its own line.
+     *
+     * @return array{string, string} Opening line of the ready wrapper and of the load wrapper.
+     */
+    protected static function scriptWrapperOpenings(): array
+    {
+        if (!(new ReflectionClass(View::class))->hasMethod('wrapReadyScript')) {
+            return ['jQuery(function ($) {', "jQuery(window).on('load', function () {"];
+        }
+
+        $openings = [];
+
+        foreach (['wrapReadyScript', 'wrapLoadScript'] as $method) {
+            $wrapped = (new ReflectionMethod(View::class, $method))->invoke(self::webView(), '');
+
+            self::assertIsString($wrapped, 'Wrapped script must be a string.');
+
+            $openings[] = (string) strstr($wrapped, "\n", true);
+        }
+
+        return [$openings[0], $openings[1]];
     }
 
     protected function setUp(): void
