@@ -12,9 +12,6 @@ class DynamicFormAsset extends \yii\web\AssetBundle
         'yii\widgets\ActiveFormAsset',
     ];
 
-    /**
-     * @return void
-     */
     public function init()
     {
         $this->setSourcePath(__DIR__ . '/assets');
@@ -27,8 +24,6 @@ class DynamicFormAsset extends \yii\web\AssetBundle
      * Sets the source path if empty
      *
      * @param string $path the path to be set
-     *
-     * @return void
      */
     protected function setSourcePath($path)
     {
@@ -42,8 +37,6 @@ class DynamicFormAsset extends \yii\web\AssetBundle
      *
      * @param string $type whether 'css' or 'js'
      * @param list<string> $files the list of 'css' or 'js' basefile names
-     *
-     * @return void
      */
     protected function setupAssets($type, $files = [])
     {

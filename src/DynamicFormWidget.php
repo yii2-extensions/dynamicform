@@ -87,8 +87,6 @@ class DynamicFormWidget extends \yii\base\Widget
      * Initializes the widget.
      *
      * @throws InvalidConfigException
-     *
-     * @return void
      */
     public function init()
     {
@@ -134,8 +132,6 @@ class DynamicFormWidget extends \yii\base\Widget
      * Registers the needed assets.
      *
      * @param View $view The View object
-     *
-     * @return void
      */
     public function registerAssets($view)
     {
@@ -247,8 +243,6 @@ class DynamicFormWidget extends \yii\base\Widget
 
     /**
      * Generates a hashed variable to store the options.
-     *
-     * @return void
      */
     protected function hashOptions()
     {
@@ -258,8 +252,6 @@ class DynamicFormWidget extends \yii\base\Widget
 
     /**
      * Initializes the widget options.
-     *
-     * @return void
      */
     protected function initOptions()
     {
@@ -291,8 +283,6 @@ class DynamicFormWidget extends \yii\base\Widget
      * Registers plugin options by storing it in a hashed javascript variable.
      *
      * @param View $view The View object
-     *
-     * @return void
      */
     protected function registerOptions($view)
     {
