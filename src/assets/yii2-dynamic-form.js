@@ -7,11 +7,9 @@
  * @author Stefano Mtangoo <mwinjilisti@gmail.com>
  */
 (function ($) {
-    var pluginName = 'yiiDynamicForm';
 
-    var regexID = /^(.+?)([-\d-]{1,})(.+)$/i;
-
-    var regexName = /(^.+?)([\[\d{1,}\]]{1,})(\[.+\]$)/i;
+    var regexID = /^(.+?)(-\d+(?:-\d+)*-)(.+)$/i;
+    var regexName = /(^.+?)((?:\[\d+\])+)(\[.+\]$)/i;
 
     $.fn.yiiDynamicForm = function (method) {
         if (methods[method]) {
@@ -36,6 +34,9 @@
         init: function (widgetOptions) {
             return this.each(function () {
                 widgetOptions.template = _parseTemplate(widgetOptions);
+                _containersOf($(this), widgetOptions).each(function () {
+                    _attachValidation(_rootOf($(this)));
+                });
             });
         },
 
@@ -48,10 +49,13 @@
         },
 
         updateContainer: function () {
-            var widgetOptions = eval($(this).attr('data-dynamicform'));
-            _updateAttributes(widgetOptions);
-            _restoreSpecialJs(widgetOptions);
-            _fixFormValidaton(widgetOptions);
+            return this.each(function () {
+                var $root = _rootOf($(this));
+                _prepare($root, _optionsOf($(this)));
+                _updateAttributes($root);
+                _restoreSpecialJs($root);
+                _fixFormValidaton($root);
+            });
         }
     };
 
@@ -67,112 +71,230 @@
         });
 
         $template.find('input, textarea, select').each(function () {
-            $(this).val('');
-        });
-
-        $template.find('input[type="checkbox"], input[type="radio"]').each(function () {
-            var inputName = $(this).attr('name');
-            var $inputHidden = $template.find('input[type="hidden"][name="' + inputName + '"]').first();
-            if ($inputHidden) {
-                $(this).val(1);
-                $inputHidden.val(0);
+            if ($(this).is(':checkbox, :radio')) {
+                $(this).prop('checked', false).removeAttr('checked');
+            } else if ($(this).is('select')) {
+                $(this).find('option').prop('selected', false).removeAttr('selected');
+                $(this).val($(this).prop('multiple') ? [] : '');
+            } else {
+                // Yii's hidden checkbox/radio inputs carry the configured unchecked value.
+                var name = $(this).attr('name');
+                var isUncheck = $(this).is(':hidden') && $template.find(':checkbox, :radio').filter(function () {
+                    return $(this).attr('name') === name;
+                }).length > 0;
+                if (!isUncheck) {
+                    $(this).val('');
+                }
             }
         });
+        $template.find('.select2-container').remove();
+        $template.find('[data-select2-id]').removeAttr('data-select2-id');
+        $template.find('.select2-hidden-accessible').removeClass('select2-hidden-accessible').removeAttr('aria-hidden tabindex');
 
         return $template;
     };
 
-    var _getWidgetOptionsRoot = function (widgetOptions) {
-        return eval($(widgetOptions.widgetBody).parents('div[data-dynamicform]').last().attr('data-dynamicform'));
+    // The outermost dynamic-form container an element belongs to; it owns the rows, the validators and the form, so
+    // another container with the same class elsewhere on the page is never touched.
+    var _rootOf = function ($element) {
+        return $element.parents('div[data-dynamicform]').addBack().filter('div[data-dynamicform]').first();
     };
 
-    var _getLevel = function ($elem) {
-        var level = $elem.parents('div[data-dynamicform]').length;
-        level = (level < 0) ? 0 : level;
-        return level;
+    var _optionsOf = function ($container) {
+        return window[$container.attr('data-dynamicform')];
+    };
+
+    var _containersOf = function ($element, widgetOptions) {
+        return $element.find('.' + widgetOptions.widgetContainer).addBack('.' + widgetOptions.widgetContainer);
+    };
+
+    // The ActiveForm of a root: the enclosing form, or the configured id when the container is rendered outside it.
+    var _formOf = function ($root) {
+        var $form = $root.closest('form');
+        return $form.length > 0 ? $form : $('#' + _optionsOf($root).formId);
+    };
+
+    // Validator templates and the ids registered through this root, kept on the root element.
+    var _validationState = function ($root) {
+        var state = $root.data('dynamicformValidation');
+        if (!state) {
+            state = { templates: {}, ids: [] };
+            $root.data('dynamicformValidation', state);
+        }
+        return state;
     };
 
     var _count = function ($elem, widgetOptions) {
         return $elem.closest('.' + widgetOptions.widgetContainer).find(widgetOptions.widgetItem).length;
     };
 
-    var _createIdentifiers = function (level) {
-        return new Array(level + 2).join('0').split('');
-    };
-
     var _addItem = function (widgetOptions, e, $elem) {
+        var $container = $elem.closest('.' + widgetOptions.widgetContainer);
+        var $root = _rootOf($container);
         var count = _count($elem, widgetOptions);
 
         if (count < widgetOptions.limit) {
-            $toclone = $(widgetOptions.template);
-            $newclone = $toclone.clone(false, false);
+            _prepare($root, widgetOptions);
+            var $toclone = $(widgetOptions.template);
+            var $newclone = $toclone.clone(false, false);
 
             if (widgetOptions.insertPosition === 'top') {
-                $elem.closest('.' + widgetOptions.widgetContainer).find(widgetOptions.widgetBody).prepend($newclone);
+                $container.find(widgetOptions.widgetBody).prepend($newclone);
             } else {
-                $elem.closest('.' + widgetOptions.widgetContainer).find(widgetOptions.widgetBody).append($newclone);
+                $container.find(widgetOptions.widgetBody).append($newclone);
             }
 
-            _updateAttributes(widgetOptions);
-            _restoreSpecialJs(widgetOptions);
-            _fixFormValidaton(widgetOptions);
-            $elem.closest('.' + widgetOptions.widgetContainer).triggerHandler(events.afterInsert, $newclone);
+            _updateAttributes($root);
+            _restoreSpecialJs($root);
+            _fixFormValidaton($root);
+            $container.triggerHandler(events.afterInsert, $newclone);
         } else {
             // trigger a custom event for hooking
-            $elem.closest('.' + widgetOptions.widgetContainer).triggerHandler(events.limitReached, widgetOptions.limit);
+            $container.triggerHandler(events.limitReached, widgetOptions.limit);
         }
     };
 
-    var _removeValidations = function ($elem, widgetOptions, count) {
-        if (count > 1) {
-            $elem.find('div[data-dynamicform]').each(function () {
-                var currentWidgetOptions = eval($(this).attr('data-dynamicform'));
-                var level = _getLevel($(this));
-                var identifiers = _createIdentifiers(level);
-                var numItems = $(this).find(currentWidgetOptions.widgetItem).length;
+    // Replaces the row indexes of an id with `{}`: one per widget the input is nested in, counted from the left. Later
+    // numeric segments, such as the `1` of `model-0-rates-1-amount`, are literal keys and stay.
+    var _validationKey = function (id, level) {
+        var remaining = level === undefined ? Infinity : level;
+        return id.replace(/-\d+(?=-)/g, function (segment) {
+            if (remaining <= 0) {
+                return segment;
+            }
+            remaining--;
+            return '-{}';
+        });
+    };
 
-                for (var i = 1; i <= numItems - 1; i++) {
-                    var aux = identifiers;
-                    aux[level] = i;
-                    currentWidgetOptions.fields.forEach(function (input) {
-                        var id = input.id.replace("{}", aux.join('-'));
-                        if ($("#" + currentWidgetOptions.formId).yiiActiveForm("find", id) !== "undefined") {
-                            $("#" + currentWidgetOptions.formId).yiiActiveForm("remove", id);
-                        }
-                    });
-                }
-            });
+    var _inputLevel = function ($input) {
+        return $input.parents('div[data-dynamicform]').length;
+    };
 
-            var level = _getLevel($elem.closest('.' + widgetOptions.widgetContainer));
-            var widgetOptionsRoot = _getWidgetOptionsRoot(widgetOptions);
-            var identifiers = _createIdentifiers(level);
-            identifiers[0] = $(widgetOptionsRoot.widgetItem).length - 1;
-            identifiers[level] = count - 1;
+    // Calls back for every element of the widget rows that has a validator: its own registration when it was rendered
+    // with one, otherwise the template of its field. Inputs and the wrappers ActiveForm registers for radio and
+    // checkbox lists count; the wrapper name comes from the inputs inside it.
+    var _eachValidated = function ($root, callback) {
+        var state = _validationState($root);
+        $root.find('[id]').each(function () {
+            var id = $(this).attr('id');
+            var attribute = $(this).data('dynamicformAttribute') || state.templates[_validationKey(id, _inputLevel($(this)))];
+            var name = $(this).attr('name') || $(this).find('[name]').first().attr('name');
+            if (attribute && name !== undefined) {
+                callback(id, name, attribute);
+            }
+        });
+    };
 
-            widgetOptions.fields.forEach(function (input) {
-                var id = input.id.replace("{}", identifiers.join('-'));
-                if ($("#" + widgetOptions.formId).yiiActiveForm("find", id) !== "undefined") {
-                    $("#" + widgetOptions.formId).yiiActiveForm("remove", id);
-                }
-            });
+    // Key of a registered attribute whose input is not rendered (rows removed by the server for `min` 0), matched
+    // against the configured field templates.
+    var _templateKeyFor = function (keys, id) {
+        for (var key in keys) {
+            var pattern = key.replace(/[.*+?^$()|[\]\\]/g, '\\$&').replace(/\\\{\\\}|\{\}/g, '\\d+');
+            if (new RegExp('^' + pattern + '$').test(id)) {
+                return key;
+            }
         }
+        return _validationKey(id);
+    };
+
+    // Ids of the validated fields of the root widget and of the widgets nested in it, as `{}` templates.
+    var _templateKeys = function ($root) {
+        var keys = {};
+        var collect = function (options) {
+            $.each((options && options.fields) || [], function () {
+                keys[this.id] = true;
+            });
+        };
+
+        collect(_optionsOf($root));
+        $root.find('div[data-dynamicform]').each(function () {
+            collect(_optionsOf($(this)));
+        });
+
+        return keys;
+    };
+
+    // Copies the validators ActiveForm registered for the widget rows: those declared in `fields`, including rows the
+    // server removed for `min` 0, and those bound to an input inside the container. The copy is also kept on the
+    // element itself, so a renumbered row keeps its own rule while new rows take the field template.
+    var _rememberValidation = function ($root) {
+        var data = _formOf($root).data('yiiActiveForm');
+        var state = _validationState($root);
+        if (!data) {
+            return;
+        }
+        var keys = _templateKeys($root);
+        $.each(data.attributes, function () {
+            var $input = $root.find('[id="' + this.id + '"]');
+            var key = $input.length > 0 ? _validationKey(this.id, _inputLevel($input)) : _templateKeyFor(keys, this.id);
+            if (key !== this.id && (keys[key] || $input.length > 0)) {
+                var copy = $.extend(true, {}, this);
+                state.templates[key] = copy;
+                $input.data('dynamicformAttribute', copy);
+                if (state.ids.indexOf(this.id) === -1) {
+                    state.ids.push(this.id);
+                }
+            }
+        });
+    };
+
+    // Rows can be inserted before the window load initialization (jQuery 3 may run it before ActiveForm's DOM ready
+    // handler), so the template is parsed and the validators are discovered again before every change.
+    var _prepare = function ($root, widgetOptions) {
+        if (typeof widgetOptions.template === 'string') {
+            widgetOptions.template = _parseTemplate(widgetOptions);
+        }
+        _rememberValidation($root);
+    };
+
+    // Gives a validator to every row that lacks one, such as rows inserted before the window load initialization.
+    // ActiveForm initializes on DOM ready, which jQuery 3 may run after that handler, so the step waits for it.
+    var _attachValidation = function ($root) {
+        var $form = _formOf($root);
+        if (!$form.data('yiiActiveForm')) {
+            $form.one('afterInit', function () {
+                _attachValidation($root);
+            });
+            return;
+        }
+        var state = _validationState($root);
+        _rememberValidation($root);
+        _eachValidated($root, function (id, name, attribute) {
+            if ($form.yiiActiveForm('find', id) === undefined) {
+                _fixFormValidatonInput($form, attribute, id, name);
+                state.ids.push(id);
+            }
+        });
+    };
+
+    var _removeValidations = function ($root) {
+        var $form = _formOf($root);
+        var state = _validationState($root);
+        state.ids.forEach(function (id) {
+            $form.yiiActiveForm('remove', id);
+        });
+        state.ids = [];
     };
 
     var _deleteItem = function (widgetOptions, e, $elem) {
         var count = _count($elem, widgetOptions);
 
         if (count > widgetOptions.min) {
-            $todelete = $elem.closest(widgetOptions.widgetItem);
+            var $todelete = $elem.closest(widgetOptions.widgetItem);
+            var $container = $elem.closest('.' + widgetOptions.widgetContainer);
+            var $root = _rootOf($container);
 
             // trigger a custom event for hooking
-            var eventResult = $('.' + widgetOptions.widgetContainer).triggerHandler(events.beforeDelete, $todelete);
+            var eventResult = $container.triggerHandler(events.beforeDelete, $todelete);
             if (eventResult !== false) {
-                _removeValidations($todelete, widgetOptions, count);
+                _prepare($root, widgetOptions);
+                _removeValidations($root);
                 $todelete.remove();
-                _updateAttributes(widgetOptions);
-                _restoreSpecialJs(widgetOptions);
-                _fixFormValidaton(widgetOptions);
-                $('.' + widgetOptions.widgetContainer).triggerHandler(events.afterDelete);
+                _updateAttributes($root);
+                _restoreSpecialJs($root);
+                _fixFormValidaton($root);
+                $container.triggerHandler(events.afterDelete);
             }
         }
     };
@@ -206,7 +328,10 @@
                 newID = matches[1] + '-' + identifiers.join('-') + '-' + matches[3];
                 $elem.attr('id', newID);
             } else {
-                newID = id + index;
+                // Non-tabular ids get the row index; the original id is kept so repeated updates stay stable.
+                var baseID = $elem.attr('data-dynamicform-id') || id;
+                $elem.attr('data-dynamicform-id', baseID);
+                newID = baseID + '-' + index;
                 $elem.attr('id', newID);
             }
         }
@@ -241,7 +366,9 @@
 
                     widgetsOptions = widgetsOptions.reverse();
                     for (var i = identifiers.length - 1; i >= 1; i--) {
-                        identifiers[i] = $elem.closest(widgetsOptions[i].widgetItem).index();
+                        if (widgetsOptions[i]) {
+                            identifiers[i] = $elem.closest(widgetsOptions[i].widgetItem).index();
+                        }
                     }
                 }
 
@@ -253,11 +380,8 @@
         return name;
     };
 
-    var _updateAttributes = function (widgetOptions) {
-        var widgetOptionsRoot = _getWidgetOptionsRoot(widgetOptions);
-
-        $(widgetOptionsRoot.widgetItem).each(function (index) {
-            var $item = $(this);
+    var _updateAttributes = function ($root) {
+        $root.find(_optionsOf($root).widgetItem).each(function (index) {
             $(this).find('*').each(function () {
                 // update "id" attribute
                 _updateAttrID($(this), index);
@@ -268,7 +392,7 @@
         });
     };
 
-    var _fixFormValidatonInput = function (widgetOptions, attribute, id, name) {
+    var _fixFormValidatonInput = function ($form, attribute, id, name) {
         if (attribute !== undefined) {
             attribute = $.extend(true, {}, attribute);
             attribute.id = id;
@@ -278,34 +402,24 @@
             attribute.value = $("#" + id).val();
             attribute.status = 0;
 
-            if ($("#" + widgetOptions.formId).yiiActiveForm("find", id) !== "undefined") {
-                $("#" + widgetOptions.formId).yiiActiveForm("remove", id);
+            if ($form.yiiActiveForm("find", id) !== undefined) {
+                $form.yiiActiveForm("remove", id);
             }
 
-            $("#" + widgetOptions.formId).yiiActiveForm("add", attribute);
+            $form.yiiActiveForm("add", attribute);
         }
     };
 
-    var _fixFormValidaton = function (widgetOptions) {
-        var widgetOptionsRoot = _getWidgetOptionsRoot(widgetOptions);
-
-        $(widgetOptionsRoot.widgetBody).find('input, textarea, select').each(function () {
-            var id = $(this).attr('id');
-            var name = $(this).attr('name');
-
-            if (id !== undefined && name !== undefined) {
-                currentWidgetOptions = eval($(this).closest('div[data-dynamicform]').attr('data-dynamicform'));
-                var matches = id.match(regexID);
-
-                if (matches && matches.length === 4) {
-                    matches[2] = matches[2].substring(1, matches[2].length - 1);
-                    var level = _getLevel($(this));
-                    var identifiers = _createIdentifiers(level - 1);
-                    var baseID = matches[1] + '-' + identifiers.join('-') + '-' + matches[3];
-                    var attribute = $("#" + currentWidgetOptions.formId).yiiActiveForm("find", baseID);
-                    _fixFormValidatonInput(currentWidgetOptions, attribute, id, name);
-                }
-            }
+    var _fixFormValidaton = function ($root) {
+        var $form = _formOf($root);
+        if (!$form.data('yiiActiveForm')) {
+            return;
+        }
+        var state = _validationState($root);
+        _removeValidations($root);
+        _eachValidated($root, function (id, name, attribute) {
+            _fixFormValidatonInput($form, attribute, id, name);
+            state.ids.push(id);
         });
     };
 
@@ -315,7 +429,7 @@
         var matchID = inputID.match(regexID);
 
         if (matchID && matchID.length === 4) {
-            for (index = 0; index < configDepdrop.depends.length; ++index) {
+            for (var index = 0; index < configDepdrop.depends.length; ++index) {
                 var match = configDepdrop.depends[index].match(regexID);
                 if (match && match.length === 4) {
                     configDepdrop.depends[index] = match[1] + matchID[2] + match[3];
@@ -325,11 +439,11 @@
         $elem.depdrop(configDepdrop);
     };
 
-    var _restoreSpecialJs = function (widgetOptions) {
-        var widgetOptionsRoot = _getWidgetOptionsRoot(widgetOptions);
+    var _restoreSpecialJs = function ($root) {
+        var $items = $root.find(_optionsOf($root).widgetItem);
 
         // "jquery.inputmask"
-        var $hasInputmask = $(widgetOptionsRoot.widgetItem).find('[data-plugin-inputmask]');
+        var $hasInputmask = $items.find('[data-plugin-inputmask]');
         if ($hasInputmask.length > 0) {
             $hasInputmask.each(function () {
                 $(this).inputmask('remove');
@@ -346,14 +460,14 @@
         });*/
 
         // "kartik-v/yii2-widget-datepicker"
-        var datePickers = $(widgetOptionsRoot.widgetItem).find('[data-krajee-kvdatepicker]');
+        var datePickers = $items.find('[data-krajee-kvdatepicker]');
         datePickers.each(function (index, el) {
             //$(this).parent().removeData().kvDatepicker('remove');
             $(this).parent().kvDatepicker(eval($(this).attr('data-krajee-kvdatepicker')));
         });
 
         // "kartik-v/yii2-widget-timepicker"
-        var $hasTimepicker = $(widgetOptionsRoot.widgetItem).find('[data-krajee-timepicker]');
+        var $hasTimepicker = $items.find('[data-krajee-timepicker]');
         if ($hasTimepicker.length > 0) {
             $hasTimepicker.each(function () {
                 $(this).removeData().off();
@@ -364,7 +478,7 @@
         }
 
         // "kartik-v/yii2-money"
-        var $hasMaskmoney = $(widgetOptionsRoot.widgetItem).find('[data-krajee-maskMoney]');
+        var $hasMaskmoney = $items.find('[data-krajee-maskMoney]');
         if ($hasMaskmoney.length > 0) {
             $hasMaskmoney.each(function () {
                 $(this).parent().find('input').removeData().off();
@@ -382,7 +496,7 @@
         }
 
         // "kartik-v/yii2-widget-fileinput"
-        var $hasFileinput = $(widgetOptionsRoot.widgetItem).find('[data-krajee-fileinput]');
+        var $hasFileinput = $items.find('[data-krajee-fileinput]');
         if ($hasFileinput.length > 0) {
             $hasFileinput.each(function () {
                 $(this).fileinput(eval($(this).attr('data-krajee-fileinput')));
@@ -390,7 +504,7 @@
         }
 
         // "kartik-v/yii2-widget-touchspin"
-        var $hasTouchSpin = $(widgetOptionsRoot.widgetItem).find('[data-krajee-TouchSpin]');
+        var $hasTouchSpin = $items.find('[data-krajee-TouchSpin]');
         if ($hasTouchSpin.length > 0) {
             $hasTouchSpin.each(function () {
                 $(this).TouchSpin('destroy');
@@ -399,7 +513,7 @@
         }
 
         // "kartik-v/yii2-widget-colorinput"
-        var $hasSpectrum = $(widgetOptionsRoot.widgetItem).find('[data-krajee-spectrum]');
+        var $hasSpectrum = $items.find('[data-krajee-spectrum]');
         if ($hasSpectrum.length > 0) {
             $hasSpectrum.each(function () {
                 var id = '#' + $(this).attr('id');
@@ -421,7 +535,7 @@
         }
 
         // "kartik-v/yii2-widget-depdrop"
-        var $hasDepdrop = $(widgetOptionsRoot.widgetItem).find('[data-krajee-depdrop]');
+        var $hasDepdrop = $items.find('[data-krajee-depdrop]');
         if ($hasDepdrop.length > 0) {
             $hasDepdrop.each(function () {
                 if ($(this).data('select2') === undefined) {
@@ -434,8 +548,9 @@
             });
         }
 
-        // "TomSelect"
-        var $hasTomSelect = $(widgetOptionsRoot.widgetItem).find('select');
+        // "TomSelect": `data-tomselect` marks the selects in the server markup, so clones carry it; `tomselected` is
+        // the class TomSelect itself adds to an initialized select.
+        var $hasTomSelect = $items.find('select[data-tomselect], select.tomselected');
         if ($hasTomSelect.length > 0 && typeof TomSelect !== 'undefined') {
             $hasTomSelect.each(function () {
                 if (!this.tomselect) {
@@ -449,14 +564,14 @@
         }
 
         // "kartik-v/yii2-widget-select2"
-        var $hasSelect2 = $(widgetOptionsRoot.widgetItem).find('[data-krajee-select2]');
+        var $hasSelect2 = $items.find('[data-krajee-select2]');
         if ($hasSelect2.length > 0) {
             $hasSelect2.each(function () {
                 var id = $(this).attr('id');
                 var configSelect2 = eval($(this).attr('data-krajee-select2'));
                 $.when($('#' + id).select2(configSelect2)).done(initS2Loading(id));
                 $('#' + id).on('select2-open', function () {
-                    initSelect2DropStyle(id)
+                    initSelect2DropStyle(id);
                 });
                 if ($(this).attr('data-krajee-depdrop')) {
                     $(this).on('depdrop.beforeChange', function (e, i, v) {
@@ -472,7 +587,7 @@
         }
 
         // "kartik-v/yii2-numbercontrol"
-        var $hasNumberControl = $(widgetOptionsRoot.widgetItem).find('[data-krajee-numbercontrol]');
+        var $hasNumberControl = $items.find('[data-krajee-numbercontrol]');
         if ($hasNumberControl.length > 0) {
             $hasNumberControl.each(function () {
                 var configNumberControl = eval($(this).attr('data-krajee-numbercontrol'));

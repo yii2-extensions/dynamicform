@@ -1,0 +1,32 @@
+{
+  "name": "yii2-dynamicform-tests",
+  "private": true,
+  "license": "BSD-3-Clause",
+  "type": "module",
+  "engines": {
+    "node": "^22.22.2 || ^24.15.0 || >=26.0.0"
+  },
+  "scripts": {
+    "build": "node tools/build-assets.mjs",
+    "lint": "npm run lint:js && npm run lint:asset",
+    "lint:asset": "eslint --config .github/linters/eslint.config.mjs src/assets/yii2-dynamic-form.js",
+    "lint:js": "eslint --config .github/linters/eslint.config.mjs tests/js tests/browser tools playwright.config.mjs vitest.config.mjs vitest.mutation.config.mjs stryker.config.mjs .github/linters/eslint.config.mjs",
+    "test": "npm run test:js && npm run test:browser",
+    "test:browser": "playwright test",
+    "test:js": "vitest run --coverage",
+    "test:js:strict": "DYNAMICFORM_STRICT_DEFECTS=1 vitest run",
+    "test:mutation": "stryker run"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.1",
+    "@stryker-mutator/core": "^10.1.1",
+    "@stryker-mutator/vitest-runner": "^10.1.1",
+    "@vitest/coverage-v8": "^5.1.0",
+    "eslint": "^9.39.1",
+    "jquery": "3.7.1",
+    "jsdom": "^30.1.3",
+    "select2": "4.0.13",
+    "terser": "^5.44.0",
+    "vitest": "^5.1.0"
+  }
+}

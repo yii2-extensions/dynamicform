@@ -1,27 +1,67 @@
-build
-docs
-vendor
+# AI agents (if present)
+.codex
+.claude/*
+!.claude/skills/
 
-# cache directories
-Thumbs.db
-*.DS_Store
-*.empty
+# codecoverage (if present)
+code_coverage
 
-#phpstorm project files
-.idea
+# codeception (if present)
+c3.php
 
-#netbeans project files
+# composer
+composer.lock
+
+# gitHub copilot config (if present)
+.github/agents/**
+.github/copilot-instructions.md
+.github/copilot/**
+.github/instructions/**
+.github/prompts/**
+.github/skills/**
+
+# mac ds_store (if present)
+.DS_Store
+
+# netbeans project (if present)
 nbproject
 
-#eclipse, zend studio, aptana or other eclipse like project files
+# node_modules (if present)
+node_modules
+
+# phpactor (if present)
+.phpactor.*
+
+# phpstorm project (if present)
+.idea
+
+# phpunit (if present)
+.phpunit.cache
+.phpunit.result.cache
+
+# playwright (if present)
+/playwright-report/
+/test-results/
+
+# private maintainer files (if present)
+/internal/
+
+# runtime artifacts (phpunit, phpstan, infection and browser fixture output)
+/runtime/
+
+# vagrant (if present)
+.vagrant
+
+# vendor
+vendor
+
+# vscode project (if present)
+.vscode
+
+# windows thumbnail cache (if present)
+Thumbs.db
+
+# zend studio for eclipse project (if present)
 .buildpath
 .project
 .settings
-
-# composer itself is not needed
-composer.phar
-composer.lock
-
-# mac deployment helpers
-switch
-index
