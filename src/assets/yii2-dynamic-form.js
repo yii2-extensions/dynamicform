@@ -141,6 +141,19 @@
         return $input.parents('div[data-dynamicform]').length;
     };
 
+    // Calls back for every element of the widget rows that has a validator template: inputs, and the wrappers that
+    // ActiveForm registers for radio and checkbox lists, whose name comes from the inputs inside them.
+    var _eachValidated = function (root, callback) {
+        $('.' + root.widgetContainer).find('[id]').each(function () {
+            var id = $(this).attr('id');
+            var attribute = (root.validationTemplates || {})[_validationKey(id, _inputLevel($(this)))];
+            var name = $(this).attr('name') || $(this).find('[name]').first().attr('name');
+            if (attribute && name !== undefined) {
+                callback(id, name, attribute);
+            }
+        });
+    };
+
     // Key of a registered attribute: from its input when it is rendered, otherwise from the configured field templates
     // (rows removed by the server for `min` 0 have no input).
     var _attributeKey = function (root, keys, id) {
@@ -221,11 +234,8 @@
             return;
         }
         _rememberValidation(widgetOptions);
-        $('.' + root.widgetContainer).find('input, textarea, select').each(function () {
-            var id = $(this).attr('id');
-            var name = $(this).attr('name');
-            var attribute = id && root.validationTemplates[_validationKey(id, _inputLevel($(this)))];
-            if (attribute && name !== undefined && $form.yiiActiveForm('find', id) === undefined) {
+        _eachValidated(root, function (id, name, attribute) {
+            if ($form.yiiActiveForm('find', id) === undefined) {
                 _fixFormValidatonInput(root, attribute, id, name);
                 root.validationIds.push(id);
             }
@@ -381,14 +391,9 @@
             return;
         }
         _removeValidations(root);
-        $('.' + root.widgetContainer).find('input, textarea, select').each(function () {
-            var id = $(this).attr('id');
-            var name = $(this).attr('name');
-            var attribute = id && (root.validationTemplates || {})[_validationKey(id, _inputLevel($(this)))];
-            if (attribute && name !== undefined) {
-                _fixFormValidatonInput(root, attribute, id, name);
-                root.validationIds.push(id);
-            }
+        _eachValidated(root, function (id, name, attribute) {
+            _fixFormValidatonInput(root, attribute, id, name);
+            root.validationIds.push(id);
         });
     };
 

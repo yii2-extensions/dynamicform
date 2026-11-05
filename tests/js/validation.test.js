@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, test } from 'vitest';
 
-import { buttons, field, patternAttribute, requiredAttribute, textInput, widgetOptions } from './fixtures/markup.js';
+import { buttons, field, patternAttribute, radioList, requiredAttribute, textInput, widgetOptions } from './fixtures/markup.js';
 import { houses, inputs, nestedForm, roomsOf } from './fixtures/nested.js';
 import { blankError, firstInsertButton, insertButton, options, removeButton, rows, tabularForm } from './fixtures/tabular.js';
 import { defectTest } from './support/defect-test.js';
@@ -72,6 +72,30 @@ describe('row validators', () => {
       [Array.from(rows(), (row) => row.querySelector('[id$="-name"]').value), window.jQuery('#dynamic-form').data('yiiActiveForm')],
       'Rows must change and no ActiveForm data may be created.',
     ).toEqual([['B', ''], undefined]);
+  });
+
+  test('radio list groups keep their validator across insertions and the clone gets its own', async () => {
+    const level = (index) => `formmodel-${index}-level`;
+    const row = (index, selected) =>
+      `<div class="item">${field(level(index), 'Level', radioList(level(index), `FormModel[${index}][level]`, { low: 'Low', high: 'High' }, selected))}${buttons()}</div>`;
+    const fixture = {
+      html: `<form id="group-form"><div class="dynamic_form" data-dynamicform="dynamicform_group"><div class="items">${row(0, 'high')}</div></div></form>`,
+      widgets: { dynamicform_group: widgetOptions({ widgetContainer: 'dynamic_form', formId: 'group-form', template: row(0, 'high') }) },
+      validation: { 'group-form': [requiredAttribute(level(0), '[0]level', 'Level cannot be blank.')] },
+    };
+
+    mount(fixture);
+    insert(fixture.widgets.dynamicform_group, document.querySelector('.add-item'));
+
+    expect(validatorIds('group-form'), 'The group of each row must be registered.').toEqual([level(0), level(1)]);
+    expect(await validate('group-form'), 'Only the blank clone may fail.').toEqual({
+      [level(0)]: '',
+      [level(1)]: 'Level cannot be blank.',
+    });
+
+    remove(fixture.widgets.dynamicform_group, document.querySelectorAll('.remove-item')[1]);
+
+    expect(validatorIds('group-form'), 'The surviving group must keep its validator.').toEqual([level(0)]);
   });
 
   test('an attribute the application registered for a future row is replaced, not duplicated', async () => {
