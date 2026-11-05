@@ -81,8 +81,6 @@ enabled:
 
 disabled:
   - function_declaration
-  # PHPStan needs the `@return void` tags while the released signatures stay without native return types (see ecs.php).
-  - phpdoc_no_empty_return
   - new_with_parentheses
   - psr12_braces
   - psr12_class_definition
