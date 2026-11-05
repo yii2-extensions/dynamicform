@@ -30,7 +30,7 @@ final class ApiSignature
         $members = [];
 
         foreach ($reflection->getReflectionConstants() as $constant) {
-            if ($constant->getDeclaringClass()->getName() === $class) {
+            if ($constant->getDeclaringClass()->getName() === $class && !$constant->isPrivate()) {
                 $members["const {$constant->getName()}"] = ($constant->isPublic() ? 'public' : 'protected')
                     . " const {$constant->getName()} = " . var_export($constant->getValue(), true);
             }

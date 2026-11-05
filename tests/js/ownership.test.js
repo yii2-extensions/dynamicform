@@ -13,7 +13,7 @@ import { validatorIds } from './support/state.js';
 beforeAll(loadEnvironment);
 
 describe('several roots', () => {
-  defectTest('ownership-two-roots', 'two roots in one form sharing item selectors do not renumber each other', () => {
+  test('two roots in one form sharing item selectors do not renumber each other', () => {
     const { dynamicform_a: a } = mount(twoRootsForm());
 
     insert(a, document.querySelector('.add-a'));
@@ -28,7 +28,7 @@ describe('several roots', () => {
     });
   });
 
-  defectTest('ownership-independent-forms', 'independent forms keep their own rows and validators', () => {
+  test('independent forms keep their own rows and validators', () => {
     const { dynamicform_first: first, dynamicform_second: second } = mount(twoFormsPage());
 
     insert(first, document.querySelector('.add-a'));

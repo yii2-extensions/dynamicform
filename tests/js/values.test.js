@@ -35,7 +35,7 @@ const saved = { id: '1', name: 'Saved', notes: 'Long text', kind: 'b', size: 'm'
 const blank = { id: '', name: '', notes: '', kind: '', size: 's', tags: [], flag: false, high: false, locked: '' };
 
 describe('cloned controls', () => {
-  defectTest('values-controls', 'every control of the clone is blank and the original row keeps its values', () => {
+  test('every control of the clone is blank and the original row keeps its values', () => {
     const fixture = controlsForm();
 
     mount(fixture);
@@ -47,7 +47,7 @@ describe('cloned controls', () => {
     ]);
   });
 
-  defectTest('values-payload', 'the submitted payload contains the original values and the blank clone', () => {
+  test('the submitted payload contains the original values and the blank clone', () => {
     const fixture = controlsForm();
 
     mount(fixture);
@@ -105,7 +105,7 @@ describe('cloned controls', () => {
 });
 
 describe('Select2 controls', () => {
-  defectTest('values-select2-single', 'a single Select2 clone is blank and enhanced once (issue #6)', () => {
+  test('a single Select2 clone is blank and enhanced once (issue #6)', () => {
     const fixture = select2Form();
     const $ = window.jQuery;
 
@@ -131,7 +131,7 @@ describe('Select2 controls', () => {
     ]);
   });
 
-  defectTest('values-select2-multiple', 'a multiple Select2 clone is empty and the original keeps its selections', () => {
+  test('a multiple Select2 clone is empty and the original keeps its selections', () => {
     const fixture = select2Form({ multiple: true });
     const $ = window.jQuery;
 

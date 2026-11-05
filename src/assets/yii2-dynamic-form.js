@@ -124,8 +124,37 @@
         }
     };
 
-    var _validationKey = function (id) {
-        return id.replace(/-\d+(?=-)/g, '-{}');
+    // Replaces the row indexes of an id with `{}`: one per widget the input is nested in, counted from the left. Later
+    // numeric segments, such as the `1` of `model-0-rates-1-amount`, are literal keys and stay.
+    var _validationKey = function (id, level) {
+        var remaining = level === undefined ? Infinity : level;
+        return id.replace(/-\d+(?=-)/g, function (segment) {
+            if (remaining <= 0) {
+                return segment;
+            }
+            remaining--;
+            return '-{}';
+        });
+    };
+
+    var _inputLevel = function ($input) {
+        return $input.parents('div[data-dynamicform]').length;
+    };
+
+    // Key of a registered attribute: from its input when it is rendered, otherwise from the configured field templates
+    // (rows removed by the server for `min` 0 have no input).
+    var _attributeKey = function (root, keys, id) {
+        var $input = $('.' + root.widgetContainer).find('[id="' + id + '"]');
+        if ($input.length > 0) {
+            return _validationKey(id, _inputLevel($input));
+        }
+        for (var key in keys) {
+            var pattern = key.replace(/[.*+?^$()|[\]\\]/g, '\\$&').replace(/\\\{\\\}|\{\}/g, '\\d+');
+            if (new RegExp('^' + pattern + '$').test(id)) {
+                return key;
+            }
+        }
+        return _validationKey(id);
     };
 
     // Ids of the validated fields of the root widget and of the widgets nested in it, as `{}` templates.
@@ -161,7 +190,7 @@
         var keys = _templateKeys(root);
         var $container = $('.' + root.widgetContainer);
         $.each(data.attributes, function () {
-            var key = _validationKey(this.id);
+            var key = _attributeKey(root, keys, this.id);
             if (key !== this.id && (keys[key] || $container.find('[id="' + this.id + '"]').length > 0)) {
                 root.validationTemplates[key] = $.extend(true, {}, this);
                 if (root.validationIds.indexOf(this.id) === -1) {
@@ -195,7 +224,7 @@
         $('.' + root.widgetContainer).find('input, textarea, select').each(function () {
             var id = $(this).attr('id');
             var name = $(this).attr('name');
-            var attribute = id && root.validationTemplates[_validationKey(id)];
+            var attribute = id && root.validationTemplates[_validationKey(id, _inputLevel($(this)))];
             if (attribute && name !== undefined && $form.yiiActiveForm('find', id) === undefined) {
                 _fixFormValidatonInput(root, attribute, id, name);
                 root.validationIds.push(id);
@@ -355,7 +384,7 @@
         $('.' + root.widgetContainer).find('input, textarea, select').each(function () {
             var id = $(this).attr('id');
             var name = $(this).attr('name');
-            var attribute = id && (root.validationTemplates || {})[_validationKey(id)];
+            var attribute = id && (root.validationTemplates || {})[_validationKey(id, _inputLevel($(this)))];
             if (attribute && name !== undefined) {
                 _fixFormValidatonInput(root, attribute, id, name);
                 root.validationIds.push(id);

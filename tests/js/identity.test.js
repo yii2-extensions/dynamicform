@@ -145,7 +145,7 @@ describe('tabular rows', () => {
     ).toEqual(['filter|x', 'filter|']);
   });
 
-  defectTest('identity-digit-names', 'model and attribute names containing digits keep their digits', () => {
+  test('model and attribute names containing digits keep their digits', () => {
     const fixture = digitNamesForm();
 
     mount(fixture);
@@ -159,7 +159,7 @@ describe('tabular rows', () => {
 });
 
 describe('special name and id shapes', () => {
-  defectTest('identity-named-segment', 'a named segment before the row index is preserved (issue #4)', () => {
+  test('a named segment before the row index is preserved (issue #4)', () => {
     const fixture = namedSegmentForm();
     const id = (index) => `reporttemplategraphparameters-graph-wind-speed-correlation-${index}-y_id`;
     const name = (index) => `ReportTemplateGraphParameters[graph-wind-speed-correlation][${index}][y_id]`;
@@ -185,7 +185,7 @@ describe('special name and id shapes', () => {
     ).toEqual(['model-2024-0-x|Model[2024][0][x]|kept', 'model-2024-1-x|Model[2024][1][x]|']);
   });
 
-  defectTest('identity-custom-ids', 'custom non-tabular ids stay unique and labelled across rows', () => {
+  test('custom non-tabular ids stay unique and labelled across rows', () => {
     const fixture = customIdForm();
 
     mount(fixture);

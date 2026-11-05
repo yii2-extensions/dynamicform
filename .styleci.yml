@@ -51,7 +51,6 @@ enabled:
   - php_unit_mock_short_will_return
   - php_unit_namespaced
   - php_unit_no_expectation_annotation
-  - phpdoc_no_empty_return
   - phpdoc_no_useless_inheritdoc
   - phpdoc_order
   - phpdoc_param_order
@@ -82,6 +81,8 @@ enabled:
 
 disabled:
   - function_declaration
+  # PHPStan needs the `@return void` tags while the released signatures stay without native return types (see ecs.php).
+  - phpdoc_no_empty_return
   - new_with_parentheses
   - psr12_braces
   - psr12_class_definition

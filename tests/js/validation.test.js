@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, test } from 'vitest';
 
-import { patternAttribute, requiredAttribute } from './fixtures/markup.js';
+import { buttons, field, patternAttribute, requiredAttribute, textInput, widgetOptions } from './fixtures/markup.js';
 import { houses, inputs, nestedForm, roomsOf } from './fixtures/nested.js';
 import { blankError, firstInsertButton, insertButton, options, removeButton, rows, tabularForm } from './fixtures/tabular.js';
 import { defectTest } from './support/defect-test.js';
@@ -48,7 +48,7 @@ describe('row validators', () => {
     });
   });
 
-  defectTest('validation-last-row', 'deleting the last row removes its validator and insertion restores it', async () => {
+  test('deleting the last row removes its validator and insertion restores it', async () => {
     mount(tabularForm({ min: 0 }));
 
     remove(options(), removeButton(0));
@@ -60,7 +60,7 @@ describe('row validators', () => {
     });
   });
 
-  defectTest('validation-without-activeform', 'a form without the ActiveForm client script still inserts and deletes rows', () => {
+  test('a form without the ActiveForm client script still inserts and deletes rows', () => {
     const fixture = tabularForm({ rows: [{ name: 'A' }, { name: 'B' }] });
 
     fixture.validation = {};
@@ -129,7 +129,7 @@ describe('template discovery', () => {
     });
   });
 
-  defectTest('validation-before-both-inits', 'a row inserted before both initializations is validated once ActiveForm initializes', async () => {
+  test('a row inserted before both initializations is validated once ActiveForm initializes', async () => {
     const $ = window.jQuery;
     const fixture = tabularForm();
     const attributes = fixture.validation['dynamic-form'];
@@ -162,7 +162,7 @@ describe('template discovery', () => {
     });
   });
 
-  defectTest('validation-before-init-blank', 'a row inserted before the window-load initialization is blank', () => {
+  test('a row inserted before the window-load initialization is blank', () => {
     const fixture = tabularForm();
 
     mount(fixture, { init: false });
@@ -173,6 +173,33 @@ describe('template discovery', () => {
       Array.from(rows(), (row) => row.querySelector('[id$="-name"]').value),
       'Row inserted before init must be blank.',
     ).toEqual(['Saved', '']);
+  });
+
+  test('array attributes with literal numeric segments keep their own rules on inserted rows', async () => {
+    const rate = (index, slot) => `formmodel-${index}-rates-${slot}-amount`;
+    const row = (index) =>
+      `<div class="item">${field(rate(index, 1), 'Rate 1', textInput(rate(index, 1), `FormModel[${index}][rates][1][amount]`))}${field(rate(index, 2), 'Rate 2', textInput(rate(index, 2), `FormModel[${index}][rates][2][amount]`))}${buttons()}</div>`;
+    const fixture = {
+      html: `<form id="rates-form"><div class="dynamic_form" data-dynamicform="dynamicform_rates"><div class="items">${row(0)}</div></div></form>`,
+      widgets: { dynamicform_rates: widgetOptions({ widgetContainer: 'dynamic_form', formId: 'rates-form', template: row(0) }) },
+      validation: {
+        'rates-form': [
+          requiredAttribute(rate(0, 1), '[0]rates[1][amount]', 'Rate 1 cannot be blank.'),
+          patternAttribute(rate(0, 2), '[0]rates[2][amount]', /^\d+$/, 'Rate 2 must be digits.'),
+        ],
+      },
+    };
+
+    mount(fixture);
+    insert(fixture.widgets.dynamicform_rates, document.querySelector('.add-item'));
+    document.getElementById(rate(1, 2)).value = 'x';
+
+    expect(await validate('rates-form'), 'Each slot must keep its own rule in the inserted row.').toEqual({
+      [rate(0, 1)]: 'Rate 1 cannot be blank.',
+      [rate(0, 2)]: '',
+      [rate(1, 1)]: 'Rate 1 cannot be blank.',
+      [rate(1, 2)]: 'Rate 2 must be digits.',
+    });
   });
 
   defectTest('validation-per-row-rules', 'intentionally different per-row rules survive insertion', async () => {
@@ -195,7 +222,7 @@ describe('template discovery', () => {
 });
 
 describe('nested validators', () => {
-  defectTest('validation-nested', 'validators mirror the visible nested inputs after insertions and deletions', async () => {
+  test('validators mirror the visible nested inputs after insertions and deletions', async () => {
     const fixture = nestedForm();
     const { dynamicform_houses: housesOptions, dynamicform_rooms: roomsOptions } = mount(fixture);
 

@@ -230,7 +230,8 @@ DYNAMICFORM_BASE_URL=http://127.0.0.1:8181 npx playwright test
 
 ## Minified asset
 
-Regenerate the committed `src/assets/yii2-dynamic-form.min.js` after editing the plugin.
+Regenerate the committed `src/assets/yii2-dynamic-form.min.js` after editing the plugin; the `assets` workflow fails
+when the committed file differs from a fresh build.
 
 ```bash
 npm run build
