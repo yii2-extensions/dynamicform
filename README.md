@@ -30,7 +30,7 @@
     <em>Tabular inputs, client validation, nested widgets and jQuery events</em>
 </p>
 
-Add and remove rows of form fields in the browser while the tabular input names, ids and client validation stay 
+Add and remove rows of form fields in the browser while the tabular input names, ids and client validation stay
 coherent. The widget wraps the rows rendered by `ActiveForm`, and the `Model` helper rebuilds the posted rows on the
 server.
 

@@ -6,7 +6,8 @@ The examples build an address book: each customer has several addresses, edited 
 
 ## Models
 
-Two Active Record classes map the tables; nothing specific to the extension is needed in them.
+Two Active Record classes map the tables; nothing specific to the extension is needed in them. The rules make the posted
+attributes safe, so `load()` and `loadMultiple()` assign them.
 
 ```php
 namespace app\models;
@@ -18,6 +19,14 @@ class Customer extends ActiveRecord
     public static function tableName()
     {
         return 'customer';
+    }
+
+    public function rules()
+    {
+        return [
+            [['first_name', 'last_name'], 'required'],
+            [['first_name', 'last_name'], 'string', 'max' => 255],
+        ];
     }
 
     public function getAddresses()
@@ -37,6 +46,14 @@ class Address extends ActiveRecord
     public static function tableName()
     {
         return 'address';
+    }
+
+    public function rules()
+    {
+        return [
+            [['full_name', 'address_line1', 'city', 'state', 'postal_code'], 'required'],
+            [['full_name', 'address_line1', 'address_line2', 'city', 'state', 'postal_code'], 'string', 'max' => 255],
+        ];
     }
 }
 ```
@@ -121,7 +138,7 @@ class CustomerController extends Controller
 ## Update action
 
 Passing the stored addresses and their primary key to `Model::createMultiple()` reuses the models whose key was posted
-and creates the rest; the keys that are no longer posted are deleted.
+and creates the rest; the keys that are no longer posted are deleted. `findModel()` is the usual Gii helper.
 
 ```php
 namespace app\controllers;
@@ -130,12 +147,21 @@ use app\models\{Address, Customer};
 use Exception;
 use Yii;
 use yii\helpers\ArrayHelper;
-use yii\web\{Controller, Response};
+use yii\web\{Controller, NotFoundHttpException, Response};
 use yii\widgets\ActiveForm;
 use Yii2\Extensions\DynamicForm\Models\Model;
 
 class CustomerController extends Controller
 {
+    protected function findModel($id)
+    {
+        if (($model = Customer::findOne($id)) !== null) {
+            return $model;
+        }
+
+        throw new NotFoundHttpException('The requested page does not exist.');
+    }
+
     public function actionUpdate($id)
     {
         $modelCustomer = $this->findModel($id);

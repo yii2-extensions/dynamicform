@@ -34,7 +34,7 @@
         init: function (widgetOptions) {
             return this.each(function () {
                 widgetOptions.template = _parseTemplate(widgetOptions);
-                _rememberValidation(widgetOptions);
+                _attachValidation(widgetOptions);
             });
         },
 
@@ -178,6 +178,29 @@
             widgetOptions.template = _parseTemplate(widgetOptions);
         }
         _rememberValidation(widgetOptions);
+    };
+
+    // Gives a validator to every row that lacks one, such as rows inserted before the window load initialization.
+    // ActiveForm initializes on DOM ready, which jQuery 3 may run after that handler, so the step waits for it.
+    var _attachValidation = function (widgetOptions) {
+        var root = _getWidgetOptionsRoot(widgetOptions);
+        var $form = $('#' + root.formId);
+        if (!$form.data('yiiActiveForm')) {
+            $form.one('afterInit', function () {
+                _attachValidation(widgetOptions);
+            });
+            return;
+        }
+        _rememberValidation(widgetOptions);
+        $('.' + root.widgetContainer).find('input, textarea, select').each(function () {
+            var id = $(this).attr('id');
+            var name = $(this).attr('name');
+            var attribute = id && root.validationTemplates[_validationKey(id)];
+            if (attribute && name !== undefined && $form.yiiActiveForm('find', id) === undefined) {
+                _fixFormValidatonInput(root, attribute, id, name);
+                root.validationIds.push(id);
+            }
+        });
     };
 
     var _removeValidations = function (widgetOptions) {

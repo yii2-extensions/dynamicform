@@ -96,6 +96,12 @@ export const knownDefects = {
       failure: 'Clone must be blank and enhanced once.',
     },
   },
+  'validation-before-both-inits': {
+    production: {
+      finding: `${staleProduction}; the 1.0.2 algorithm requires ActiveForm data and throws when a row is inserted before it`,
+      failure: "Cannot read properties of undefined (reading 'attributes')",
+    },
+  },
   'validation-before-init-blank': {
     production: {
       finding: 'N-01: a row inserted before init() clones the unparsed template and copies existing values (Phase 4B/4C)',

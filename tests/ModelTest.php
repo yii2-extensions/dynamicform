@@ -6,14 +6,12 @@ namespace Yii2\Extensions\DynamicForm\Tests;
 
 use PHPUnit\Framework\Attributes\{DataProviderExternal, Group};
 use Yii;
-use yii\base\UnknownPropertyException;
 use Yii2\Extensions\DynamicForm\Models\Model;
 use Yii2\Extensions\DynamicForm\Tests\Provider\ModelProvider;
 use Yii2\Extensions\DynamicForm\Tests\Support\{
     DottedKeyFormModel,
     EmptyFormNameModel,
     FormModel,
-    KnownDefect,
     PersistedFormModel,
     TestCase,
 };
@@ -124,26 +122,16 @@ final class ModelTest extends TestCase
         );
     }
 
-    #[Group('known-defect')]
     public function testCreateMultipleReusesExistingModelsByDottedPrimaryKey(): void
     {
         $existing = new DottedKeyFormModel(['meta' => ['id' => 7]]);
 
         Yii::$app->request->setBodyParams(['FormModel' => [['meta.id' => '7']]]);
 
-        // Release 1.0.2 resolves `meta.id` on existing models with `ArrayHelper` and reuses the instance; the
-        // current source reads it as a property name.
-        KnownDefect::assertViolates(
-            'F-13',
-            UnknownPropertyException::class,
-            'Getting unknown property: ' . DottedKeyFormModel::class . '::meta.id',
-            static function () use ($existing): void {
-                self::assertSame(
-                    [$existing],
-                    Model::createMultiple(DottedKeyFormModel::class, [$existing], 'meta.id'),
-                    'Existing row must be reused.',
-                );
-            },
+        self::assertSame(
+            [$existing],
+            Model::createMultiple(DottedKeyFormModel::class, [$existing], 'meta.id'),
+            'Existing row must be reused.',
         );
     }
 

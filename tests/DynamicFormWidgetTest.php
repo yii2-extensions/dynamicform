@@ -7,8 +7,7 @@ namespace Yii2\Extensions\DynamicForm\Tests;
 use PHPUnit\Framework\Attributes\{DataProviderExternal, Group};
 use PHPUnit\Framework\ExpectationFailedException;
 use Yii;
-use yii\base\InvalidConfigException;
-use yii\base\Widget;
+use yii\base\{InvalidCallException, InvalidConfigException};
 use yii\helpers\Json;
 use yii\web\{JqueryAsset, View, YiiAsset};
 use yii\widgets\ActiveFormAsset;
@@ -495,11 +494,19 @@ final class DynamicFormWidgetTest extends TestCase
             ob_get_level(),
             'Rejected configuration must not open an output buffer.',
         );
-        self::assertSame(
-            [],
-            Widget::$stack,
-            'Rejected configuration must not stay on the widget stack.',
-        );
+        try {
+            DynamicFormWidget::end();
+
+            self::fail(
+                'Rejected configuration must not stay on the widget stack.',
+            );
+        } catch (InvalidCallException $exception) {
+            self::assertSame(
+                'Unexpected ' . DynamicFormWidget::class . '::end() call. A matching begin() is not found.',
+                $exception->getMessage(),
+                'No widget may be pending after the rejection.',
+            );
+        }
         self::assertSame(
             [],
             self::webView()->js,

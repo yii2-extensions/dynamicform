@@ -23,7 +23,7 @@ const node = {
 
 export default [
   {
-    ignores: ['**/node_modules/**', 'internal/**', 'runtime/**', 'tools/vendor/**', 'vendor/**', 'src/assets/*.min.js'],
+    ignores: ['**/node_modules/**', 'internal/**', 'runtime/**', 'vendor/**', 'src/assets/*.min.js'],
   },
   {
     ...js.configs.recommended,

@@ -2,13 +2,19 @@
 
 namespace Yii2\Extensions\DynamicForm;
 
+use DOMDocument;
 use Symfony\Component\DomCrawler\Crawler;
 use Yii;
 use yii\base\InvalidConfigException;
 use yii\base\Model;
+use yii\helpers\ArrayHelper;
 use yii\helpers\Html;
 use yii\helpers\Json;
 use yii\web\View;
+
+use function in_array;
+use function is_array;
+use function is_string;
 
 /**
  * Yii2 Dynamic form widget for  cloning form elements in a nested manner while maintaining accessibility.
@@ -21,7 +27,7 @@ class DynamicFormWidget extends \yii\base\Widget
      */
     public $deleteButton;
     /**
-     * @var list<string> fields to be validated.
+     * @var list<string>|null fields to be validated.
      */
     public $formFields;
     /**
@@ -45,7 +51,7 @@ class DynamicFormWidget extends \yii\base\Widget
      */
     public $min = 1;
     /**
-     * @var Model the model used for the form
+     * @var Model|null the model used for the form
      */
     public $model;
     /**
@@ -80,35 +86,47 @@ class DynamicFormWidget extends \yii\base\Widget
     /**
      * Initializes the widget.
      *
-     * @throws \yii\base\InvalidConfigException
+     * @throws InvalidConfigException
+     *
+     * @return void
      */
     public function init()
     {
         parent::init();
 
-        if (empty($this->widgetContainer) || (preg_match('/^\w{1,}$/', $this->widgetContainer) === 0)) {
-            throw new InvalidConfigException('Invalid configuration to property "widgetContainer".
-                Allowed only alphanumeric characters plus underline: [A-Za-z0-9_]');
-        }
-        if (empty($this->widgetBody)) {
-            throw new InvalidConfigException("The 'widgetBody' property must be set.");
-        }
-        if (empty($this->widgetItem)) {
-            throw new InvalidConfigException("The 'widgetItem' property must be set.");
-        }
-        if (empty($this->model) || !$this->model instanceof \yii\base\Model) {
-            throw new InvalidConfigException("The 'model' property must be set and must extend from '\\yii\\base\\Model'.");
-        }
-        if (empty($this->formId)) {
-            throw new InvalidConfigException("The 'formId' property must be set.");
-        }
-        if (empty($this->insertPosition) || !in_array($this->insertPosition, $this->_insertPositions)) {
-            throw new InvalidConfigException("Invalid configuration to property 'insertPosition' (allowed values: 'bottom' or 'top')");
-        }
-        if (empty($this->formFields) || !is_array($this->formFields)) {
-            throw new InvalidConfigException("The 'formFields' property must be set.");
+        if (self::isBlank($this->widgetContainer) || (preg_match('/^\w{1,}$/', $this->widgetContainer) === 0)) {
+            throw new InvalidConfigException(
+                'Invalid configuration to property "widgetContainer". Allowed only alphanumeric characters plus underline: [A-Za-z0-9_]',
+            );
         }
 
+        if (self::isBlank($this->widgetBody)) {
+            throw new InvalidConfigException(
+                "The 'widgetBody' property must be set.",
+            );
+        }
+
+        if (self::isBlank($this->widgetItem)) {
+            throw new InvalidConfigException(
+                "The 'widgetItem' property must be set.",
+            );
+        }
+
+        $this->model();
+
+        if (self::isBlank($this->formId)) {
+            throw new InvalidConfigException(
+                "The 'formId' property must be set.",
+            );
+        }
+
+        if (!in_array($this->insertPosition, $this->_insertPositions, true)) {
+            throw new InvalidConfigException(
+                "Invalid configuration to property 'insertPosition' (allowed values: 'bottom' or 'top')",
+            );
+        }
+
+        $this->fields();
         $this->initOptions();
     }
 
@@ -116,28 +134,42 @@ class DynamicFormWidget extends \yii\base\Widget
      * Registers the needed assets.
      *
      * @param View $view The View object
+     *
+     * @return void
      */
     public function registerAssets($view)
     {
         DynamicFormAsset::register($view);
 
         // add a click handler for the clone button
-        $js = 'jQuery("#' . $this->formId . '").on("click", "' . $this->insertButton . '", function(e) {' . "\n";
-        $js .= "    e.preventDefault();\n";
-        $js .= '    jQuery(".' . $this->widgetContainer . '").triggerHandler("beforeInsert", [jQuery(this)]);' . "\n";
-        $js .= '    jQuery(".' . $this->widgetContainer . '").yiiDynamicForm("addItem", ' . $this->_hashVar . ", e, jQuery(this));\n";
-        $js .= "});\n";
-        $view->registerJs($js, $view::POS_READY);
+        $js = <<<JS
+            jQuery("#{$this->formId}").on("click", "{$this->insertButton}", function(e) {
+                e.preventDefault();
+                jQuery(".{$this->widgetContainer}").triggerHandler("beforeInsert", [jQuery(this)]);
+                jQuery(".{$this->widgetContainer}").yiiDynamicForm("addItem", {$this->_hashVar}, e, jQuery(this));
+            });
+
+            JS;
+
+        $view->registerJs($js, View::POS_READY);
 
         // add a click handler for the remove button
-        $js = 'jQuery("#' . $this->formId . '").on("click", "' . $this->deleteButton . '", function(e) {' . "\n";
-        $js .= "    e.preventDefault();\n";
-        $js .= '    jQuery(".' . $this->widgetContainer . '").yiiDynamicForm("deleteItem", ' . $this->_hashVar . ", e, jQuery(this));\n";
-        $js .= "});\n";
-        $view->registerJs($js, $view::POS_READY);
+        $js = <<<JS
+            jQuery("#{$this->formId}").on("click", "{$this->deleteButton}", function(e) {
+                e.preventDefault();
+                jQuery(".{$this->widgetContainer}").yiiDynamicForm("deleteItem", {$this->_hashVar}, e, jQuery(this));
+            });
 
-        $js = 'jQuery("#' . $this->formId . '").yiiDynamicForm(' . $this->_hashVar . ');' . "\n";
-        $view->registerJs($js, $view::POS_LOAD);
+            JS;
+
+        $view->registerJs($js, View::POS_READY);
+
+        $js = <<<JS
+            jQuery("#{$this->formId}").yiiDynamicForm({$this->_hashVar});
+
+            JS;
+
+        $view->registerJs($js, View::POS_LOAD);
     }
 
     /**
@@ -147,36 +179,45 @@ class DynamicFormWidget extends \yii\base\Widget
      */
     public function registerHashVarWidget()
     {
-        if (!isset(Yii::$app->params[self::WIDGET_NAME][$this->widgetContainer])) {
-            Yii::$app->params[self::WIDGET_NAME][$this->widgetContainer] = $this->_hashVar;
-            return true;
+        if ($this->registeredHashVar() !== null) {
+            return false;
         }
 
-        return false;
+        $registry = Yii::$app->params[self::WIDGET_NAME] ?? [];
+
+        $registry = is_array($registry) ? $registry : [];
+
+        $registry[$this->widgetContainer] = $this->_hashVar;
+
+        Yii::$app->params[self::WIDGET_NAME] = $registry;
+
+        return true;
     }
 
     public function run()
     {
-        $content = ob_get_clean();
+        $content = (string) ob_get_clean();
 
         $crawler = new Crawler();
 
-        $crawler->addHTMLContent($content, \Yii::$app->charset);
+        $crawler->addHtmlContent($content, \Yii::$app->charset);
 
         $results = $crawler->filter($this->widgetItem);
         $template = $results->first()->getNode(0);
 
         if ($template === null) {
-            throw new InvalidConfigException('The "widgetItem" selector must match at least one template item.');
+            throw new InvalidConfigException(
+                'The "widgetItem" selector must match at least one template item.',
+            );
         }
 
-        $document = new \DOMDocument('1.0', \Yii::$app->charset);
+        $document = new DOMDocument('1.0', Yii::$app->charset);
 
         $document->appendChild($document->importNode($template, true));
 
-        $this->_options['template'] = trim($document->saveHTML());
+        $this->_options['template'] = trim((string) $document->saveHTML());
 
-        if ($this->min === 0 && (!$this->model->canGetProperty('isNewRecord') || $this->model->isNewRecord)) {
+        if ($this->min === 0 && $this->isNewRecord()) {
             $content = $this->removeItems($content);
         }
 
@@ -201,15 +242,13 @@ class DynamicFormWidget extends \yii\base\Widget
      */
     protected function getHashVarName()
     {
-        if (isset(Yii::$app->params[self::WIDGET_NAME][$this->widgetContainer])) {
-            return Yii::$app->params[self::WIDGET_NAME][$this->widgetContainer];
-        }
-
-        return $this->_hashVar;
+        return $this->registeredHashVar() ?? $this->_hashVar;
     }
 
     /**
      * Generates a hashed variable to store the options.
+     *
+     * @return void
      */
     protected function hashOptions()
     {
@@ -219,6 +258,8 @@ class DynamicFormWidget extends \yii\base\Widget
 
     /**
      * Initializes the widget options.
+     *
+     * @return void
      */
     protected function initOptions()
     {
@@ -233,10 +274,12 @@ class DynamicFormWidget extends \yii\base\Widget
         $this->_options['min'] = $this->min;
         $this->_options['fields'] = [];
 
-        foreach ($this->formFields as $field) {
+        $model = $this->model();
+
+        foreach ($this->fields() as $field) {
             $this->_options['fields'][] = [
-                'id' => Html::getInputId($this->model, '[{}]' . $field),
-                'name' => Html::getInputName($this->model, '[{}]' . $field),
+                'id' => Html::getInputId($model, '[{}]' . $field),
+                'name' => Html::getInputName($model, '[{}]' . $field),
             ];
         }
 
@@ -248,26 +291,100 @@ class DynamicFormWidget extends \yii\base\Widget
      * Registers plugin options by storing it in a hashed javascript variable.
      *
      * @param View $view The View object
+     *
+     * @return void
      */
     protected function registerOptions($view)
     {
-        $view->registerJs("var {$this->_hashVar} = {$this->_encodedOptions};\n", $view::POS_HEAD);
+        $view->registerJs("var {$this->_hashVar} = {$this->_encodedOptions};\n", View::POS_HEAD);
+    }
+
+    /**
+     * Returns the validated fields.
+     *
+     * @throws InvalidConfigException When `formFields` is not a non-empty list.
+     *
+     * @return list<string>
+     */
+    private function fields(): array
+    {
+        if (!is_array($this->formFields) || $this->formFields === []) {
+            throw new InvalidConfigException("The 'formFields' property must be set.");
+        }
+
+        return $this->formFields;
+    }
+
+    /**
+     * Returns whether a required string option is missing or blank.
+     */
+    private static function isBlank(mixed $value): bool
+    {
+        return !is_string($value) || $value === '';
+    }
+
+    /**
+     * Returns whether the row model is a new record; models without the property count as new.
+     */
+    private function isNewRecord(): bool
+    {
+        $model = $this->model();
+
+        if (!$model->canGetProperty('isNewRecord')) {
+            return true;
+        }
+
+        return (bool) ArrayHelper::getValue($model, 'isNewRecord');
+    }
+
+    /**
+     * Returns the validated row model.
+     *
+     * @throws InvalidConfigException When `model` is not a {@see Model}.
+     */
+    private function model(): Model
+    {
+        if (!$this->model instanceof Model) {
+            throw new InvalidConfigException("The 'model' property must be set and must extend from '\\yii\\base\\Model'.");
+        }
+
+        return $this->model;
+    }
+
+    /**
+     * Returns the variable name registered for the container by the first widget rendered with it, or `null`.
+     *
+     * @return string|null
+     */
+    private function registeredHashVar()
+    {
+        $registry = Yii::$app->params[self::WIDGET_NAME] ?? null;
+        $hashVar = is_array($registry) ? ($registry[$this->widgetContainer] ?? null) : null;
+
+        return is_string($hashVar) ? $hashVar : null;
     }
 
     /**
      * Clear HTML widgetBody. Required to work with zero or more items.
      *
      * @param string $content
+     *
+     * @return string
      */
     private function removeItems($content)
     {
         $crawler = new Crawler();
-        $crawler->addHTMLContent($content, \Yii::$app->charset);
-        $crawler->filter($this->widgetItem)->each(function ($nodes) {
-            foreach ($nodes as $node) {
-                $node->parentNode->removeChild($node);
-            }
-        });
+
+        $crawler->addHtmlContent($content, Yii::$app->charset);
+        $crawler->filter(
+            $this->widgetItem
+        )->each(
+            function ($nodes) {
+                foreach ($nodes as $node) {
+                    $node->parentNode?->removeChild($node);
+                }
+            },
+        );
 
         return $crawler->filter('body')->html();
     }

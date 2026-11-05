@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use PhpCsFixer\Fixer\Phpdoc\PhpdocNoEmptyReturnFixer;
 use PhpCsFixer\Fixer\Strict\{DeclareStrictTypesFixer, StrictComparisonFixer, StrictParamFixer};
 use Symplify\CodingStandard\Fixer\Commenting\RemoveDeadVarThisFixer;
 
@@ -20,6 +21,8 @@ return $builder
     ->withSkip(
         [
             DeclareStrictTypesFixer::class => [__DIR__ . '/src'],
+            // PHPStan needs the `@return void` tags while the released signatures stay without native return types.
+            PhpdocNoEmptyReturnFixer::class => [__DIR__ . '/src'],
             StrictComparisonFixer::class => [__DIR__ . '/src'],
             StrictParamFixer::class => [__DIR__ . '/src'],
             // Static analysis needs the `$this` type of view files.

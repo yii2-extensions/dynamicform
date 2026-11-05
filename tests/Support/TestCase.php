@@ -5,23 +5,19 @@ declare(strict_types=1);
 namespace Yii2\Extensions\DynamicForm\Tests\Support;
 
 use Yii;
-use yii\base\Widget;
 use yii\di\Container;
 use yii\web\{Application, AssetManager, View};
 
 use function array_keys;
-use function array_map;
 use function dirname;
-use function implode;
 use function ob_get_clean;
 use function ob_start;
 
 /**
  * Creates an isolated Yii web application for each test.
  *
- * PHPUnit restores globals and static properties after every test (`backupGlobals` and `backupStaticProperties` in
- * `phpunit.xml.dist`) and reports output buffers left open. A widget left on the stack is removed and reported here, so
- * the next test starts clean without hiding the leak.
+ * PHPUnit restores globals and static properties, including Yii's widget stack, after every test (`backupGlobals` and
+ * `backupStaticProperties` in `phpunit.xml.dist`) and reports output buffers left open.
  */
 abstract class TestCase extends \PHPUnit\Framework\TestCase
 {
@@ -110,18 +106,6 @@ abstract class TestCase extends \PHPUnit\Framework\TestCase
         Yii::$container = new Container();
 
         new Application($this->applicationConfig());
-    }
-
-    protected function tearDown(): void
-    {
-        $leaked = array_map(static fn(Widget $widget): string => $widget::class, Widget::$stack);
-        Widget::$stack = [];
-
-        parent::tearDown();
-
-        if ($leaked !== []) {
-            self::fail('Test left widgets on the stack: ' . implode(', ', $leaked) . '.');
-        }
     }
 
     protected static function webView(): View

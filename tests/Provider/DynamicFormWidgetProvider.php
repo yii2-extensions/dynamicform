@@ -7,8 +7,6 @@ namespace Yii2\Extensions\DynamicForm\Tests\Provider;
 use stdClass;
 use Yii2\Extensions\DynamicForm\Tests\Support\{PersistedFormModel, RecordStateFormModel};
 
-use function str_repeat;
-
 /**
  * Data provider for {@see \Yii2\Extensions\DynamicForm\Tests\DynamicFormWidgetTest} test cases.
  *
@@ -22,8 +20,7 @@ final class DynamicFormWidgetProvider
      */
     public static function invalidConfigurations(): iterable
     {
-        // The message keeps the line break and indentation of the source string literal.
-        $container = "Invalid configuration to property \"widgetContainer\".\n" . str_repeat(' ', 16)
+        $container = 'Invalid configuration to property "widgetContainer". '
             . 'Allowed only alphanumeric characters plus underline: [A-Za-z0-9_]';
         $model = "The 'model' property must be set and must extend from '\\yii\\base\\Model'.";
         $position = "Invalid configuration to property 'insertPosition' (allowed values: 'bottom' or 'top')";
@@ -78,6 +75,10 @@ final class DynamicFormWidgetProvider
         ];
         yield 'insertPosition is case sensitive' => [
             ['insertPosition' => 'Top'],
+            $position,
+        ];
+        yield 'insertPosition is a boolean' => [
+            ['insertPosition' => true],
             $position,
         ];
         yield 'formFields empty' => [
@@ -184,12 +185,6 @@ final class DynamicFormWidgetProvider
             '<div class="items"><div class="item">Row</div></div>',
             'min',
             '0',
-        ];
-        yield 'boolean insertPosition passes the loose allow-list' => [
-            ['insertPosition' => true],
-            '<div class="items"><div class="item">Row</div></div>',
-            'insertPosition',
-            true,
         ];
         yield 'numeric string limit is emitted unchanged' => [
             ['limit' => '5'],

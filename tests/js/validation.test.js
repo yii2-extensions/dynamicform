@@ -129,6 +129,24 @@ describe('template discovery', () => {
     });
   });
 
+  defectTest('validation-before-both-inits', 'a row inserted before both initializations is validated once ActiveForm initializes', async () => {
+    const $ = window.jQuery;
+    const fixture = tabularForm();
+    const attributes = fixture.validation['dynamic-form'];
+
+    delete fixture.validation;
+    mount(fixture, { init: false });
+    insert(options(), insertButton(0));
+    initialize(fixture);
+    $('#dynamic-form').yiiActiveForm(attributes, { scrollToError: false });
+    document.querySelector('#formmodel-1-name').value = '';
+
+    expect(await validate('dynamic-form'), 'The row must get its validator when ActiveForm initializes.').toEqual({
+      'formmodel-0-name': '',
+      'formmodel-1-name': blankError,
+    });
+  });
+
   test('a row inserted before the window-load initialization is validated', async () => {
     const fixture = tabularForm();
 
