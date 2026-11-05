@@ -22,10 +22,6 @@ export const knownDefects = {
     'N-06: rows are selected by container class across the page, so another form with that class is renumbered (C08, D02)',
     'The other form must keep its indexes.',
   ),
-  'validation-per-row-rules': both(
-    "N-05: validator templates are keyed by field, so the last row's rule replaces the others (C09, Phase 4C)",
-    'Each existing row must keep its own rule.',
-  ),
   'values-defaults': both(
     'N-07: clones keep the template value attributes, so a form reset fills new rows with the first row values (Phase 4B)',
     'Reset must restore saved values and a blank clone.',

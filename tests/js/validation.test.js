@@ -3,7 +3,6 @@ import { beforeAll, describe, expect, test } from 'vitest';
 import { buttons, field, patternAttribute, radioList, requiredAttribute, textInput, widgetOptions } from './fixtures/markup.js';
 import { houses, inputs, nestedForm, roomsOf } from './fixtures/nested.js';
 import { blankError, firstInsertButton, insertButton, options, removeButton, rows, tabularForm } from './fixtures/tabular.js';
-import { defectTest } from './support/defect-test.js';
 import { initialize, insert, mount, remove } from './support/dom.js';
 import { loadEnvironment } from './support/environment.js';
 import { validate, validatorIds } from './support/state.js';
@@ -226,7 +225,7 @@ describe('template discovery', () => {
     });
   });
 
-  defectTest('validation-per-row-rules', 'intentionally different per-row rules survive insertion', async () => {
+  test('intentionally different per-row rules survive insertion', async () => {
     const fixture = tabularForm({ rows: [{ name: '' }, { name: 'x' }] });
 
     fixture.validation['dynamic-form'] = [

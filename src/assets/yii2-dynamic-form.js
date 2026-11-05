@@ -141,12 +141,14 @@
         return $input.parents('div[data-dynamicform]').length;
     };
 
-    // Calls back for every element of the widget rows that has a validator template: inputs, and the wrappers that
-    // ActiveForm registers for radio and checkbox lists, whose name comes from the inputs inside them.
+    // Calls back for every element of the widget rows that has a validator: its own registration when it was rendered
+    // with one, otherwise the template of its field. Inputs and the wrappers ActiveForm registers for radio and
+    // checkbox lists count; the wrapper name comes from the inputs inside it.
     var _eachValidated = function (root, callback) {
         $('.' + root.widgetContainer).find('[id]').each(function () {
             var id = $(this).attr('id');
-            var attribute = (root.validationTemplates || {})[_validationKey(id, _inputLevel($(this)))];
+            var attribute = $(this).data('dynamicformAttribute')
+                || (root.validationTemplates || {})[_validationKey(id, _inputLevel($(this)))];
             var name = $(this).attr('name') || $(this).find('[name]').first().attr('name');
             if (attribute && name !== undefined) {
                 callback(id, name, attribute);
@@ -154,13 +156,9 @@
         });
     };
 
-    // Key of a registered attribute: from its input when it is rendered, otherwise from the configured field templates
-    // (rows removed by the server for `min` 0 have no input).
-    var _attributeKey = function (root, keys, id) {
-        var $input = $('.' + root.widgetContainer).find('[id="' + id + '"]');
-        if ($input.length > 0) {
-            return _validationKey(id, _inputLevel($input));
-        }
+    // Key of a registered attribute whose input is not rendered (rows removed by the server for `min` 0), matched
+    // against the configured field templates.
+    var _templateKeyFor = function (keys, id) {
         for (var key in keys) {
             var pattern = key.replace(/[.*+?^$()|[\]\\]/g, '\\$&').replace(/\\\{\\\}|\{\}/g, '\\d+');
             if (new RegExp('^' + pattern + '$').test(id)) {
@@ -191,7 +189,8 @@
     };
 
     // Copies the validators ActiveForm registered for the widget rows: those declared in `fields`, including rows the
-    // server removed for `min` 0, and those bound to an input inside the container.
+    // server removed for `min` 0, and those bound to an input inside the container. The copy is also kept on the
+    // element itself, so a renumbered row keeps its own rule while new rows take the field template.
     var _rememberValidation = function (widgetOptions) {
         var root = _getWidgetOptionsRoot(widgetOptions);
         var data = $('#' + root.formId).data('yiiActiveForm');
@@ -203,9 +202,12 @@
         var keys = _templateKeys(root);
         var $container = $('.' + root.widgetContainer);
         $.each(data.attributes, function () {
-            var key = _attributeKey(root, keys, this.id);
-            if (key !== this.id && (keys[key] || $container.find('[id="' + this.id + '"]').length > 0)) {
-                root.validationTemplates[key] = $.extend(true, {}, this);
+            var $input = $container.find('[id="' + this.id + '"]');
+            var key = $input.length > 0 ? _validationKey(this.id, _inputLevel($input)) : _templateKeyFor(keys, this.id);
+            if (key !== this.id && (keys[key] || $input.length > 0)) {
+                var copy = $.extend(true, {}, this);
+                root.validationTemplates[key] = copy;
+                $input.data('dynamicformAttribute', copy);
                 if (root.validationIds.indexOf(this.id) === -1) {
                     root.validationIds.push(this.id);
                 }
