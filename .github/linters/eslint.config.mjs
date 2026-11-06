@@ -37,6 +37,7 @@ export default [
         jQuery: 'readonly',
         // Optional integrations resolved at runtime.
         TomSelect: 'readonly',
+        initDepdropS2: 'readonly',
         initS2Loading: 'readonly',
         initSelect2DropStyle: 'readonly',
       },

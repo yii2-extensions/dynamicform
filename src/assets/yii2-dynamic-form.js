@@ -91,6 +91,9 @@
             }
         });
         $template.find('.select2-container').remove();
+        // Krajee renders a loading indicator, named after the id of the rendered control, that its own initialization
+        // removes; a clone is initialized under another id, so the indicator would stay.
+        $template.find('.kv-plugin-loading').remove();
         $template.find('[data-select2-id]').removeAttr('data-select2-id');
         $template.find('.select2-hidden-accessible').removeClass('select2-hidden-accessible').removeAttr('aria-hidden tabindex');
 
@@ -474,27 +477,59 @@
         });
     };
 
-    // Points the dependencies of a DepDrop at the row of the element. A dependency the declared fields describe takes
-    // only the row indexes of the element and keeps its own literal keys; any other one takes the numeric segments of
-    // the element id, as before.
-    var _restoreKrajeeDepdrop = function ($elem) {
-        var configDepdrop = $.extend(true, {}, eval($elem.attr('data-krajee-depdrop')));
+    // Points ids of a DepDrop configuration at the row of the element. An id the declared fields describe takes only the
+    // row indexes of the element and keeps its own literal keys; any other one takes the numeric segments of the
+    // element id, as before.
+    var _depdropRowIDs = function ($elem, ids) {
         var inputID = $elem.attr('id');
         var inputPath = _declaredPath($elem, inputID, 'id');
         var matchID = inputID.match(regexID);
 
-        if (inputPath !== null || (matchID && matchID.length === 4)) {
-            for (var index = 0; index < configDepdrop.depends.length; ++index) {
-                var dependPath = inputPath === null ? null : _declaredPath($elem, configDepdrop.depends[index], 'id');
-                var match = configDepdrop.depends[index].match(regexID);
-                if (dependPath !== null) {
-                    configDepdrop.depends[index] = dependPath.before + inputPath.indexes.join('-') + dependPath.after;
-                } else if (matchID && matchID.length === 4 && match && match.length === 4) {
-                    configDepdrop.depends[index] = match[1] + matchID[2] + match[3];
-                }
-            }
+        if (inputPath === null && !(matchID && matchID.length === 4)) {
+            return ids;
         }
-        $elem.depdrop(configDepdrop);
+
+        return $.map(ids, function (id) {
+            var dependPath = inputPath === null ? null : _declaredPath($elem, id, 'id');
+            var match = id.match(regexID);
+            if (dependPath !== null) {
+                return dependPath.before + inputPath.indexes.join('-') + dependPath.after;
+            } else if (matchID && matchID.length === 4 && match && match.length === 4) {
+                return match[1] + matchID[2] + match[3];
+            }
+            return id;
+        });
+    };
+
+    // Points a DepDrop at the row of the element: `depends` (the selects it listens to) and `params` (the inputs whose
+    // values its requests carry). A row without a DepDrop gets a new one. An initialized DepDrop keeps its instance:
+    // its listeners are bound to the dependency elements of its own row, which move with the row, and only the ids
+    // through which it reads their values change, so renumbering adds no listener and no duplicated request. Returns
+    // whether a DepDrop was created.
+    var _restoreKrajeeDepdrop = function ($elem) {
+        var configDepdrop = $.extend(true, {}, eval($elem.attr('data-krajee-depdrop')));
+        var depdrop = $elem.data('depdrop');
+
+        configDepdrop.depends = _depdropRowIDs($elem, configDepdrop.depends);
+        if (Array.isArray(configDepdrop.params)) {
+            configDepdrop.params = _depdropRowIDs($elem, configDepdrop.params);
+        }
+
+        if (depdrop === undefined) {
+            $elem.depdrop(configDepdrop);
+            return true;
+        }
+
+        // dependent-dropdown reads the dependency ids through the array its listeners were given and the parameter ids
+        // through the element data, so both are updated in place.
+        for (var index = 0; index < depdrop.depends.length; ++index) {
+            depdrop.depends[index] = configDepdrop.depends[index];
+        }
+        if (Array.isArray(configDepdrop.params)) {
+            depdrop.params = configDepdrop.params;
+            $elem.data('params', configDepdrop.params);
+        }
+        return false;
     };
 
     var _restoreSpecialJs = function ($root) {
@@ -593,18 +628,12 @@
         }
 
         // "kartik-v/yii2-widget-depdrop"
-        var $hasDepdrop = $items.find('[data-krajee-depdrop]');
-        if ($hasDepdrop.length > 0) {
-            $hasDepdrop.each(function () {
-                if ($(this).data('select2') === undefined) {
-                    $(this).removeData().off();
-                    $(this).unbind();
-                    _restoreKrajeeDepdrop($(this));
-                }
-                var configDepdrop = eval($(this).attr('data-krajee-depdrop'));
-                $(this).depdrop(configDepdrop);
-            });
-        }
+        var $newDepdrops = $();
+        $items.find('[data-krajee-depdrop]').each(function () {
+            if (_restoreKrajeeDepdrop($(this))) {
+                $newDepdrops = $newDepdrops.add(this);
+            }
+        });
 
         // "TomSelect": `data-tomselect` marks the selects in the server markup, so clones carry it; `tomselected` is
         // the class TomSelect itself adds to an initialized select.
@@ -621,25 +650,33 @@
             });
         }
 
-        // "kartik-v/yii2-widget-select2"
+        // "kartik-v/yii2-widget-select2": `data-s2-options` names the global variable holding the Kartik options (theme,
+        // reset, toggle all, order) that initS2Loading() applies once Select2 is initialized.
         var $hasSelect2 = $items.find('[data-krajee-select2]');
         if ($hasSelect2.length > 0) {
             $hasSelect2.each(function () {
                 var id = $(this).attr('id');
+                var select2 = $(this).data('select2');
+                // A Select2 created for the current id (Select2 4 names its instance `select2-<id>`) stays as it is:
+                // initializing it again would destroy its dropdown together with the controls Kartik moved into it, such
+                // as the toggle all button. New and renumbered controls are initialized.
+                if (select2 !== undefined && select2.id === 'select2-' + id.replace(/(:|\.|\[|\]|,)/g, '')) {
+                    return;
+                }
                 var configSelect2 = eval($(this).attr('data-krajee-select2'));
-                $.when($('#' + id).select2(configSelect2)).done(initS2Loading(id));
-                $('#' + id).on('select2-open', function () {
-                    initSelect2DropStyle(id);
-                });
-                if ($(this).attr('data-krajee-depdrop')) {
-                    $(this).on('depdrop.beforeChange', function (e, i, v) {
-                        var configDepdrop = eval($(this).attr('data-krajee-depdrop'));
-                        var loadingText = (configDepdrop.loadingText) ? configDepdrop.loadingText : 'Loading ...';
-                        $('#' + id).select2('data', { text: loadingText });
+                $.when($('#' + id).select2(configSelect2)).done(initS2Loading(id, $(this).attr('data-s2-options')));
+                // Select2 3.x announced its dropdown with `select2-open`, styled by Kartik's initSelect2DropStyle() of
+                // that time; Select2 4 emits `select2:open` and current Kartik releases define no such function.
+                if (typeof initSelect2DropStyle === 'function') {
+                    $('#' + id).off('select2-open.dynamicform').on('select2-open.dynamicform', function () {
+                        initSelect2DropStyle(id);
                     });
-                    $(this).on('depdrop.change', function (e, i, v, c) {
-                        $('#' + id).select2('val', $('#' + id).val());
-                    });
+                }
+                // The server registered Kartik's Select2 handling of DepDrop requests (loading text, `change` after
+                // each load) for the rendered rows only; a DepDrop created for a new row gets it here.
+                if ($newDepdrops.is(this) && typeof initDepdropS2 === 'function') {
+                    var configDepdrop = eval($(this).attr('data-krajee-depdrop'));
+                    initDepdropS2(id, configDepdrop.loadingText ? configDepdrop.loadingText : 'Loading ...');
                 }
             });
         }

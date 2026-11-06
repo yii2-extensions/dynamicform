@@ -10,12 +10,14 @@ declare(strict_types=1);
  * `/source/...` runs with `YII_DEBUG=true` and `/production/...` with `YII_DEBUG=false`. Each request is a fresh process
  * context, so DynamicFormAsset selects its file exactly as in an application; no asset override is applied. Below the
  * variant, `health` answers a plain text probe, `form/<scenario>` renders a scenario and `submit/<scenario>` echoes the
- * posted payload as JSON. Assets are published below `runtime/browser-fixture`, which the built-in server serves itself.
+ * posted payload as JSON. `depdrop/<list>` (DepDrop requests) and `lookup/owners` (Select2 AJAX searches) answer the
+ * Kartik scenario with deterministic JSON. Assets are published below `runtime/browser-fixture`, which the built-in
+ * server serves itself.
  */
 
 use yii\helpers\FileHelper;
 use yii\web\{Application, Response};
-use Yii2\Extensions\DynamicForm\Tests\Support\Browser\StderrTarget;
+use Yii2\Extensions\DynamicForm\Tests\Support\Browser\{KartikCatalog, StderrTarget};
 
 $root = dirname(__DIR__, 3);
 $uri = $_SERVER['REQUEST_URI'] ?? '/';
@@ -26,7 +28,7 @@ if (str_starts_with($path, '/runtime/browser-fixture/') && is_file($root . $path
     return false;
 }
 
-if (preg_match('#^/(source|production)/(health|form|submit)(?:/([\w-]+))?$#', $path, $match) !== 1) {
+if (preg_match('#^/(source|production)/(health|form|submit|depdrop|lookup)(?:/([\w-]+))?$#', $path, $match) !== 1) {
     http_response_code(404);
     echo 'Unknown fixture path.';
 
@@ -70,9 +72,11 @@ $scenarios = [
     'numeric-literal-key' => ['rowFormName' => 'FormModel[2024]', 'codeKey' => '[7]'],
     // Stored rows with every kind of control a form reset restores, next to a sibling form with its own widget.
     'reset' => ['view' => 'reset'],
+    // Real Kartik Select2 and DepDrop widgets: `[Production]`/`[Sales]` literal keys in one form, `Row[2024]` in another.
+    'kartik' => ['view' => 'kartik'],
 ];
 
-if ($route !== 'health' && !isset($scenarios[$name])) {
+if (in_array($route, ['form', 'submit'], true) && !isset($scenarios[$name])) {
     http_response_code(404);
     echo "Unknown scenario {$name}.";
 
@@ -93,6 +97,8 @@ $application = new Application([
     'runtimePath' => $root . '/runtime/browser-fixture',
     'aliases' => ['@bower' => '@vendor/bower-asset', '@npm' => '@vendor/npm-asset'],
     'bootstrap' => ['log'],
+    // Krajee widgets require a Bootstrap extension; yiisoft/yii2-bootstrap5 is the one installed for the fixture.
+    'params' => ['bsVersion' => '5'],
     'components' => [
         'request' => [
             'cookieValidationKey' => 'dynamicform-browser-fixture',
@@ -116,6 +122,27 @@ $application = new Application([
 if ($route === 'health') {
     header('Content-Type: text/plain');
     echo 'ok ' . PHP_VERSION . ' yii ' . Yii::getVersion();
+
+    return true;
+}
+
+if ($route === 'depdrop' || $route === 'lookup') {
+    $request = $application->getRequest();
+    $data = $route === 'depdrop'
+        ? KartikCatalog::dependent($name, $request->post('depdrop_parents'))
+        : ($name === 'owners' ? KartikCatalog::owners($request->get('q')) : null);
+
+    if ($data === null) {
+        http_response_code(404);
+        echo "Unknown list {$name}.";
+
+        return true;
+    }
+
+    $response = $application->getResponse();
+    $response->format = Response::FORMAT_JSON;
+    $response->data = $data;
+    $response->send();
 
     return true;
 }
@@ -147,6 +174,7 @@ $scenario = array_replace(
         'rowFormName' => 'FormModel',
         'codeKey' => '',
         'submitUrl' => "/{$variant}/submit/{$name}",
+        'endpointUrl' => "/{$variant}",
     ],
     $scenarios[$name],
 );

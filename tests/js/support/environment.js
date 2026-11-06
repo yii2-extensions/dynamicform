@@ -34,6 +34,17 @@ const libraries = [
   'node_modules/select2/dist/js/select2.full.js',
 ];
 
+/**
+ * Kartik scripts pinned in composer.json: dependent-dropdown 1.4.9, yii2-widget-depdrop 1.0.6 and
+ * yii2-widget-select2 2.2.5. The unminified files are used; `depdrop.min.js` of yii2-widget-depdrop 1.0.6 is an older
+ * build (1.0.3) that listens to the `depdrop.` event names dependent-dropdown dropped in 1.4.5.
+ */
+const kartikLibraries = [
+  'vendor/kartik-v/dependent-dropdown/js/dependent-dropdown.js',
+  'vendor/kartik-v/yii2-widget-depdrop/src/assets/js/depdrop.js',
+  'vendor/kartik-v/yii2-widget-select2/src/assets/js/select2-krajee.js',
+];
+
 export const variant = process.env.DYNAMICFORM_JS_VARIANT ?? 'source';
 
 /** Defect registry key of the loaded asset: both source variants share the source file. */
@@ -71,4 +82,23 @@ export async function loadEnvironment() {
   }
 
   return window.jQuery;
+}
+
+/**
+ * Loads the environment plus the real Kartik DepDrop and Select2 scripts, as the Kartik asset bundles register them.
+ */
+export async function loadKartikEnvironment() {
+  const $ = await loadEnvironment();
+
+  if ($.fn.depdrop === undefined) {
+    for (const library of kartikLibraries) {
+      if (!existsSync(join(libraryRoot, library))) {
+        throw new Error(`${join(libraryRoot, library)} is missing; run composer install (require-dev pins the Kartik widgets).`);
+      }
+
+      evaluateScript(libraryRoot, library);
+    }
+  }
+
+  return $;
 }
