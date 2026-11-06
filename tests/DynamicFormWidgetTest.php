@@ -6,7 +6,6 @@ namespace Yii2\Extensions\DynamicForm\Tests;
 
 use Closure;
 use PHPUnit\Framework\Attributes\{DataProviderExternal, Group};
-use PHPUnit\Framework\ExpectationFailedException;
 use ReflectionProperty;
 use WeakMap;
 use Yii;
@@ -19,7 +18,6 @@ use Yii2\Extensions\DynamicForm\Tests\Provider\DynamicFormWidgetProvider;
 use Yii2\Extensions\DynamicForm\Tests\Support\{
     FormModel,
     InspectableDynamicFormWidget,
-    KnownDefect,
     TestCase,
     WidgetRenderer,
 };
@@ -664,6 +662,29 @@ final class DynamicFormWidgetTest extends TestCase
         );
     }
 
+    #[DataProviderExternal(DynamicFormWidgetProvider::class, 'validContainerNames')]
+    public function testRendersContainerWithValidName(string $name): void
+    {
+        $html = WidgetRenderer::render(['widgetContainer' => $name]);
+
+        $hashVar = self::hashVar($html);
+
+        self::assertSame(
+            sprintf(
+                '<div class="%s" data-dynamicform="%s"><div class="items"><div class="item">Row</div></div></div>',
+                $name,
+                $hashVar,
+            ),
+            $html,
+            'Class attribute must hold the name unchanged.',
+        );
+        self::assertSame(
+            $name,
+            self::decodedOptions($hashVar)['widgetContainer'] ?? null,
+            'Option must hold the name unchanged.',
+        );
+    }
+
     public function testReusesTheCompatibleRegistrationForRepeatedRenderingsInOneForm(): void
     {
         // A nested widget renders once per outer row: the options match, the first row of each rendering differs.
@@ -709,32 +730,6 @@ final class DynamicFormWidgetTest extends TestCase
                 HTML,
             $page,
             'Repeated rendering must reference the first registration without declaring options or handlers again.',
-        );
-    }
-
-    #[Group('known-defect')]
-    public function testThrowInvalidConfigExceptionForContainerNameWithTrailingNewline(): void
-    {
-        // `$` without the `D` modifier also matches before a final line feed, so the documented character set is not
-        // enforced and the class attribute receives the line feed.
-        KnownDefect::assertViolates(
-            'N-02',
-            ExpectationFailedException::class,
-            'A container name with a line feed must be rejected.',
-            static function (): void {
-                $rejected = false;
-
-                try {
-                    WidgetRenderer::render(['widgetContainer' => "dynamic_form\n"]);
-                } catch (InvalidConfigException) {
-                    $rejected = true;
-                }
-
-                self::assertTrue(
-                    $rejected,
-                    'A container name with a line feed must be rejected.',
-                );
-            },
         );
     }
 
