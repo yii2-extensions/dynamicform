@@ -34,11 +34,12 @@ $kinds = ['k1' => 'Kind one', 'k2' => 'Kind two', 'k3' => 'Kind three'];
 $tags = ['Warm' => ['t1' => 'Red', 't2' => 'Orange'], 'Cold' => ['t3' => 'Blue', 't4' => 'Green']];
 $colors = ['red' => 'Red', 'blue' => 'Blue'];
 
-// Application code: TomSelect settings per `data-tomselect` value, applied to the rendered selects on DOM ready.
+// Application code: TomSelect settings per `data-tomselect` value, applied to the rendered selects on DOM ready. The
+// listbox of `kind` is mounted in the body, outside its row.
 $this->registerJs(
     <<<'JS'
         window.tomSelectSettings = {
-            kind: { plugins: ['clear_button'], allowEmptyOption: true, maxOptions: 20 },
+            kind: { plugins: ['clear_button'], allowEmptyOption: true, maxOptions: 20, dropdownParent: 'body' },
             tags: { plugins: ['remove_button'], maxItems: 3 },
         };
         document.querySelectorAll('select[data-tomselect]').forEach(function (select) {

@@ -28,6 +28,13 @@ function identityIssues(select) {
   const label = row.querySelector(`label[for="${ts.focus_node.id}"]`);
   const issues = [];
   const check = (what, actual, expected) => actual !== expected && issues.push(`${select.id} ${what}: ${actual} != ${expected}`);
+  const active = ts.focus_node.getAttribute('aria-activedescendant');
+
+  // The active option is checked before the options are rendered again, which would refresh the reference.
+  if (active !== null) {
+    check('aria-activedescendant', ts.dropdown_content.querySelector(`[id="${active}"]`), ts.activeOption);
+    check('active option id', active.startsWith(`${select.id}-opt-`), true);
+  }
 
   ts.refreshOptions(false);
   check('control id', ts.focus_node.id, `${select.id}-ts-control`);
@@ -161,6 +168,41 @@ describe('TomSelect instances', () => {
 
     expect(selects.map((select) => select.id)).toEqual(['formmodel-0-kind', 'formmodel-0-tags', 'formmodel-1-kind', 'formmodel-1-tags']);
     expect(selects.flatMap(identityIssues)).toEqual([]);
+    expect(duplicateIds()).toEqual([]);
+  });
+
+  test('a renumbered single TomSelect keeps its active option reference in its own row', () => {
+    setup({ rows: [{}, {}] });
+
+    // A single select keeps its active option after closing (TomSelect clears it on close only with `hideSelected`).
+    const kept = document.getElementById('formmodel-1-kind').tomselect;
+
+    kept.refreshOptions(false);
+    kept.setActiveOption(kept.getOption('k2'), false);
+    kept.close();
+
+    remove(options(), button(0, '.remove-item'));
+
+    expect(kept.focus_node.getAttribute('aria-activedescendant'), 'reference after renumbering').toBe(kept.activeOption.id);
+    expect(kept.activeOption.id).toMatch(/^formmodel-0-kind-opt-\d+$/);
+
+    insert(options(), button(0, '.add-item'));
+
+    expect(identityIssues(document.getElementById('formmodel-0-kind'))).toEqual([]);
+    expect(duplicateIds()).toEqual([]);
+  });
+
+  test('a renumbered TomSelect whose listbox the page mounted in the body takes the listbox id of its row', () => {
+    setup({ rows: [{}, {}] }, { settings: { kind: { dropdownParent: 'body' } } });
+
+    const external = document.getElementById('formmodel-1-kind').tomselect;
+
+    expect(external.dropdown.parentElement, 'listbox outside the row').toBe(document.body);
+
+    remove(options(), button(0, '.remove-item'));
+    insert(options(), button(0, '.add-item'));
+
+    expect(Array.from(document.querySelectorAll('.item select.tomselected')).flatMap(identityIssues)).toEqual([]);
     expect(duplicateIds()).toEqual([]);
   });
 

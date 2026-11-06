@@ -26,6 +26,13 @@ const selectsOf = (page, key) =>
       const label = row.querySelector(`label[for="${ts.focus_node.id}"]`);
       const issues = [];
       const expect = (what, actual, expected) => actual !== expected && issues.push(`${what}: ${actual} != ${expected}`);
+      const active = ts.focus_node.getAttribute('aria-activedescendant');
+
+      // The active option is checked before the options are rendered again, which would refresh the reference.
+      if (active !== null) {
+        expect('aria-activedescendant', ts.dropdown_content.querySelector(`[id="${active}"]`), ts.activeOption);
+        expect('active option id', active.startsWith(`${select.id}-opt-`), true);
+      }
 
       ts.refreshOptions(false);
       expect('wrapper', select.nextElementSibling === ts.wrapper && row.contains(ts.wrapper), true);
@@ -81,6 +88,19 @@ const setTomSelect = (page, values) =>
       document.getElementById(id).tomselect.setValue(value);
     }
   }, values);
+
+/** Makes an option the active one of a single select and closes it; a single select keeps it after closing. */
+const activate = (page, id, value) =>
+  page.evaluate(
+    ([target, option]) => {
+      const ts = document.getElementById(target).tomselect;
+
+      ts.refreshOptions(false);
+      ts.setActiveOption(ts.getOption(option), false);
+      ts.close();
+    },
+    [id, value],
+  );
 
 /** Chooses an option through the TomSelect dropdown of a select. */
 async function chooseThroughTomSelect(page, id, value) {
@@ -252,6 +272,7 @@ test('ids, names, labels and ARIA references follow each row across insertion, p
   await page.locator('#tomselect-form .add-first').click();
   await expect(rows(page, 'items')).toHaveCount(4);
   await setTomSelect(page, { 'item-2-kind': 'k3', 'item-3-tags': ['t4'] });
+  await activate(page, 'item-2-kind', 'k1');
   await rows(page, 'items').nth(1).locator('.remove-item').click();
   await page.locator('#tomselect-form .add-first').click();
 
@@ -268,7 +289,9 @@ test('ids, names, labels and ARIA references follow each row across insertion, p
   ]);
   expect(issues(items)).toEqual([]);
 
-  // Rows inserted at the top renumber the stored row, which keeps its values under `Row[2024][<i>][Sales]`.
+  // Rows inserted at the top renumber the stored row, which keeps its values under `Row[2024][<i>][Sales]`; its
+  // listbox is mounted in the body by the page settings, so the row renaming does not reach it.
+  await activate(page, 'row-2024-0-sales-kind', 'k2');
   await page.locator('#table-form .add-first').click();
   await page.locator('#table-form .add-first').click();
   await rows(page, 'table').nth(1).locator('.remove-item').click();

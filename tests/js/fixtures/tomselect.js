@@ -74,12 +74,15 @@ export const pageSettings = { kind: { plugins: ['clear_button'] }, tags: { plugi
 
 /**
  * Initializes TomSelect on the selects of the rendered rows, as the page does on DOM ready: marked selects with the
- * settings their marker names, or every select of `name` when the rows are unmarked.
+ * settings their marker names, or every select of `name` when the rows are unmarked. `settings` adds settings per
+ * marker value, such as `dropdownParent`.
  */
-export function enhanceTomSelect({ unmarked = null } = {}) {
+export function enhanceTomSelect({ unmarked = null, settings = {} } = {}) {
   const selector = unmarked === null ? '.item select[data-tomselect]' : `.item select[name$="[${unmarked}]"]`;
 
   document.querySelectorAll(selector).forEach((element) => {
-    new window.TomSelect(element, pageSettings[element.getAttribute('data-tomselect') ?? unmarked] ?? {});
+    const marker = element.getAttribute('data-tomselect') ?? unmarked;
+
+    new window.TomSelect(element, { ...pageSettings[marker], ...settings[marker] });
   });
 }

@@ -565,6 +565,8 @@
         }
 
         tomselect.inputId = select.id;
+        // A listbox the page mounted outside the row (`dropdownParent`) was not renamed with it.
+        tomselect.dropdown_content.id = select.id + '-ts-dropdown';
         tomselect.focus_node.setAttribute('aria-controls', tomselect.dropdown_content.id);
         $(select).parents(_optionsOf(_rootOf($(select))).widgetItem).last().find('label').filter(function () {
             return $(this).attr('for') === tomselect.focus_node.id;
@@ -579,6 +581,11 @@
                 option.$div.id = option.$id;
             }
         });
+        // `aria-activedescendant` names the active option by id; a single select keeps it after closing. Activating
+        // the same option again refers to its new id; without an active option nothing is set.
+        var active = tomselect.activeOption;
+        tomselect.clearActiveOption();
+        tomselect.setActiveOption(active, false);
     };
 
     var _restoreSpecialJs = function ($root) {
