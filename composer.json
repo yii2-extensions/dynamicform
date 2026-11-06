@@ -47,7 +47,7 @@
         "phpstan/extension-installer": "^1.4",
         "phpstan/phpstan-phpunit": "^2.0",
         "phpstan/phpstan-strict-rules": "^2.0.3",
-        "phpunit/phpunit": "^10.5",
+        "phpunit/phpunit": "^13.4",
         "select2/select2": "4.0.13",
         "yii2-extensions/phpstan": "^0.4 || ^0.5",
         "yiisoft/yii2-bootstrap5": "^2.0.50"
