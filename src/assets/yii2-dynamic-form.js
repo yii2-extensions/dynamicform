@@ -472,15 +472,22 @@
         });
     };
 
+    // Points the dependencies of a DepDrop at the row of the element. A dependency the declared fields describe takes
+    // only the row indexes of the element and keeps its own literal keys; any other one takes the numeric segments of
+    // the element id, as before.
     var _restoreKrajeeDepdrop = function ($elem) {
         var configDepdrop = $.extend(true, {}, eval($elem.attr('data-krajee-depdrop')));
         var inputID = $elem.attr('id');
+        var inputPath = _declaredPath($elem, inputID, 'id');
         var matchID = inputID.match(regexID);
 
-        if (matchID && matchID.length === 4) {
+        if (inputPath !== null || (matchID && matchID.length === 4)) {
             for (var index = 0; index < configDepdrop.depends.length; ++index) {
+                var dependPath = inputPath === null ? null : _declaredPath($elem, configDepdrop.depends[index], 'id');
                 var match = configDepdrop.depends[index].match(regexID);
-                if (match && match.length === 4) {
+                if (dependPath !== null) {
+                    configDepdrop.depends[index] = dependPath.before + inputPath.indexes.join('-') + dependPath.after;
+                } else if (matchID && matchID.length === 4 && match && match.length === 4) {
                     configDepdrop.depends[index] = match[1] + matchID[2] + match[3];
                 }
             }

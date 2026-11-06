@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, test } from 'vitest';
+import { beforeAll, describe, expect, onTestFinished, test } from 'vitest';
 
 import {
   idOf,
@@ -226,6 +226,9 @@ describe('validators of rows with literal keys', () => {
 
     expect(rowIdentities(literalRows()), 'The blank template row must take index 0.').toEqual([identity(0)]);
     expect(validatorIds('literal-form'), 'The removed row validator becomes the template.').toEqual(['model-2024-0-name']);
+    expect(await validate('literal-form'), 'The rule must run on the blank inserted row.').toEqual({
+      'model-2024-0-name': nameError,
+    });
   });
 
   test('rows insert and delete without client validation', () => {
@@ -264,6 +267,38 @@ describe('validators of rows with literal keys', () => {
     insert(literalOptions(), literalRows()[0].querySelector('.add-item'));
 
     expect(validatorIds('literal-form'), 'No duplicate validators.').toEqual(['model-2024-0-name', 'model-2024-1-name']);
+  });
+});
+
+describe('DepDrop dependencies of rows with literal keys', () => {
+  test('a dependency takes only the row index and keeps its own literal keys', () => {
+    const $ = window.jQuery;
+    const fixture = literalKeyForm();
+    const control = 'name="Model[2024][0][7][code]"';
+    const marked = `${control} data-krajee-depdrop="depdrop_code"`;
+
+    // Like the Kartik plugin, the first configuration of an element wins.
+    $.fn.depdrop = function (config) {
+      return this.each(function () {
+        if ($(this).data('depdrop') === undefined) {
+          $(this).data('depdrop', config);
+        }
+      });
+    };
+    onTestFinished(() => {
+      delete $.fn.depdrop;
+    });
+
+    fixture.html = fixture.html.replace(control, marked);
+    fixture.widgets.dynamicform_literal.template = fixture.widgets.dynamicform_literal.template.replace(control, marked);
+    fixture.globals = { depdrop_code: { depends: ['model-2024-0-name'] } };
+    mount(fixture);
+    insert(literalOptions(), literalRows()[0].querySelector('.add-item'));
+
+    expect(
+      Array.from(literalRows(), (row) => $(row).find('[data-krajee-depdrop]').data('depdrop').depends),
+      'The literal key 7 of the DepDrop must not leak into the name it depends on.',
+    ).toEqual([['model-2024-0-name'], ['model-2024-1-name']]);
   });
 });
 
