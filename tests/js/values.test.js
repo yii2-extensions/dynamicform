@@ -314,10 +314,36 @@ describe('Select2 controls', () => {
       },
       'Clone must be blank and enhanced once.',
     ).toEqual({ original: 'saved', clone: '', name: 'FormModel[1][kind]', containers: [1, 1], rendered: 'Choose' });
-    expect(calls, 'Every enhanced select must be passed to the Kartik loading callback.').toEqual([
-      ['initS2Loading', 'formmodel-0-kind'],
-      ['initS2Loading', 'formmodel-1-kind'],
+    expect(calls, 'Only the clone is passed to the Kartik loading callback; the original keeps its Select2.').toEqual([
+      ['initS2Loading', 'formmodel-1-kind', 's2options_kind'],
     ]);
+  });
+
+  test('a renumbered Select2 is enhanced again under its new id', () => {
+    const fixture = select2Form();
+    const $ = window.jQuery;
+
+    mount(fixture);
+    const calls = enhanceSelect2();
+    insert(fixture.widgets.dynamicform_select2, document.querySelector('.add-item'));
+    $('#formmodel-1-kind').val('other');
+    calls.length = 0;
+    remove(fixture.widgets.dynamicform_select2, document.querySelector('.remove-item'));
+
+    expect(
+      {
+        value: $('#formmodel-0-kind').val(),
+        containers: document.querySelector('.item').querySelectorAll('.select2-container').length,
+        instance: $('#formmodel-0-kind').data('select2').id,
+        calls,
+      },
+      'The renumbered Select2 must be initialized once under its new id, with its value.',
+    ).toEqual({
+      value: 'other',
+      containers: 1,
+      instance: 'select2-formmodel-0-kind',
+      calls: [['initS2Loading', 'formmodel-0-kind', 's2options_kind']],
+    });
   });
 
   test('a multiple Select2 clone is empty and the original keeps its selections', () => {

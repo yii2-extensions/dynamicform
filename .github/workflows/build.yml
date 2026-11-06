@@ -30,7 +30,8 @@ jobs:
     secrets:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     with:
-      composer-command: require yiisoft/yii2:22.0.x-dev
+      # The released yiisoft/yii2-bootstrap5 lines require yiisoft/yii2 ^2.0; its `22` branch is the Yii 22 line.
+      composer-command: require yiisoft/yii2:22.0.x-dev yiisoft/yii2-bootstrap5:22.x-dev
       concurrency-group: phpunit-compatibility-${{ github.workflow }}-${{ github.ref }}
       extensions: runkit7
       php-version: '["8.3","8.4","8.5"]'

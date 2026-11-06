@@ -13,15 +13,15 @@ export default defineConfig({
       include: ['src/assets/yii2-dynamic-form.js'],
       reporter: ['text', 'json-summary'],
       reportsDirectory: 'runtime/coverage-js',
-      // Floors of the measured coverage; nothing is excluded from the report. The
-      // uncovered code is the third-party restore logic (Inputmask, Kartik pickers, maskMoney, fileinput, TouchSpin,
-      // Spectrum, DepDrop, TomSelect, NumberControl), whose versioned fixtures belong to Phase 5. Raise these floors
-      // with that work; never lower them.
+      // Floors of the measured coverage; nothing is excluded from the report. Select2 and DepDrop run against the
+      // real Kartik scripts (tests/js/kartik.test.js); the uncovered code is the remaining third-party restore logic
+      // (Inputmask, Kartik pickers, maskMoney, fileinput, TouchSpin, Spectrum, TomSelect, NumberControl), whose
+      // versioned fixtures belong to later Phase 5 blocks. Raise these floors with that work; never lower them.
       thresholds: {
-        branches: 74,
-        functions: 69,
-        lines: 76,
-        statements: 75,
+        branches: 89,
+        functions: 85,
+        lines: 87,
+        statements: 87,
       },
     },
     environment: 'jsdom',

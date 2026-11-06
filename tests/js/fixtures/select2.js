@@ -4,10 +4,11 @@ import { buttons, select, widgetOptions } from './markup.js';
 
 /**
  * Rows with Select2 controls marked the way `kartik-v/yii2-widget-select2` marks them (`data-krajee-select2` names the
- * global options variable).
+ * global options variable, `data-s2-options` the variable of the Kartik options).
  *
  * Kartik's own loading and dropdown-style callbacks (`initS2Loading`, `initSelect2DropStyle`) are not installed here;
- * they are replaced by recorders, so this layer verifies the plugin's Select2 handling, not Kartik integration.
+ * they are replaced by recorders, so this layer verifies the plugin's Select2 handling; tests/js/kartik.test.js loads
+ * the real Kartik scripts.
  */
 export function select2Form({ multiple = false } = {}) {
   const items = multiple ? { a: 'A', b: 'B', c: 'C' } : { saved: 'Saved', other: 'Other' };
@@ -20,7 +21,7 @@ export function select2Form({ multiple = false } = {}) {
       selected,
       prompt: multiple ? null : 'Choose',
       multiple,
-      attributes: ' data-krajee-select2="select2_options"',
+      attributes: ' data-krajee-select2="select2_options" data-s2-options="s2options_kind"',
     }) +
     `${buttons()}</div>`;
 
@@ -40,7 +41,7 @@ export function select2Form({ multiple = false } = {}) {
 export function enhanceSelect2() {
   const calls = [];
 
-  vi.stubGlobal('initS2Loading', (id) => calls.push(['initS2Loading', id]));
+  vi.stubGlobal('initS2Loading', (id, optionsVariable) => calls.push(['initS2Loading', id, optionsVariable]));
   vi.stubGlobal('initSelect2DropStyle', (id) => calls.push(['initSelect2DropStyle', id]));
   window.jQuery('select[data-krajee-select2]').select2(window.select2_options);
 

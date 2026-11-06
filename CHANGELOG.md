@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - fix: preserve numeric literal keys around the row index by locating the index from the field patterns the widget declares.
 - fix: clear the reset defaults of cloned controls, so a native form reset leaves inserted rows blank instead of refilling template values.
 - fix: reject `widgetContainer` names with a trailing line feed, so only ASCII letters, digits and underscores are accepted.
+- fix: keep Kartik Select2 and DepDrop instances, options and listeners per row across insertion, deletion and renumbering.
 
 ## 1.0.2 May 20, 2026
 

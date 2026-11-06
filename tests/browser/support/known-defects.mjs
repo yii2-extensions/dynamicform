@@ -27,4 +27,13 @@ export const knownDefects = {
   'rendered-reset-rows': { variants: {} },
   'rendered-reset-reindexed': { variants: {} },
   'rendered-reset-isolation': { variants: {} },
+  'rendered-kartik-select2-clones': { variants: {} },
+  'rendered-kartik-original-options': { variants: {} },
+  'rendered-kartik-handlers': { variants: {} },
+  'rendered-kartik-depdrop-rows': { variants: {} },
+  'rendered-kartik-zero-rows': { variants: {} },
+  'rendered-kartik-depdrop-select2-events': { variants: {} },
+  'rendered-kartik-select2-ajax': { variants: {} },
+  'rendered-kartik-payload-validation': { variants: {} },
+  'rendered-kartik-numeric-form': { variants: {} },
 };
