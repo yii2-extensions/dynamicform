@@ -45,6 +45,9 @@ const kartikLibraries = [
   'vendor/kartik-v/yii2-widget-select2/src/assets/js/select2-krajee.js',
 ];
 
+/** TomSelect 2.4.3 pinned in package.json: the complete build, with the plugins it bundles. */
+const tomSelectLibrary = 'node_modules/tom-select/dist/js/tom-select.complete.js';
+
 export const variant = process.env.DYNAMICFORM_JS_VARIANT ?? 'source';
 
 /** Defect registry key of the loaded asset: both source variants share the source file. */
@@ -98,6 +101,23 @@ export async function loadKartikEnvironment() {
 
       evaluateScript(libraryRoot, library);
     }
+  }
+
+  return $;
+}
+
+/**
+ * Loads the environment plus the real TomSelect script, which defines the global `TomSelect` constructor.
+ */
+export async function loadTomSelectEnvironment() {
+  const $ = await loadEnvironment();
+
+  if (window.TomSelect === undefined) {
+    if (!existsSync(join(libraryRoot, tomSelectLibrary))) {
+      throw new Error(`${join(libraryRoot, tomSelectLibrary)} is missing; run npm ci (devDependencies pin tom-select).`);
+    }
+
+    evaluateScript(libraryRoot, tomSelectLibrary);
   }
 
   return $;

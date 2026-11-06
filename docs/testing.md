@@ -180,7 +180,8 @@ npx vitest run --project production
 ```
 
 `tests/js/kartik.test.js` also loads the Kartik scripts that `composer update` installs from the pinned development
-dependencies (see [Third-party integrations](#third-party-integrations)).
+dependencies, and `tests/js/tomselect.test.js` the TomSelect build that `npm ci` installs (see
+[Third-party integrations](#third-party-integrations)).
 
 Tests registered as known defects pass while the defect reproduces; report them as failures instead:
 
@@ -232,11 +233,19 @@ Run only the Kartik Select2 and DepDrop acceptance tests:
 npx playwright test tests/browser/rendered-kartik.spec.mjs
 ```
 
+Run only the TomSelect acceptance tests:
+
+```bash
+npx playwright test tests/browser/rendered-tomselect.spec.mjs
+```
+
 ## Third-party integrations
 
 Integration tests run against real, pinned library versions; no plugin is replaced by a stub. The `kartik` browser
 scenario renders the widgets through `ActiveForm::field()->widget()`, and its DepDrop requests and Select2 AJAX searches
-are answered by deterministic endpoints of `tests/Support/Browser/router.php`, so no external service is contacted.
+are answered by deterministic endpoints of `tests/Support/Browser/router.php`, so no external service is contacted. The
+`tomselect` scenario publishes TomSelect from `node_modules/tom-select` through a fixture asset bundle and initializes
+it on the rendered selects as an application does; `tests/js/tomselect.test.js` loads the same build.
 
 | Library                                                                         | Version | Installed by                                           |
 | ------------------------------------------------------------------------------- | ------- | ------------------------------------------------------ |
@@ -246,9 +255,10 @@ are answered by deterministic endpoints of `tests/Support/Browser/router.php`, s
 | [kartik-v/dependent-dropdown](https://github.com/kartik-v/dependent-dropdown)   | 1.4.9   | Composer                                               |
 | [kartik-v/yii2-krajee-base](https://github.com/kartik-v/yii2-krajee-base)       | 3.0.5   | Composer                                               |
 | [yiisoft/yii2-bootstrap5](https://github.com/yiisoft/yii2-bootstrap5)           | ^2.0.50 | Composer; Krajee widgets require a Bootstrap extension |
+| [TomSelect](https://github.com/orchidjs/tom-select)                             | 2.4.3   | npm (`tom-select`), complete build                     |
 
-Other versions and the remaining advertised integrations (TomSelect, Inputmask, date and time pickers, maskMoney,
-fileinput, TouchSpin, Spectrum, NumberControl) are not covered by these tests.
+Other versions and the remaining advertised integrations (Inputmask, date and time pickers, maskMoney, fileinput,
+TouchSpin, Spectrum, NumberControl) are not covered by these tests.
 
 With `YII_DEBUG=false`, Kartik registers `depdrop.min.js` of yii2-widget-depdrop 1.0.6, an older build that listens to
 event names dependent-dropdown 1.4.9 no longer triggers; its Select2 loading handling therefore does not run in the

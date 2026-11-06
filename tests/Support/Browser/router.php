@@ -74,6 +74,9 @@ $scenarios = [
     'reset' => ['view' => 'reset'],
     // Real Kartik Select2 and DepDrop widgets: `[Production]`/`[Sales]` literal keys in one form, `Row[2024]` in another.
     'kartik' => ['view' => 'kartik'],
+    // Real TomSelect 2.4.3 next to Kartik Select2 and plain selects: card rows, table rows under `Row[2024]` with a
+    // `[Sales]` literal key, and nested rows.
+    'tomselect' => ['view' => 'tomselect'],
 ];
 
 if (in_array($route, ['form', 'submit'], true) && !isset($scenarios[$name])) {

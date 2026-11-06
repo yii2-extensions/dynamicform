@@ -131,8 +131,18 @@
         return state;
     };
 
+    // The rows of a container: the elements matching `widgetItem` that no other match encloses below the container.
+    // Rows may sit in wrappers or in the `tbody` of a table; the rows of a nested widget sit inside a row of the outer
+    // one, and so do the elements a control renders with the same class, such as the `.item` of each value TomSelect
+    // shows.
+    var _rowsOf = function ($container, widgetOptions) {
+        return $container.find(widgetOptions.widgetItem).filter(function () {
+            return $(this).parentsUntil($container, widgetOptions.widgetItem).length === 0;
+        });
+    };
+
     var _count = function ($elem, widgetOptions) {
-        return $elem.closest('.' + widgetOptions.widgetContainer).find(widgetOptions.widgetItem).length;
+        return _rowsOf($elem.closest('.' + widgetOptions.widgetContainer), widgetOptions).length;
     };
 
     var _addItem = function (widgetOptions, e, $elem) {
@@ -342,6 +352,11 @@
             if (eventResult !== false) {
                 _prepare($root, widgetOptions);
                 _removeValidations($root);
+                // TomSelect listens on the document and the window for each instance until it is destroyed, which
+                // removing its row does not do.
+                $todelete.find('select.tomselected').each(function () {
+                    this.tomselect.destroy();
+                });
                 $todelete.remove();
                 _updateAttributes($root);
                 _restoreSpecialJs($root);
@@ -433,7 +448,7 @@
     };
 
     var _updateAttributes = function ($root) {
-        $root.find(_optionsOf($root).widgetItem).each(function (index) {
+        _rowsOf($root, _optionsOf($root)).each(function (index) {
             $(this).find('*').each(function () {
                 // update "id" attribute
                 _updateAttrID($(this), index);
@@ -536,6 +551,41 @@
             $elem.data('params', configDepdrop.params);
         }
         return false;
+    };
+
+    // Points the TomSelect instance of a renumbered select at its own row. _updateAttributes() renamed the elements
+    // TomSelect generated in the row (control, listbox, label and rendered options), while the instance keeps the id
+    // the select had at initialization (`inputId` in TomSelect 2) in its ARIA references and in the ids of the options
+    // it renders later, which would then name the elements of the row inserted with that index.
+    var _renumberTomSelect = function (select) {
+        var tomselect = select.tomselect;
+        // An instance without the TomSelect 2 internals is left as it is.
+        if (tomselect.inputId === undefined || tomselect.inputId === select.id) {
+            return;
+        }
+
+        tomselect.inputId = select.id;
+        // A listbox the page mounted outside the row (`dropdownParent`) was not renamed with it.
+        tomselect.dropdown_content.id = select.id + '-ts-dropdown';
+        tomselect.focus_node.setAttribute('aria-controls', tomselect.dropdown_content.id);
+        $(select).parents(_optionsOf(_rootOf($(select))).widgetItem).last().find('label').filter(function () {
+            return $(this).attr('for') === tomselect.focus_node.id;
+        }).each(function () {
+            tomselect.focus_node.setAttribute('aria-labelledby', this.id);
+            tomselect.dropdown_content.setAttribute('aria-labelledby', this.id);
+        });
+        // Rendered options are cached; those a search left out of the listbox were not renamed with the row.
+        $.each(tomselect.options, function (key, option) {
+            option.$id = select.id + '-opt-' + option.$order;
+            if (option.$div) {
+                option.$div.id = option.$id;
+            }
+        });
+        // `aria-activedescendant` names the active option by id; a single select keeps it after closing. Activating
+        // the same option again refers to its new id; without an active option nothing is set.
+        var active = tomselect.activeOption;
+        tomselect.clearActiveOption();
+        tomselect.setActiveOption(active, false);
     };
 
     var _restoreSpecialJs = function ($root) {
@@ -642,7 +692,7 @@
         });
 
         // "TomSelect": `data-tomselect` marks the selects in the server markup, so clones carry it; `tomselected` is
-        // the class TomSelect itself adds to an initialized select.
+        // the class TomSelect itself adds to an initialized select. Initialized selects keep their instance.
         var $hasTomSelect = $items.find('select[data-tomselect], select.tomselected');
         if ($hasTomSelect.length > 0 && typeof TomSelect !== 'undefined') {
             $hasTomSelect.each(function () {
@@ -652,6 +702,8 @@
                         width: '100%',
                         allowEmptyOption: true
                     });
+                } else {
+                    _renumberTomSelect(this);
                 }
             });
         }
