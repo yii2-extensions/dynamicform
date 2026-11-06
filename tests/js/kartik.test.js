@@ -77,6 +77,30 @@ describe('DepDrop rows', () => {
     ]);
   });
 
+  test('a dependency or parameter outside the rows keeps its id after insertion and renumbering', () => {
+    const $ = window.jQuery;
+    const requests = setup({ shared: true });
+
+    insert(options(), button(0, '.add-item'));
+    remove(options(), button(0, '.remove-item'));
+
+    expect(
+      [0, 1].map((index) => [$(`#formmodel-${index}-region`).data('depdrop').depends, $(`#formmodel-${index}-region`).data('params')]),
+      'Only the ids of the row follow the row; the shared input keeps its id.',
+    ).toEqual([
+      [['formmodel-0-country', 'filter-2024-token'], ['formmodel-0-kind', 'filter-2024-token']],
+      [['formmodel-1-country', 'filter-2024-token'], ['formmodel-1-kind', 'filter-2024-token']],
+    ]);
+
+    $('#formmodel-1-kind').val('saved');
+    change('formmodel-1-country', 'it');
+
+    expect(requests[0], 'The request carries the value of the shared input.').toEqual({
+      url: '/depdrop/regions',
+      all: { 'formmodel-1-country': 'it', 'filter-2024-token': 'T', 'formmodel-1-kind': 'saved' },
+    });
+  });
+
   test('each inserted row gets one DepDrop of its own row and repeated insertions add no listener', () => {
     const $ = window.jQuery;
     const requests = setup();

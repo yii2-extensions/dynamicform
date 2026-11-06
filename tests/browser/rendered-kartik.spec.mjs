@@ -335,8 +335,16 @@ test('a cloned DepDrop rendered as Select2 receives the events of the original w
     }, id);
   };
 
-  const original = await eventsDuringLoad(0);
-  expect(await eventsDuringLoad(1)).toEqual(original);
+  // Kartik's handlers run before these listeners: with `depdrop.js` (YII_DEBUG) one `change` announces the request and
+  // a separate one follows its completion; the `depdrop.min.js` 1.0.3 build listens to event names dependent-dropdown
+  // 1.4.9 no longer triggers, so the production project sees no `change` on any row (upstream, see docs/testing.md).
+  const expected = {
+    source: ['change', 'depdrop:beforeChange', 'depdrop:change', 'change', 'depdrop:afterChange'],
+    production: ['depdrop:beforeChange', 'depdrop:change', 'depdrop:afterChange'],
+  }[test.info().project.metadata.variant];
+
+  expect(await eventsDuringLoad(0), 'original row').toEqual(expected);
+  expect(await eventsDuringLoad(1), 'inserted row').toEqual(expected);
   await expect(page.locator(`#${rowId('production', 1, 'site')} option`)).toHaveText(['Select site', 'Main site fr', 'Depot fr']);
 });
 
@@ -349,6 +357,11 @@ test('a Select2 AJAX search of a clone queries the endpoint once and sets only t
   await chooseThroughSelect2(page, rowId('production', 1, 'owner'), 'Owner three', 'three');
 
   expect(requests.filter((request) => request.list === 'owners').at(-1)).toEqual({ list: 'owners', q: 'three' });
+  await page.waitForTimeout(400);
+  expect(
+    requests.filter((request) => request.list === 'owners' && request.q === 'three'),
+    'one search per term',
+  ).toHaveLength(1);
   expect(await page.locator(`#${rowId('production', 1, 'owner')}`).inputValue()).toBe('o3');
   expect(await page.locator(`#${rowId('production', 0, 'owner')}`).inputValue()).toBe('o2');
 });

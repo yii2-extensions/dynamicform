@@ -6,7 +6,8 @@ import { buttons, select, widgetOptions } from './markup.js';
  * select, a DepDrop (`data-krajee-depdrop`) whose request also carries the Select2 value (`params`), and a DepDrop
  * rendered as Select2, after Krajee's loading indicator. Every rendered row has its own DepDrop variables, as Kartik
  * registers one per widget. `declared: false` omits the `fields` metadata, like a widget configured without
- * `formFields`, so ids are located by their numeric segments.
+ * `formFields`, so ids are located by their numeric segments. `shared: true` adds an input outside the rows whose id
+ * holds a numeric segment (`filter-2024-token`) to the DepDrop dependencies and parameters.
  */
 const row = (index, { kind, country, region, site }) => {
   const id = (attribute) => `formmodel-${index}-${attribute}`;
@@ -38,7 +39,7 @@ const rendered = [
   { kind: 'other', country: 'fr', region: 'fr-north', site: 'fr-main' },
 ];
 
-export function kartikForm({ declared = true } = {}) {
+export function kartikForm({ declared = true, shared = false } = {}) {
   const rows = rendered.map((values, index) => row(index, values)).join('');
   const globals = {
     select2_kind: { placeholder: 'Choose', width: 'auto' },
@@ -48,8 +49,8 @@ export function kartikForm({ declared = true } = {}) {
 
   rendered.forEach((_values, index) => {
     globals[`depdrop_region_${index}`] = {
-      depends: [`formmodel-${index}-country`],
-      params: [`formmodel-${index}-kind`],
+      depends: [`formmodel-${index}-country`, ...(shared ? ['filter-2024-token'] : [])],
+      params: [`formmodel-${index}-kind`, ...(shared ? ['filter-2024-token'] : [])],
       url: '/depdrop/regions',
     };
     globals[`depdrop_site_${index}`] = { depends: [`formmodel-${index}-country`], url: '/depdrop/sites' };
@@ -57,7 +58,9 @@ export function kartikForm({ declared = true } = {}) {
 
   return {
     html:
-      '<form id="kartik-form"><div class="dynamic_form" data-dynamicform="dynamicform_kartik">' +
+      '<form id="kartik-form">' +
+      (shared ? '<input type="hidden" id="filter-2024-token" name="Filter[2024][token]" value="T">' : '') +
+      '<div class="dynamic_form" data-dynamicform="dynamicform_kartik">' +
       `<div class="items">${rows}</div></div></form>`,
     widgets: {
       dynamicform_kartik: widgetOptions({

@@ -479,11 +479,13 @@
 
     // Points ids of a DepDrop configuration at the row of the element. An id the declared fields describe takes only the
     // row indexes of the element and keeps its own literal keys; any other one takes the numeric segments of the
-    // element id, as before.
+    // element id, as before. An id moves only when the row holds an element with the moved id, so an input outside
+    // the rows, such as a shared filter whose id holds a number, keeps its id.
     var _depdropRowIDs = function ($elem, ids) {
         var inputID = $elem.attr('id');
         var inputPath = _declaredPath($elem, inputID, 'id');
         var matchID = inputID.match(regexID);
+        var $row = $elem.parents(_optionsOf(_rootOf($elem)).widgetItem).last();
 
         if (inputPath === null && !(matchID && matchID.length === 4)) {
             return ids;
@@ -492,12 +494,16 @@
         return $.map(ids, function (id) {
             var dependPath = inputPath === null ? null : _declaredPath($elem, id, 'id');
             var match = id.match(regexID);
+            var rowID = id;
             if (dependPath !== null) {
-                return dependPath.before + inputPath.indexes.join('-') + dependPath.after;
+                rowID = dependPath.before + inputPath.indexes.join('-') + dependPath.after;
             } else if (matchID && matchID.length === 4 && match && match.length === 4) {
-                return match[1] + matchID[2] + match[3];
+                rowID = match[1] + matchID[2] + match[3];
             }
-            return id;
+            var inRow = $row.find('[id]').filter(function () {
+                return this.id === rowID;
+            }).length > 0;
+            return inRow ? rowID : id;
         });
     };
 
