@@ -156,8 +156,9 @@
         }
     };
 
-    // Replaces the row indexes of an id with `{}`: one per widget the input is nested in, counted from the left. Later
-    // numeric segments, such as the `1` of `model-0-rates-1-amount`, are literal keys and stay.
+    // Replaces the row indexes of an id that no declared field describes with `{}`: one per widget the input is nested
+    // in, counted from the left. Later numeric segments, such as the `1` of `model-0-rates-1-amount`, are literal keys
+    // and stay.
     var _validationKey = function (id, level) {
         var remaining = level === undefined ? Infinity : level;
         return id.replace(/-\d+(?=-)/g, function (segment) {
@@ -173,6 +174,50 @@
         return $input.parents('div[data-dynamicform]').length;
     };
 
+    var _escapeRegExp = function (text) {
+        return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    };
+
+    // Locates the row indexes of an id or name (`attribute` is 'id' or 'name') through the `fields` of the widget the
+    // element belongs to. Each field is `<prefix>{}<rest>`; the prefix is the form name of the row model, with any
+    // literal keys it holds, so it is shared by every input of that model. The indexes follow the prefix, one per
+    // widget the element is nested in; what follows them is literal. Returns the text before and after the indexes and
+    // the indexes, or `null` when no declared prefix followed by that many indexes starts the value.
+    var _declaredPath = function ($elem, value, attribute) {
+        var options = _optionsOf($elem.closest('div[data-dynamicform]'));
+        var level = _inputLevel($elem);
+        var separator = attribute === 'id' ? '-' : '][';
+        var indexes = '\\d+' + new Array(level).join(_escapeRegExp(separator) + '\\d+');
+        var found = null;
+
+        $.each((options && options.fields) || [], function () {
+            var pattern = this[attribute] || '';
+            var position = pattern.indexOf('{}');
+            if (position <= 0) {
+                return true;
+            }
+            var before = pattern.substring(0, position);
+            var match = value.match(new RegExp('^' + _escapeRegExp(before) + '(' + indexes + ')' + (attribute === 'id' ? '(?=-|$)' : '(?=\\])')));
+            if (match) {
+                found = { before: before, indexes: match[1].split(separator), after: value.substring(before.length + match[1].length) };
+                return false;
+            }
+        });
+
+        return found;
+    };
+
+    // Template key of the validator of a rendered element: its id with the row indexes replaced by `{}`.
+    var _validationKeyOf = function ($elem, id) {
+        var path = _declaredPath($elem, id, 'id');
+        if (path === null) {
+            return _validationKey(id, _inputLevel($elem));
+        }
+        return path.before + $.map(path.indexes, function () {
+            return '{}';
+        }).join('-') + path.after;
+    };
+
     // Calls back for every element of the widget rows that has a validator: its own registration when it was rendered
     // with one, otherwise the template of its field. Inputs and the wrappers ActiveForm registers for radio and
     // checkbox lists count; the wrapper name comes from the inputs inside it.
@@ -180,7 +225,7 @@
         var state = _validationState($root);
         $root.find('[id]').each(function () {
             var id = $(this).attr('id');
-            var attribute = $(this).data('dynamicformAttribute') || state.templates[_validationKey(id, _inputLevel($(this)))];
+            var attribute = $(this).data('dynamicformAttribute') || state.templates[_validationKeyOf($(this), id)];
             var name = $(this).attr('name') || $(this).find('[name]').first().attr('name');
             if (attribute && name !== undefined) {
                 callback(id, name, attribute, $(this));
@@ -229,7 +274,7 @@
         var keys = _templateKeys($root);
         $.each(data.attributes, function () {
             var $input = $root.find('[id="' + this.id + '"]');
-            var key = $input.length > 0 ? _validationKey(this.id, _inputLevel($input)) : _templateKeyFor(keys, this.id);
+            var key = $input.length > 0 ? _validationKeyOf($input, this.id) : _templateKeyFor(keys, this.id);
             if (key !== this.id && (keys[key] || $input.length > 0)) {
                 var copy = $.extend(true, {}, this);
                 state.templates[key] = copy;
@@ -329,8 +374,12 @@
         var newID = id;
 
         if (id !== undefined) {
+            var path = _declaredPath($elem, id, 'id');
             var matches = id.match(regexID);
-            if (matches && matches.length === 4) {
+            if (path !== null) {
+                newID = path.before + _rowIdentifiers($elem, path.indexes, index).join('-') + path.after;
+                $elem.attr('id', newID);
+            } else if (matches && matches.length === 4) {
                 matches[2] = matches[2].substring(1, matches[2].length - 1);
                 var identifiers = _rowIdentifiers($elem, matches[2].split('-'), index);
 
@@ -360,9 +409,13 @@
         var name = $elem.attr('name');
 
         if (name !== undefined) {
+            var path = _declaredPath($elem, name, 'name');
             var matches = name.match(regexName);
 
-            if (matches && matches.length === 4) {
+            if (path !== null) {
+                name = path.before + _rowIdentifiers($elem, path.indexes, index).join('][') + path.after;
+                $elem.attr('name', name);
+            } else if (matches && matches.length === 4) {
                 matches[2] = matches[2].replace(/\]\[/g, "-").replace(/\]|\[/g, '');
                 var identifiers = _rowIdentifiers($elem, matches[2].split('-'), index);
 

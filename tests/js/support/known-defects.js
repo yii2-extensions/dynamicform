@@ -14,10 +14,6 @@
 const both = (finding, failure) => ({ source: { finding, failure }, production: { finding, failure } });
 
 export const knownDefects = {
-  'identity-numeric-literal-key': both(
-    'F-10: the row-index pattern rewrites the literal key 2024 of the existing row (Phase 4A)',
-    'Literal key 2024 must survive; only the row index may change.',
-  ),
   'values-defaults': both(
     'N-07: clones keep the template value attributes, so a form reset fills new rows with the first row values (Phase 4B)',
     'Reset must restore saved values and a blank clone.',

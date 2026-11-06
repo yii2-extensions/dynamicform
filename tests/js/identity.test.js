@@ -9,7 +9,6 @@ import {
 } from './fixtures/identity.js';
 import { houses, inputs, nestedForm, roomsOf } from './fixtures/nested.js';
 import { blankError, insertButton, options, removeButton, rows, tabularForm } from './fixtures/tabular.js';
-import { defectTest } from './support/defect-test.js';
 import { insert, mount, remove } from './support/dom.js';
 import { loadEnvironment } from './support/environment.js';
 import { rowIdentities, validate } from './support/state.js';
@@ -173,7 +172,7 @@ describe('special name and id shapes', () => {
     ]);
   });
 
-  defectTest('identity-numeric-literal-key', 'a numeric literal key before the row index is preserved', () => {
+  test('a numeric literal key before the row index is preserved', () => {
     const fixture = numericLiteralForm();
 
     mount(fixture);

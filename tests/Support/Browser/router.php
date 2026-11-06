@@ -66,6 +66,8 @@ $scenarios = [
     'two-forms' => ['view' => 'two-forms'],
     // Two forms whose widgets use the same container name with different options.
     'two-forms-same-container' => ['view' => 'two-forms', 'sameContainer' => true],
+    // Numeric literal keys around the row index: a row form name holding `[2024]` and a `[7]code` field.
+    'numeric-literal-key' => ['rowFormName' => 'FormModel[2024]', 'codeKey' => '[7]'],
 ];
 
 if ($route !== 'health' && !isset($scenarios[$name])) {
@@ -140,6 +142,8 @@ $scenario = array_replace(
         'houses' => [['h0', ['r00']]],
         'sharedButtons' => false,
         'sameContainer' => false,
+        'rowFormName' => 'FormModel',
+        'codeKey' => '',
         'submitUrl' => "/{$variant}/submit/{$name}",
     ],
     $scenarios[$name],

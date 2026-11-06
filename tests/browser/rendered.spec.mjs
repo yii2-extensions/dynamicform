@@ -131,6 +131,56 @@ test('validates rows inserted into an initially empty form (zero start)', async 
   await expect(page.locator('.field-formmodel-1-name .help-block')).toHaveText(blankError);
 });
 
+test('keeps the numeric literal keys around the row index of rendered rows', async ({ page }) => {
+  expectKnownDefect('rendered-numeric-literal-key');
+  await openScenario(page, 'numeric-literal-key');
+
+  const row = (index, id, name, code) => [
+    { id: `formmodel-2024-${index}-id`, name: `FormModel[2024][${index}][id]`, value: id, label: null, container: null },
+    {
+      id: `formmodel-2024-${index}-name`,
+      name: `FormModel[2024][${index}][name]`,
+      value: name,
+      label: 'Name',
+      container: `field-formmodel-2024-${index}-name`,
+    },
+    {
+      id: `formmodel-2024-${index}-7-code`,
+      name: `FormModel[2024][${index}][7][code]`,
+      value: code,
+      label: 'Code',
+      container: `field-formmodel-2024-${index}-7-code`,
+    },
+  ];
+
+  await rows(page).nth(0).locator('.add-item').click();
+  await rows(page).nth(1).locator('.add-item').click();
+  await page.locator('#formmodel-2024-2-name').fill('Third');
+  await page.locator('#formmodel-2024-2-7-code').fill('C3');
+  await rows(page).nth(1).locator('.remove-item').click();
+  await expect(rows(page)).toHaveCount(2);
+
+  expect(await fieldNames(page), 'Only the row index may change').toEqual([row(0, '1', 'Saved', 'A1'), row(1, '', 'Third', 'C3')]);
+  expect(await validatorIds(page)).toEqual(['formmodel-2024-0-name', 'formmodel-2024-1-name']);
+
+  await rows(page).nth(1).locator('.add-item').click();
+  await expectSubmitBlocked(page);
+  await expect(page.locator('.field-formmodel-2024-2-name .help-block')).toHaveText(blankError);
+  await expect(page.locator('.field-formmodel-2024-1-name .help-block')).toHaveText('');
+
+  await page.locator('#formmodel-2024-2-name').fill('Fourth');
+
+  const payload = await submitAndCapture(page);
+
+  expect(payload.post.FormModel, 'Payload must keep both literal keys').toEqual({
+    2024: [
+      { id: '1', name: 'Saved', 7: { code: 'A1' } },
+      { id: '', name: 'Third', 7: { code: 'C3' } },
+      { id: '', name: 'Fourth', 7: { code: '' } },
+    ],
+  });
+});
+
 async function insertBeforeWindowLoad(page) {
   let releaseGate;
   const gate = new Promise((resolve) => {

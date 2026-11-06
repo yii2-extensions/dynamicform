@@ -3,11 +3,11 @@ import { buttons, field, textInput, widgetOptions } from './markup.js';
 /**
  * Single-widget forms whose rows use unusual name or id shapes.
  */
-function singleRowForm(formId, rowHtml) {
+function singleRowForm(formId, rowHtml, fields = []) {
   return {
     html: `<form id="${formId}"><div class="dynamic_form" data-dynamicform="dynamicform_identity"><div class="items">${rowHtml}</div></div></form>`,
     widgets: {
-      dynamicform_identity: widgetOptions({ widgetContainer: 'dynamic_form', limit: 5, formId, template: rowHtml }),
+      dynamicform_identity: widgetOptions({ widgetContainer: 'dynamic_form', limit: 5, formId, fields, template: rowHtml }),
     },
     // ActiveForm always initializes; without client validation it has no attributes.
     validation: { [formId]: [] },
@@ -24,11 +24,15 @@ export function namedSegmentForm() {
   );
 }
 
-/** A numeric literal key (`2024`) precedes the row index; a regular expression cannot tell them apart. */
+/**
+ * A numeric literal key (`2024`) precedes the row index; a regular expression cannot tell them apart. The key belongs
+ * to the form name (`Model[2024]`), so the `fields` the widget emits for `formFields` `['x']` locate the index.
+ */
 export function numericLiteralForm() {
   return singleRowForm(
     'numeric-form',
     `<div class="item">${textInput('model-2024-0-x', 'Model[2024][0][x]', 'kept')}${buttons()}</div>`,
+    [{ id: 'model-2024-{}-x', name: 'Model[2024][{}][x]' }],
   );
 }
 
