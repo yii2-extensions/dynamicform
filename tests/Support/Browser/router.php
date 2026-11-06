@@ -68,6 +68,8 @@ $scenarios = [
     'two-forms-same-container' => ['view' => 'two-forms', 'sameContainer' => true],
     // Numeric literal keys around the row index: a row form name holding `[2024]` and a `[7]code` field.
     'numeric-literal-key' => ['rowFormName' => 'FormModel[2024]', 'codeKey' => '[7]'],
+    // Stored rows with every kind of control a form reset restores, next to a sibling form with its own widget.
+    'reset' => ['view' => 'reset'],
 ];
 
 if ($route !== 'health' && !isset($scenarios[$name])) {

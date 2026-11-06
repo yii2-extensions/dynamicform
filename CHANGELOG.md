@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - chore: isolate quality tools, add PHP-rendered browser and compatibility tests, and align repository config with the template.
 - fix: scope widget registration per page, form and container, and route encoded click handlers and events to the owning container.
 - fix: preserve numeric literal keys around the row index by locating the index from the field patterns the widget declares.
+- fix: clear the reset defaults of cloned controls, so a native form reset leaves inserted rows blank instead of refilling template values.
 
 ## 1.0.2 May 20, 2026
 

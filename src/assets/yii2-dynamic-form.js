@@ -84,7 +84,9 @@
                     return $(this).attr('name') === name;
                 }).length > 0;
                 if (!isUncheck) {
-                    $(this).val('');
+                    // A form reset restores `defaultValue` (the `value` attribute of an input, the text of a
+                    // textarea), which clearing the current value leaves as the template row rendered it.
+                    $(this).prop('defaultValue', '').val('');
                 }
             }
         });

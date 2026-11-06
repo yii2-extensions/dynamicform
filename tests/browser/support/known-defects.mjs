@@ -24,4 +24,7 @@ export const knownDefects = {
   'rendered-two-forms-same-container': { variants: {} },
   'rendered-quoted-selector': { variants: {} },
   'rendered-special-form-id': { variants: {} },
+  'rendered-reset-rows': { variants: {} },
+  'rendered-reset-reindexed': { variants: {} },
+  'rendered-reset-isolation': { variants: {} },
 };

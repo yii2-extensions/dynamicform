@@ -36,13 +36,27 @@ export const savedValues = {
   locked: 'L',
 };
 
-export function controlsForm() {
-  const first = controlsRow(0, savedValues);
+/** A second stored row with different values, so each row's own reset defaults are observable. */
+export const secondValues = {
+  id: '2',
+  name: 'Second',
+  notes: 'Other text',
+  kind: ['c'],
+  size: ['s'],
+  tags: ['b'],
+  flag: false,
+  level: null,
+  locked: 'M',
+};
+
+/** `rows` are the stored rows the server renders; the first one is the template, as the widget emits it. */
+export function controlsForm({ rows = [savedValues] } = {}) {
+  const first = controlsRow(0, rows[0]);
 
   return {
     html:
       '<form id="controls-form"><div class="dynamicform_wrapper" data-dynamicform="dynamicform_controls">' +
-      `<div class="container-items">${first}</div></div></form>`,
+      `<div class="container-items">${rows.map((values, index) => controlsRow(index, values)).join('')}</div></div></form>`,
     widgets: {
       dynamicform_controls: widgetOptions({
         widgetContainer: 'dynamicform_wrapper',
