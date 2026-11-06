@@ -16,6 +16,8 @@ declare(strict_types=1);
  *   loadGate: bool,
  *   insertButton: string,
  *   deleteButton: string,
+ *   rowFormName: string,
+ *   codeKey: string,
  *   submitUrl: string
  * } $scenario
  */
@@ -26,10 +28,14 @@ use Yii2\Extensions\DynamicForm\DynamicFormWidget;
 use Yii2\Extensions\DynamicForm\Tests\Support\{FormModel, PersistedFormModel};
 
 $this->title = 'DynamicForm ' . $scenario['name'];
-// A stored row, or a new model whose empty row the server removes when min is 0.
+// A stored row, or a new model whose empty row the server removes when min is 0. `rowFormName` may hold literal keys
+// before the row index and `codeKey` literal keys between the row index and the `code` attribute.
 $models = [
-    $scenario['persisted'] ? new PersistedFormModel(['id' => 1, 'name' => 'Saved', 'code' => 'A1']) : new FormModel(),
+    $scenario['persisted']
+        ? new PersistedFormModel(['formName' => $scenario['rowFormName'], 'id' => 1, 'name' => 'Saved', 'code' => 'A1'])
+        : new FormModel(['formName' => $scenario['rowFormName']]),
 ];
+$code = "{$scenario['codeKey']}code";
 
 $form = ActiveForm::begin([
     'id' => $scenario['formId'],
@@ -48,7 +54,7 @@ DynamicFormWidget::begin([
     'deleteButton' => $scenario['deleteButton'],
     'model' => $models[0],
     'formId' => $scenario['formId'],
-    'formFields' => ['name', 'code'],
+    'formFields' => ['name', $code],
 ]);
 ?>
 <div class="container-items">
@@ -58,7 +64,7 @@ DynamicFormWidget::begin([
             <?= Html::activeHiddenInput($model, "[{$i}]id") ?>
         <?php endif; ?>
         <?= $form->field($model, "[{$i}]name")->textInput() ?>
-        <?= $form->field($model, "[{$i}]code")->textInput() ?>
+        <?= $form->field($model, "[{$i}]{$code}")->textInput() ?>
         <button type="button" class="add-item" data-role="add">Add row</button>
         <button type="button" class="remove-item" data-role="remove">Remove row</button>
     </div>
