@@ -36,4 +36,10 @@ export const knownDefects = {
   'rendered-kartik-select2-ajax': { variants: {} },
   'rendered-kartik-payload-validation': { variants: {} },
   'rendered-kartik-numeric-form': { variants: {} },
+  'rendered-tomselect-clones': { variants: {} },
+  'rendered-tomselect-row-count': { variants: {} },
+  'rendered-tomselect-identity': { variants: {} },
+  'rendered-tomselect-payload-validation': { variants: {} },
+  'rendered-tomselect-reset': { variants: {} },
+  'rendered-tomselect-instances': { variants: {} },
 };

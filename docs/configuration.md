@@ -69,6 +69,17 @@ Rows are cloned from the server markup, so a control enhanced on the client need
 `data-tomselect` to the selects that [TomSelect](https://tom-select.js.org/) should initialize in inserted rows; Kartik
 widgets are detected through their own `data-krajee-*` attributes.
 
+TomSelect notes:
+
+- The selects of inserted rows are initialized with fixed settings: the `remove_button` and `dropdown_input` plugins and
+  `allowEmptyOption`. Load a TomSelect build that includes those plugins, such as `tom-select.complete.js`. The settings
+  the application gave to the selects of the rendered rows are not copied to inserted rows.
+- Rendered selects that the application initialized keep their instance and settings when rows are inserted, deleted or
+  renumbered; a renumbered instance takes the ids of its new row.
+- The `.item` elements TomSelect renders for selected values are not rows, even when `widgetItem` is `.item`.
+- Deleting a row destroys its TomSelect instances.
+- A native form reset restores the selects themselves; TomSelect does not update its own display on reset.
+
 ## JavaScript events
 
 The container that owns the clicked button triggers jQuery events when rows are inserted or deleted; containers of other
