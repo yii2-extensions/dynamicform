@@ -115,6 +115,38 @@ final class DynamicFormWidgetProvider
             ['widgetContainer' => 'formulario_ñ'],
             $container,
         ];
+        yield 'widgetContainer with trailing line feed' => [
+            ['widgetContainer' => "dynamic_form\n"],
+            $container,
+        ];
+        yield 'widgetContainer with trailing carriage return and line feed' => [
+            ['widgetContainer' => "dynamic_form\r\n"],
+            $container,
+        ];
+        yield 'widgetContainer with trailing carriage return' => [
+            ['widgetContainer' => "dynamic_form\r"],
+            $container,
+        ];
+        yield 'widgetContainer with leading line feed' => [
+            ['widgetContainer' => "\ndynamic_form"],
+            $container,
+        ];
+        yield 'widgetContainer with inner line feed' => [
+            ['widgetContainer' => "dynamic\nform"],
+            $container,
+        ];
+        yield 'widgetContainer with tab' => [
+            ['widgetContainer' => "dynamic_form\t"],
+            $container,
+        ];
+        yield 'widgetContainer with null byte' => [
+            ['widgetContainer' => "dynamic_form\0"],
+            $container,
+        ];
+        yield 'widgetContainer is an integer' => [
+            ['widgetContainer' => 1],
+            $container,
+        ];
         yield 'widgetBody empty' => [
             ['widgetBody' => ''],
             "The 'widgetBody' property must be set.",
@@ -276,6 +308,21 @@ final class DynamicFormWidgetProvider
             '<div class="items"><div class="item">Row</div></div>',
             '<div class="item">Row</div>',
         ];
+    }
+
+    /**
+     * Container names made only of ASCII letters, digits and underscores.
+     *
+     * @return iterable<string, array{string}>
+     */
+    public static function validContainerNames(): iterable
+    {
+        yield 'lowercase letters' => ['items'];
+        yield 'mixed case letters' => ['DynamicForm'];
+        yield 'letters, digits and underscores' => ['form_2024_rows'];
+        yield 'digits only' => ['2024'];
+        yield 'string zero' => ['0'];
+        yield 'single underscore' => ['_'];
     }
 
     /**

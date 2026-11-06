@@ -105,19 +105,14 @@ Run the full test suite.
 composer tests
 ```
 
-Run one group (`api`, `asset`, `known-defect`, `model`, `widget`).
+Run one group (`api`, `asset`, `model`, `widget`).
 
 ```bash
 composer tests -- --group widget
 ```
 
 The production-mode asset cases need the [runkit7](https://github.com/runkit7/runkit7) extension, as in CI; PHPUnit
-skips them without it. Tests registered as known defects pass while the defect reproduces; report them as failures
-instead:
-
-```bash
-DYNAMICFORM_STRICT_DEFECTS=1 composer tests
-```
+skips them without it.
 
 ## Workflow security checks
 

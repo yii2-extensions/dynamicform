@@ -114,7 +114,7 @@ class DynamicFormWidget extends \yii\base\Widget
     {
         parent::init();
 
-        if (self::isBlank($this->widgetContainer) || (preg_match('/^\w{1,}$/', $this->widgetContainer) === 0)) {
+        if (self::isBlank($this->widgetContainer) || (preg_match('/^\w{1,}$/D', $this->widgetContainer) === 0)) {
             throw new InvalidConfigException(
                 'Invalid configuration to property "widgetContainer". Allowed only alphanumeric characters plus underline: [A-Za-z0-9_]',
             );
