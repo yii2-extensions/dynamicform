@@ -138,6 +138,55 @@ describe('template discovery', () => {
     });
   });
 
+  test('validators of a zero-start form start from the blank value of each inserted row', () => {
+    const $ = window.jQuery;
+
+    mount(tabularForm({ rows: [], template: {}, min: 0 }));
+
+    insert(options(), firstInsertButton());
+
+    expect(
+      $('#dynamic-form').data('yiiActiveForm').attributes.map(({ id, value }) => [id, value]),
+      'The validator of the removed server row must be replaced by one that tracks the inserted input.',
+    ).toEqual([['formmodel-0-name', '']]);
+  });
+
+  test('an inner widget without rendered rows validates rows inserted into a new outer row', async () => {
+    const fixture = nestedForm({ rooms: [] });
+
+    // The server registers the inner row it removed for `min` 0, as for the outer zero-start form.
+    fixture.validation['nested-form'].push(requiredAttribute('room-0-0-name', '[0][0]name', 'Room cannot be blank.'));
+    const { dynamicform_houses: housesOptions, dynamicform_rooms: roomsOptions } = mount(fixture);
+
+    insert(housesOptions, document.querySelector('.add-house'));
+    insert(roomsOptions, houses()[1].querySelector('.add-room'));
+
+    expect(await validate('nested-form'), 'The room of the new house must run the inner rule.').toEqual({
+      'house-0-name': '',
+      'house-1-name': 'House cannot be blank.',
+      'room-1-0-name': 'Room cannot be blank.',
+    });
+  });
+
+  test('a validated field outside the widget keeps its validator across insertions and deletions', async () => {
+    const fixture = tabularForm();
+
+    fixture.html = fixture.html.replace(
+      '</form>',
+      `${field('order-customer', 'Customer', textInput('order-customer', 'Order[customer]'))}</form>`,
+    );
+    fixture.validation['dynamic-form'].push(requiredAttribute('order-customer', 'customer', 'Customer cannot be blank.'));
+    mount(fixture);
+
+    insert(options(), insertButton(0));
+    remove(options(), removeButton(1));
+
+    expect(await validate('dynamic-form'), 'The field outside the rows must still be validated.').toEqual({
+      'formmodel-0-name': '',
+      'order-customer': 'Customer cannot be blank.',
+    });
+  });
+
   test('options without a fields list still clone the validators bound to the rendered inputs', async () => {
     const fixture = tabularForm();
 

@@ -3,7 +3,7 @@ import { beforeAll, describe, expect, test } from 'vitest';
 import { namesIn, rootOutsideForm, tableRowsForm, twoFormsPage, twoRootsForm } from './fixtures/roots.js';
 import { insert, mount, remove } from './support/dom.js';
 import { loadEnvironment } from './support/environment.js';
-import { validatorIds } from './support/state.js';
+import { validate, validatorIds } from './support/state.js';
 
 /**
  * Ownership contracts: a widget renumbers, counts and validates only its own rows, also when other roots or forms on
@@ -24,6 +24,19 @@ describe('several roots', () => {
       a: ['a-0-name|A[0][name]|a0', 'a-1-name|A[1][name]|'],
       b: ['b-0-name|B[0][name]|b0', 'b-1-name|B[1][name]|b1'],
       validators: ['a-0-name', 'a-1-name', 'b-0-name', 'b-1-name'],
+    });
+  });
+
+  test('a root does not take the validators of a sibling root whose model name ends with its own', async () => {
+    const { dynamicform_a: items } = mount(twoRootsForm({ first: 'Item', second: 'LineItem' }));
+
+    insert(items, document.querySelector('.add-a'));
+
+    expect(await validate('roots-form'), 'The new item must run its own rule and the line items must keep theirs.').toEqual({
+      'item-0-name': '',
+      'item-1-name': 'Item cannot be blank.',
+      'lineitem-0-name': '',
+      'lineitem-1-name': '',
     });
   });
 

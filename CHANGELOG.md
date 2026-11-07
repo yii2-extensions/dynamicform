@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - fix: count only widget rows next to TomSelect `.item` elements, keep renumbered TomSelect ARIA ids per row and destroy instances of deleted rows.
 - fix: keep Inputmask instances and their options in existing rows instead of masking them again on every insertion and deletion.
 - fix: initialize Kartik DatePicker controls of inserted rows on their own element, keep existing instances and release deleted inline calendars.
+- test: cover validator templates of rows the server did not render and reuse `_escapeRegExp()` to match them, dropping an unreachable pattern.
 
 ## 1.0.2 May 20, 2026
 

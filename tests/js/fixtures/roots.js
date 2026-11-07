@@ -27,10 +27,10 @@ function root({ formId, container, variable, model, values, insertClass }) {
   };
 }
 
-/** Two roots in one form that share the `.items`/`.item` selectors. */
-export function twoRootsForm() {
-  const a = root({ formId: 'roots-form', container: 'dynamicform_a', variable: 'dynamicform_a', model: 'A', values: ['a0'], insertClass: 'add-a' });
-  const b = root({ formId: 'roots-form', container: 'dynamicform_b', variable: 'dynamicform_b', model: 'B', values: ['b0', 'b1'], insertClass: 'add-b' });
+/** Two roots in one form that share the `.items`/`.item` selectors; `first` and `second` are their row models. */
+export function twoRootsForm({ first = 'A', second = 'B' } = {}) {
+  const a = root({ formId: 'roots-form', container: 'dynamicform_a', variable: 'dynamicform_a', model: first, values: ['a0'], insertClass: 'add-a' });
+  const b = root({ formId: 'roots-form', container: 'dynamicform_b', variable: 'dynamicform_b', model: second, values: ['b0', 'b1'], insertClass: 'add-b' });
 
   return {
     html: `<form id="roots-form">${a.html}${b.html}</form>`,
