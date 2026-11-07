@@ -178,7 +178,7 @@
     // in, counted from the left. Later numeric segments, such as the `1` of `model-0-rates-1-amount`, are literal keys
     // and stay.
     var _validationKey = function (id, level) {
-        var remaining = level === undefined ? Infinity : level;
+        var remaining = level;
         return id.replace(/-\d+(?=-)/g, function (segment) {
             if (remaining <= 0) {
                 return segment;
@@ -252,7 +252,7 @@
     };
 
     // Key of a registered attribute whose input is not rendered (rows removed by the server for `min` 0), matched
-    // against the configured field templates.
+    // against the configured field templates; the id itself when none describes it, so it is not taken as a template.
     var _templateKeyFor = function (keys, id) {
         for (var key in keys) {
             var pattern = _escapeRegExp(key).replace(/\\\{\\\}/g, '\\d+');
@@ -260,7 +260,7 @@
                 return key;
             }
         }
-        return _validationKey(id);
+        return id;
     };
 
     // Ids of the validated fields of the root widget and of the widgets nested in it, as `{}` templates.
@@ -293,7 +293,7 @@
         $.each(data.attributes, function () {
             var $input = $root.find('[id="' + this.id + '"]');
             var key = $input.length > 0 ? _validationKeyOf($input, this.id) : _templateKeyFor(keys, this.id);
-            if (key !== this.id && (keys[key] || $input.length > 0)) {
+            if (key !== this.id) {
                 var copy = $.extend(true, {}, this);
                 state.templates[key] = copy;
                 $input.data('dynamicformAttribute', copy);
@@ -469,23 +469,21 @@
     };
 
     // Registers the validator of one row element; its initial value comes from that element, not from a page-wide id
-    // lookup, because another form may render the same ids.
+    // lookup, because another form may render the same ids. `attribute` is the template _eachValidated() found.
     var _fixFormValidatonInput = function ($form, attribute, id, name, $input) {
-        if (attribute !== undefined) {
-            attribute = $.extend(true, {}, attribute);
-            attribute.id = id;
-            attribute.container = ".field-" + id;
-            attribute.input = "#" + id;
-            attribute.name = name;
-            attribute.value = $input.val();
-            attribute.status = 0;
+        attribute = $.extend(true, {}, attribute);
+        attribute.id = id;
+        attribute.container = ".field-" + id;
+        attribute.input = "#" + id;
+        attribute.name = name;
+        attribute.value = $input.val();
+        attribute.status = 0;
 
-            if ($form.yiiActiveForm("find", id) !== undefined) {
-                $form.yiiActiveForm("remove", id);
-            }
-
-            $form.yiiActiveForm("add", attribute);
+        if ($form.yiiActiveForm("find", id) !== undefined) {
+            $form.yiiActiveForm("remove", id);
         }
+
+        $form.yiiActiveForm("add", attribute);
     };
 
     var _fixFormValidaton = function ($root) {
