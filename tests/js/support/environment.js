@@ -51,6 +51,15 @@ const tomSelectLibrary = 'node_modules/tom-select/dist/js/tom-select.complete.js
 /** Inputmask 5.0.10 pinned in composer.json (`bower-asset/inputmask`): the build Yii's `MaskedInputAsset` publishes. */
 const inputmaskLibrary = 'vendor/bower-asset/inputmask/dist/jquery.inputmask.js';
 
+/**
+ * Kartik DatePicker 1.4.8 pinned in composer.json: its bootstrap-datepicker 1.8.0 fork and the script that renames it
+ * `kvDatepicker`, as `DatePickerAsset` registers them.
+ */
+const datePickerLibraries = [
+  'vendor/kartik-v/yii2-widget-datepicker/src/assets/js/bootstrap-datepicker.js',
+  'vendor/kartik-v/yii2-widget-datepicker/src/assets/js/datepicker-kv.js',
+];
+
 export const variant = process.env.DYNAMICFORM_JS_VARIANT ?? 'source';
 
 /** Defect registry key of the loaded asset: both source variants share the source file. */
@@ -145,6 +154,25 @@ export async function loadInputmaskEnvironment() {
       evaluateScript(libraryRoot, inputmaskLibrary);
     } finally {
       delete window.matchMedia;
+    }
+  }
+
+  return $;
+}
+
+/**
+ * Loads the environment plus the real Kartik DatePicker scripts, which define `jQuery.fn.kvDatepicker`.
+ */
+export async function loadDatePickerEnvironment() {
+  const $ = await loadEnvironment();
+
+  if ($.fn.kvDatepicker === undefined) {
+    for (const library of datePickerLibraries) {
+      if (!existsSync(join(libraryRoot, library))) {
+        throw new Error(`${join(libraryRoot, library)} is missing; run composer install (require-dev pins the Kartik DatePicker).`);
+      }
+
+      evaluateScript(libraryRoot, library);
     }
   }
 

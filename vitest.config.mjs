@@ -14,14 +14,15 @@ export default defineConfig({
       reporter: ['text', 'json-summary'],
       reportsDirectory: 'runtime/coverage-js',
       // Floors of the measured coverage; nothing is excluded from the report. Select2 and DepDrop run against the
-      // real Kartik scripts (tests/js/kartik.test.js), TomSelect against its real build (tests/js/tomselect.test.js) and
-      // Inputmask against its real build (tests/js/inputmask.test.js); the uncovered code is the remaining third-party
-      // restore logic (Kartik pickers, maskMoney, fileinput, TouchSpin, Spectrum, NumberControl), whose versioned
-      // fixtures belong to later Phase 5 blocks. Raise
+      // real Kartik scripts (tests/js/kartik.test.js), TomSelect against its real build (tests/js/tomselect.test.js),
+      // Inputmask against its real build (tests/js/inputmask.test.js) and the Kartik DatePicker against its real scripts
+      // (tests/js/datepicker.test.js); the uncovered code is the remaining third-party restore logic (Kartik time
+      // picker, maskMoney, fileinput, TouchSpin, Spectrum, NumberControl), whose versioned fixtures belong to later
+      // Phase 5 blocks. Raise
       // these floors with that work; never lower them.
       thresholds: {
         branches: 91,
-        functions: 87,
+        functions: 89,
         lines: 89,
         statements: 89,
       },

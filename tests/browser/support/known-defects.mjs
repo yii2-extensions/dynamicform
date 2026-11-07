@@ -47,4 +47,9 @@ export const knownDefects = {
   'rendered-inputmask-form-handlers': { variants: {} },
   'rendered-inputmask-zero-rows': { variants: {} },
   'rendered-inputmask-nested': { variants: {} },
+  'rendered-datepicker-clones': { variants: {} },
+  'rendered-datepicker-identity-validation': { variants: {} },
+  'rendered-datepicker-handlers': { variants: {} },
+  'rendered-datepicker-zero-rows': { variants: {} },
+  'rendered-datepicker-nested': { variants: {} },
 };
