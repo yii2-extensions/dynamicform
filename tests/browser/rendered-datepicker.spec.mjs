@@ -204,16 +204,22 @@ test('remove buttons clear their own row once, and repeated cycles add no handle
   expect(await removeHandlers(), 'stored rows, the clone and the control outside the rows').toEqual([1, 1, 1, 1]);
   expect(await documentHandlers(page), 'the inline calendars of the three rows; deleted rows release theirs').toBe(3);
 
+  // Deleting the first row renumbers the second stored row to 0 and the clone to 1; each remove button keeps clearing
+  // the input of its own row, not the one that now has its former id.
   await pick(page, 'task-2-date', 9);
-  await rows(page, 'tasks').nth(2).locator('.kv-date-remove').click();
-  await expect(page.locator('#task-2-date')).toHaveValue('');
-  await expect(page.locator('.field-task-2-date .help-block'), 'clearing triggers the validation of the field').toHaveText(
-    'Date cannot be blank.',
-  );
+  await rows(page, 'tasks').first().locator('.remove-item').click();
+  await expect(rows(page, 'tasks')).toHaveCount(2);
 
   await rows(page, 'tasks').nth(0).locator('.kv-date-remove').click();
   await expect(page.locator('#task-0-date')).toHaveValue('');
-  await expect(page.locator('#task-1-date'), 'only its own row').toHaveValue('2025-05-20');
+  await expect(page.locator('#task-1-date'), 'only its own row').toHaveValue('2026-01-09');
+
+  await rows(page, 'tasks').nth(1).locator('.kv-date-remove').click();
+  await expect(page.locator('#task-1-date')).toHaveValue('');
+  await expect(page.locator('.field-task-1-date .help-block'), 'clearing triggers the validation of the field').toHaveText(
+    'Date cannot be blank.',
+  );
+  await expect(page.locator('#task-0-name'), 'the renumbered stored row').toHaveValue('n1');
   expect(await instanceCounts(page, 'zero-form'), 'independent form').toEqual({ instances: 0, inline: 0 });
   expect(await instanceCounts(page, 'nested-form'), 'independent form').toEqual({ instances: 1, inline: 0 });
 });
