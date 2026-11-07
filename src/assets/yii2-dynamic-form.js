@@ -94,6 +94,9 @@
         // Krajee renders a loading indicator, named after the id of the rendered control, that its own initialization
         // removes; a clone is initialized under another id, so the indicator would stay.
         $template.find('.kv-plugin-loading').remove();
+        // Kartik renders the date of an inline DatePicker in `data-date` of its container, which bootstrap-datepicker
+        // reads before the input value.
+        $template.find('[data-krajee-kvdatepicker]').parent().removeAttr('data-date');
         $template.find('[data-select2-id]').removeAttr('data-select2-id');
         $template.find('.select2-hidden-accessible').removeClass('select2-hidden-accessible').removeAttr('aria-hidden tabindex');
 
@@ -357,6 +360,12 @@
                 $todelete.find('select.tomselected').each(function () {
                     this.tomselect.destroy();
                 });
+                // bootstrap-datepicker listens on the document while a calendar is shown, which an inline calendar
+                // always is, until its instance is destroyed. Every Kartik DatePicker of a row has one: the server
+                // initialized the rendered rows and _restoreSpecialJs() the inserted ones.
+                $todelete.find('[data-krajee-kvdatepicker]').each(function () {
+                    _datePickerOf($(this)).kvDatepicker('destroy');
+                });
                 $todelete.remove();
                 _updateAttributes($root);
                 _restoreSpecialJs($root);
@@ -588,6 +597,12 @@
         tomselect.setActiveOption(active, false);
     };
 
+    // The element a Kartik DatePicker initializes: the input itself for `TYPE_INPUT` (`data-datepicker-type` 1), the
+    // element around it for the components, the inline calendar and the button.
+    var _datePickerOf = function ($input) {
+        return $input.attr('data-datepicker-type') === '1' ? $input : $input.parent();
+    };
+
     var _restoreSpecialJs = function ($root) {
         var $items = $root.find(_optionsOf($root).widgetItem);
 
@@ -612,11 +627,20 @@
             });
         });*/
 
-        // "kartik-v/yii2-widget-datepicker"
-        var datePickers = $items.find('[data-krajee-kvdatepicker]');
-        datePickers.each(function (index, el) {
-            //$(this).parent().removeData().kvDatepicker('remove');
-            $(this).parent().kvDatepicker(eval($(this).attr('data-krajee-kvdatepicker')));
+        // "kartik-v/yii2-widget-datepicker": `data-krajee-kvdatepicker` names the global variable holding the options.
+        // Only controls without an instance (those of inserted rows) are initialized: an instance refers to its
+        // element, not to its id, so a renumbered row keeps it with its date. `data-datepicker-source` names the element
+        // the instance belongs to, as DatePicker renders it.
+        $items.find('[data-krajee-kvdatepicker]').each(function () {
+            var $picker = _datePickerOf($(this));
+
+            $(this).attr('data-datepicker-source', $picker.attr('id'));
+            if ($picker.data('datepicker') === undefined) {
+                $picker.kvDatepicker(eval($(this).attr('data-krajee-kvdatepicker')));
+                // The server bound the remove button of the rendered components through this Kartik function, which
+                // binds nothing where the control has no remove button.
+                initDPRemove(this.id);
+            }
         });
 
         // "kartik-v/yii2-widget-timepicker"

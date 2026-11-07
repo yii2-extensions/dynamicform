@@ -79,6 +79,9 @@ $scenarios = [
     'tomselect' => ['view' => 'tomselect'],
     // Yii MaskedInput (Inputmask 5.0.10) in stored rows, in a form that starts with zero rows, and in nested rows.
     'inputmask' => ['view' => 'inputmask'],
+    // Kartik DatePicker 1.4.8 (prepended component and `TYPE_INPUT`) in stored rows, in a form that starts with zero rows,
+    // and in nested rows.
+    'datepicker' => ['view' => 'datepicker'],
 ];
 
 if (in_array($route, ['form', 'submit'], true) && !isset($scenarios[$name])) {

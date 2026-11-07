@@ -180,8 +180,9 @@ npx vitest run --project production
 ```
 
 `tests/js/kartik.test.js` also loads the Kartik scripts that `composer update` installs from the pinned development
-dependencies, `tests/js/tomselect.test.js` the TomSelect build that `npm ci` installs, and `tests/js/inputmask.test.js`
-the Inputmask build of the pinned `bower-asset/inputmask` (see [Third-party integrations](#third-party-integrations)).
+dependencies, `tests/js/tomselect.test.js` the TomSelect build that `npm ci` installs, `tests/js/inputmask.test.js` the
+Inputmask build of the pinned `bower-asset/inputmask`, and `tests/js/datepicker.test.js` the scripts of the pinned
+Kartik DatePicker (see [Third-party integrations](#third-party-integrations)).
 
 Tests registered as known defects pass while the defect reproduces; report them as failures instead:
 
@@ -245,6 +246,12 @@ Run only the Inputmask acceptance tests:
 npx playwright test tests/browser/rendered-inputmask.spec.mjs
 ```
 
+Run only the Kartik DatePicker acceptance tests:
+
+```bash
+npx playwright test tests/browser/rendered-datepicker.spec.mjs
+```
+
 ## Third-party integrations
 
 Integration tests run against real, pinned library versions; no plugin is replaced by a stub. The `kartik` browser
@@ -253,21 +260,24 @@ are answered by deterministic endpoints of `tests/Support/Browser/router.php`, s
 `tomselect` scenario publishes TomSelect from `node_modules/tom-select` through a fixture asset bundle and initializes
 it on the rendered selects as an application does; `tests/js/tomselect.test.js` loads the same build. The `inputmask`
 scenario renders Yii's own `yii\widgets\MaskedInput`, which publishes Inputmask from `bower-asset/inputmask` and masks
-the rendered inputs; `tests/js/inputmask.test.js` loads the same `jquery.inputmask.js`.
+the rendered inputs; `tests/js/inputmask.test.js` loads the same `jquery.inputmask.js`. The `datepicker` scenario
+renders Kartik DatePicker as a prepended component, as `TYPE_INPUT` and as `TYPE_INLINE`; `tests/js/datepicker.test.js`
+loads the same bootstrap-datepicker fork and `datepicker-kv.js`.
 
-| Library                                                                         | Version | Installed by                                           |
-| ------------------------------------------------------------------------------- | ------- | ------------------------------------------------------ |
-| [Select2](https://github.com/select2/select2)                                   | 4.0.13  | npm (`select2`) and Composer (`select2/select2`)       |
-| [kartik-v/yii2-widget-select2](https://github.com/kartik-v/yii2-widget-select2) | 2.2.5   | Composer                                               |
-| [kartik-v/yii2-widget-depdrop](https://github.com/kartik-v/yii2-widget-depdrop) | 1.0.6   | Composer                                               |
-| [kartik-v/dependent-dropdown](https://github.com/kartik-v/dependent-dropdown)   | 1.4.9   | Composer                                               |
-| [kartik-v/yii2-krajee-base](https://github.com/kartik-v/yii2-krajee-base)       | 3.0.5   | Composer                                               |
-| [yiisoft/yii2-bootstrap5](https://github.com/yiisoft/yii2-bootstrap5)           | ^2.0.50 | Composer; Krajee widgets require a Bootstrap extension |
-| [TomSelect](https://github.com/orchidjs/tom-select)                             | 2.4.3   | npm (`tom-select`), complete build                     |
-| [Inputmask](https://github.com/RobinHerbots/Inputmask)                          | 5.0.10  | Composer (`bower-asset/inputmask`), jQuery build       |
+| Library                                                                               | Version | Installed by                                                   |
+| ------------------------------------------------------------------------------------- | ------- | -------------------------------------------------------------- |
+| [Select2](https://github.com/select2/select2)                                         | 4.0.13  | npm (`select2`) and Composer (`select2/select2`)               |
+| [kartik-v/yii2-widget-select2](https://github.com/kartik-v/yii2-widget-select2)       | 2.2.5   | Composer                                                       |
+| [kartik-v/yii2-widget-depdrop](https://github.com/kartik-v/yii2-widget-depdrop)       | 1.0.6   | Composer                                                       |
+| [kartik-v/dependent-dropdown](https://github.com/kartik-v/dependent-dropdown)         | 1.4.9   | Composer                                                       |
+| [kartik-v/yii2-krajee-base](https://github.com/kartik-v/yii2-krajee-base)             | 3.0.5   | Composer                                                       |
+| [yiisoft/yii2-bootstrap5](https://github.com/yiisoft/yii2-bootstrap5)                 | ^2.0.50 | Composer; Krajee widgets require a Bootstrap extension         |
+| [TomSelect](https://github.com/orchidjs/tom-select)                                   | 2.4.3   | npm (`tom-select`), complete build                             |
+| [Inputmask](https://github.com/RobinHerbots/Inputmask)                                | 5.0.10  | Composer (`bower-asset/inputmask`), jQuery build               |
+| [kartik-v/yii2-widget-datepicker](https://github.com/kartik-v/yii2-widget-datepicker) | 1.4.8   | Composer; bundles bootstrap-datepicker 1.8.0 as `kvDatepicker` |
 
-Other versions and the remaining advertised integrations (date and time pickers, maskMoney, fileinput, TouchSpin,
-Spectrum, NumberControl) are not covered by these tests.
+Other versions and the remaining advertised integrations (time picker, maskMoney, fileinput, TouchSpin, Spectrum,
+NumberControl) are not covered by these tests, nor are the DatePicker `TYPE_BUTTON` and `TYPE_RANGE` layouts.
 
 Inputmask 5.0.10 binds a `submit` and a `reset` handler on the form for every input it masks, and its `remove()` does
 not unbind them; the handlers of the masked inputs of a deleted row therefore stay bound to the form.

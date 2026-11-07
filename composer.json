@@ -41,6 +41,7 @@
         "infection/infection": "^0.27 || ^0.35",
         "kartik-v/dependent-dropdown": "1.4.9",
         "kartik-v/yii2-krajee-base": "3.0.5",
+        "kartik-v/yii2-widget-datepicker": "1.4.8",
         "kartik-v/yii2-widget-depdrop": "1.0.6",
         "kartik-v/yii2-widget-select2": "2.2.5",
         "maglnet/composer-require-checker": "^4.7",
