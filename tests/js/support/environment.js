@@ -48,6 +48,9 @@ const kartikLibraries = [
 /** TomSelect 2.4.3 pinned in package.json: the complete build, with the plugins it bundles. */
 const tomSelectLibrary = 'node_modules/tom-select/dist/js/tom-select.complete.js';
 
+/** Inputmask 5.0.10 pinned in composer.json (`bower-asset/inputmask`): the build Yii's `MaskedInputAsset` publishes. */
+const inputmaskLibrary = 'vendor/bower-asset/inputmask/dist/jquery.inputmask.js';
+
 export const variant = process.env.DYNAMICFORM_JS_VARIANT ?? 'source';
 
 /** Defect registry key of the loaded asset: both source variants share the source file. */
@@ -118,6 +121,31 @@ export async function loadTomSelectEnvironment() {
     }
 
     evaluateScript(libraryRoot, tomSelectLibrary);
+  }
+
+  return $;
+}
+
+/**
+ * Loads the environment plus the real Inputmask jQuery build, which defines `jQuery.fn.inputmask`.
+ */
+export async function loadInputmaskEnvironment() {
+  const $ = await loadEnvironment();
+
+  if ($.fn.inputmask === undefined) {
+    if (!existsSync(join(libraryRoot, inputmaskLibrary))) {
+      throw new Error(`${join(libraryRoot, inputmaskLibrary)} is missing; run composer install (require-dev pins bower-asset/inputmask).`);
+    }
+
+    // Inputmask detects a coarse pointer once, while the script loads; jsdom implements no `matchMedia`, so a desktop
+    // pointer is reported for that evaluation only.
+    window.matchMedia = () => ({ matches: false });
+
+    try {
+      evaluateScript(libraryRoot, inputmaskLibrary);
+    } finally {
+      delete window.matchMedia;
+    }
   }
 
   return $;

@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - fix: reject `widgetContainer` names with a trailing line feed, so only ASCII letters, digits and underscores are accepted.
 - fix: keep Kartik Select2 and DepDrop instances, options and listeners per row across insertion, deletion and renumbering.
 - fix: count only widget rows next to TomSelect `.item` elements, keep renumbered TomSelect ARIA ids per row and destroy instances of deleted rows.
+- fix: keep Inputmask instances and their options in existing rows instead of masking them again on every insertion and deletion.
 
 ## 1.0.2 May 20, 2026
 
