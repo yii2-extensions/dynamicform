@@ -31,12 +31,14 @@ describe('several roots', () => {
     const { dynamicform_a: items } = mount(twoRootsForm({ first: 'Item', second: 'LineItem' }));
 
     insert(items, document.querySelector('.add-a'));
+    document.querySelector('#lineitem-0-name').value = '';
+    document.querySelector('#lineitem-1-name').value = '';
 
     expect(await validate('roots-form'), 'The new item must run its own rule and the line items must keep theirs.').toEqual({
       'item-0-name': '',
       'item-1-name': 'Item cannot be blank.',
-      'lineitem-0-name': '',
-      'lineitem-1-name': '',
+      'lineitem-0-name': 'LineItem cannot be blank.',
+      'lineitem-1-name': 'LineItem cannot be blank.',
     });
   });
 

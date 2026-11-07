@@ -151,7 +151,7 @@ describe('template discovery', () => {
     ).toEqual([['formmodel-0-name', '']]);
   });
 
-  test('an inner widget without rendered rows validates rows inserted into a new outer row', async () => {
+  test('an inner widget without rendered rows validates the rows inserted into a new outer row', async () => {
     const fixture = nestedForm({ rooms: [] });
 
     // The server registers the inner row it removed for `min` 0, as for the outer zero-start form.
@@ -160,11 +160,13 @@ describe('template discovery', () => {
 
     insert(housesOptions, document.querySelector('.add-house'));
     insert(roomsOptions, houses()[1].querySelector('.add-room'));
+    insert(roomsOptions, houses()[1].querySelector('.add-room'));
 
-    expect(await validate('nested-form'), 'The room of the new house must run the inner rule.').toEqual({
+    expect(await validate('nested-form'), 'The rooms of the new house must run the inner rule.').toEqual({
       'house-0-name': '',
       'house-1-name': 'House cannot be blank.',
       'room-1-0-name': 'Room cannot be blank.',
+      'room-1-1-name': 'Room cannot be blank.',
     });
   });
 
