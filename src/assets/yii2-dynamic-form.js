@@ -591,12 +591,16 @@
     var _restoreSpecialJs = function ($root) {
         var $items = $root.find(_optionsOf($root).widgetItem);
 
-        // "jquery.inputmask"
+        // "jquery.inputmask": `data-plugin-inputmask` names the global variable holding the options of Yii's
+        // MaskedInput. Only inputs without an instance (those of inserted rows) are masked: an instance refers to its
+        // element, not to its id, so a renumbered row keeps it with its value and the options the page set on it.
+        // Masking an input again binds another `submit`/`reset` handler pair on the form, which Inputmask never unbinds.
         var $hasInputmask = $items.find('[data-plugin-inputmask]');
         if ($hasInputmask.length > 0) {
             $hasInputmask.each(function () {
-                $(this).inputmask('remove');
-                $(this).inputmask(eval($(this).attr('data-plugin-inputmask')));
+                if (this.inputmask === undefined) {
+                    $(this).inputmask(eval($(this).attr('data-plugin-inputmask')));
+                }
             });
         }
 

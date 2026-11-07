@@ -77,6 +77,8 @@ $scenarios = [
     // Real TomSelect 2.4.3 next to Kartik Select2 and plain selects: card rows, table rows under `Row[2024]` with a
     // `[Sales]` literal key, and nested rows.
     'tomselect' => ['view' => 'tomselect'],
+    // Yii MaskedInput (Inputmask 5.0.10) in stored rows, in a form that starts with zero rows, and in nested rows.
+    'inputmask' => ['view' => 'inputmask'],
 ];
 
 if (in_array($route, ['form', 'submit'], true) && !isset($scenarios[$name])) {

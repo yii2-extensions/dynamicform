@@ -42,4 +42,9 @@ export const knownDefects = {
   'rendered-tomselect-payload-validation': { variants: {} },
   'rendered-tomselect-reset': { variants: {} },
   'rendered-tomselect-instances': { variants: {} },
+  'rendered-inputmask-clones': { variants: {} },
+  'rendered-inputmask-identity-validation': { variants: {} },
+  'rendered-inputmask-form-handlers': { variants: {} },
+  'rendered-inputmask-zero-rows': { variants: {} },
+  'rendered-inputmask-nested': { variants: {} },
 };

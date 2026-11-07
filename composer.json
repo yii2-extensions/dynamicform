@@ -37,6 +37,7 @@
         "symfony/dom-crawler": "^6.4||^7.0"
     },
     "require-dev": {
+        "bower-asset/inputmask": "5.0.10",
         "infection/infection": "^0.27 || ^0.35",
         "kartik-v/dependent-dropdown": "1.4.9",
         "kartik-v/yii2-krajee-base": "3.0.5",
