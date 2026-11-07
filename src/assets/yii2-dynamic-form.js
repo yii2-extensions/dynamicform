@@ -255,7 +255,7 @@
     // against the configured field templates.
     var _templateKeyFor = function (keys, id) {
         for (var key in keys) {
-            var pattern = key.replace(/[.*+?^$()|[\]\\]/g, '\\$&').replace(/\\\{\\\}|\{\}/g, '\\d+');
+            var pattern = _escapeRegExp(key).replace(/\\\{\\\}/g, '\\d+');
             if (new RegExp('^' + pattern + '$').test(id)) {
                 return key;
             }

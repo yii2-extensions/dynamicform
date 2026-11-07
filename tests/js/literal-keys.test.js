@@ -231,6 +231,19 @@ describe('validators of rows with literal keys', () => {
     });
   });
 
+  test('a zero-start form registers the validator of the first inserted row on its blank input', () => {
+    const $ = window.jQuery;
+
+    mount(literalKeyForm({ rows: [], min: 0 }));
+
+    insert(literalOptions(), document.querySelector('#literal-form .add-first'));
+
+    expect(
+      $('#literal-form').data('yiiActiveForm').attributes.map(({ id, value }) => [id, value]),
+      'The validator of the removed server row must be replaced by one that tracks the inserted input.',
+    ).toEqual([['model-2024-0-name', '']]);
+  });
+
   test('rows insert and delete without client validation', () => {
     mount(literalKeyForm({ validation: false }));
 
