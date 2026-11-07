@@ -149,6 +149,30 @@ describe('row validators', () => {
     );
   });
 
+  test('an input inside the container but outside the rows with the id of a row field keeps its rule to itself', async () => {
+    const $ = window.jQuery;
+    const fixture = tabularForm();
+
+    // Rendered above the rows, so ActiveForm registers it first.
+    fixture.html = fixture.html.replace(
+      '<div class="container-items">',
+      `${field('formmodel-9-name', 'Outside', textInput('formmodel-9-name', 'FormModel[9][name]'))}<div class="container-items">`,
+    );
+    fixture.validation['dynamic-form'].unshift(requiredAttribute('formmodel-9-name', '[9]name', 'Outside cannot be blank.'));
+    mount(fixture);
+    const registration = $('#dynamic-form').yiiActiveForm('find', 'formmodel-9-name');
+
+    insert(options(), insertButton(0));
+
+    expect(
+      { registration: $('#dynamic-form').yiiActiveForm('find', 'formmodel-9-name') === registration, errors: await validate('dynamic-form') },
+      'The inserted row must run the row rule and the outside input keep its own registration.',
+    ).toEqual({
+      registration: true,
+      errors: { 'formmodel-0-name': '', 'formmodel-1-name': blankError, 'formmodel-9-name': 'Outside cannot be blank.' },
+    });
+  });
+
   test('a form without client validation keeps no validators', async () => {
     mount(tabularForm({ validation: false, rows: [{ name: 'A' }, { name: 'B' }] }));
 
