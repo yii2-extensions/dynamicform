@@ -127,6 +127,35 @@ describe('tabular rows', () => {
     ).toEqual([12, '', '', blankError]);
   });
 
+  test('undeclared inputs with distinct prefix are renumbered by the regex fallback at any flat index', () => {
+    const fixture = tabularForm({ rows: [{ name: 'initial' }] });
+    const meta = (n) => `<input type="hidden" id="meta-${n}-ts" name="Meta[${n}][ts]">`;
+
+    fixture.widgets.dynamicform_rows.template = fixture.widgets.dynamicform_rows.template.replace(
+      '<button',
+      `${meta(0)}<button`,
+    );
+    fixture.html = fixture.html.replace(
+      '<button type="button" class="add-item">',
+      `${meta(0)}<button type="button" class="add-item">`,
+    );
+    fixture.widgets.dynamicform_rows.limit = 15;
+
+    mount(fixture);
+
+    for (let i = 0; i < 11; i++) {
+      insert(options(), insertButton(i));
+    }
+    remove(options(), removeButton(0));
+
+    const meta10 = document.querySelector('#meta-10-ts');
+
+    expect(
+      meta10 ? `${meta10.id}|${meta10.getAttribute('name')}` : 'missing',
+      'The undeclared hidden input from row 11 must renumber to index 10 after deleting row 0.',
+    ).toBe('meta-10-ts|Meta[10][ts]');
+  });
+
   test('controls with non-tabular names keep their names', () => {
     const fixture = tabularForm();
 
@@ -274,5 +303,36 @@ describe('nested widgets', () => {
       Array.from(document.querySelectorAll('#nested-form input'), (input) => input.value),
       'Values must stay with their rows.',
     ).toEqual(['h0', '', '', '', '']);
+  });
+
+  test('undeclared inputs with distinct prefix are renumbered by the regex fallback at any nested index', () => {
+    const fixture = nestedForm({ rooms: ['r00'] });
+    const seq = (h, r) =>
+      `<input type="hidden" id="seq-${h}-${r}-ts" name="Seq[${h}][${r}][ts]">`;
+
+    fixture.widgets.dynamicform_rooms.template = fixture.widgets.dynamicform_rooms.template.replace(
+      '<button type="button" class="remove-room">',
+      `${seq(0, 0)}<button type="button" class="remove-room">`,
+    );
+    fixture.html = fixture.html.replace(
+      '<button type="button" class="remove-room">',
+      `${seq(0, 0)}<button type="button" class="remove-room">`,
+    );
+    fixture.widgets.dynamicform_rooms.limit = 15;
+
+    const { dynamicform_rooms: roomsOptions } = mount(fixture);
+
+    for (let i = 0; i < 10; i++) {
+      insert(roomsOptions, houses()[0].querySelector('.add-room'));
+    }
+
+    remove(roomsOptions, roomsOf(0)[0].querySelector('.remove-room'));
+
+    const seq9 = roomsOf(0)[9]?.querySelector('[id$="-ts"]');
+
+    expect(
+      seq9 ? `${seq9.id}|${seq9.getAttribute('name')}` : 'missing',
+      'The undeclared hidden input from inner row 10 must renumber to index 9 after deleting row 0.',
+    ).toBe('seq-0-9-ts|Seq[0][9][ts]');
   });
 });
