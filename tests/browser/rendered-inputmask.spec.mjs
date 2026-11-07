@@ -13,10 +13,10 @@ const rowSelectors = {
 };
 const rows = (page, key) => page.locator(rowSelectors[key]);
 
-/** Flags every Inputmask instance created by the page, so a replaced instance can be told from a kept one. */
-const flagPageInstances = (page) =>
+/** Flags every current Inputmask instance; `kept` of {@see maskedInputs} tells a flagged instance from a new one. */
+const flagInstances = (page) =>
   page.evaluate(() => {
-    document.querySelectorAll('input[data-plugin-inputmask]').forEach((input) => (input.inputmask.createdByPage = true));
+    document.querySelectorAll('input[data-plugin-inputmask]').forEach((input) => (input.inputmask.flagged = true));
   });
 
 /** Returns the id, name, value and Inputmask state of every masked input of a form, in document order. */
@@ -32,7 +32,7 @@ const maskedInputs = (page, formId) =>
           value: input.value,
           emptyMask: input.inputmask === undefined ? null : $input.inputmask('getemptymask'),
           clearIncomplete: input.inputmask?.opts.clearIncomplete ?? null,
-          createdByPage: input.inputmask?.createdByPage === true,
+          kept: input.inputmask?.flagged === true,
         };
       }),
     formId,
@@ -78,7 +78,7 @@ test('inserted rows are masked blank with the settings of their field; existing 
   // The page changes an option of one stored row through the Inputmask API, which masks that input again; the user
   // leaves another incomplete.
   await page.evaluate(() => window.jQuery('#contact-0-phone').inputmask('option', { placeholder: '*' }));
-  await flagPageInstances(page);
+  await flagInstances(page);
   await type(page, 'contact-1-phone', '12');
   await page.locator('#inputmask-form .add-first').click();
   await expect(rows(page, 'contacts')).toHaveCount(3);
@@ -87,14 +87,14 @@ test('inserted rows are masked blank with the settings of their field; existing 
   await page.locator('#contact-2-name').click();
 
   expect(await maskedInputs(page, 'inputmask-form')).toEqual([
-    { id: 'contact-0-phone', name: 'Contact[0][phone]', value: '555-0100', emptyMask: '***-****', clearIncomplete: false, createdByPage: true },
-    { id: 'contact-0-code', name: 'Contact[0][code]', value: 'AB-123', emptyMask: '__-___', clearIncomplete: true, createdByPage: true },
-    { id: 'contact-1-phone', name: 'Contact[1][phone]', value: '12_-____', emptyMask: '___-____', clearIncomplete: false, createdByPage: true },
-    { id: 'contact-1-code', name: 'Contact[1][code]', value: 'CD-456', emptyMask: '__-___', clearIncomplete: true, createdByPage: true },
+    { id: 'contact-0-phone', name: 'Contact[0][phone]', value: '555-0100', emptyMask: '***-****', clearIncomplete: false, kept: true },
+    { id: 'contact-0-code', name: 'Contact[0][code]', value: 'AB-123', emptyMask: '__-___', clearIncomplete: true, kept: true },
+    { id: 'contact-1-phone', name: 'Contact[1][phone]', value: '12_-____', emptyMask: '___-____', clearIncomplete: false, kept: true },
+    { id: 'contact-1-code', name: 'Contact[1][code]', value: 'CD-456', emptyMask: '__-___', clearIncomplete: true, kept: true },
     // `clearIncomplete` of the `code` field empties its incomplete value on blur, in the clone as in stored rows.
-    { id: 'contact-2-phone', name: 'Contact[2][phone]', value: '555-1234', emptyMask: '___-____', clearIncomplete: false, createdByPage: false },
-    { id: 'contact-2-code', name: 'Contact[2][code]', value: '', emptyMask: '__-___', clearIncomplete: true, createdByPage: false },
-    { id: 'outside-phone', name: 'outside', value: '555-0199', emptyMask: '___-____', clearIncomplete: false, createdByPage: true },
+    { id: 'contact-2-phone', name: 'Contact[2][phone]', value: '555-1234', emptyMask: '___-____', clearIncomplete: false, kept: false },
+    { id: 'contact-2-code', name: 'Contact[2][code]', value: '', emptyMask: '__-___', clearIncomplete: true, kept: false },
+    { id: 'outside-phone', name: 'outside', value: '555-0199', emptyMask: '___-____', clearIncomplete: false, kept: true },
   ]);
 
   await type(page, 'contact-2-code', 'xy123');
@@ -186,7 +186,7 @@ test('Inputmask form handlers grow only with masked inputs DynamicForm creates, 
 test('a form without rendered rows masks inserted rows, also after deleting the last row and inserting again', async ({ page }) => {
   expectKnownDefect('rendered-inputmask-zero-rows');
   await openScenario(page, 'inputmask');
-  await flagPageInstances(page);
+  await flagInstances(page);
 
   await expect(rows(page, 'lines')).toHaveCount(0);
   await page.locator('#zero-form .add-first').click();
@@ -199,16 +199,16 @@ test('a form without rendered rows masks inserted rows, also after deleting the 
   await page.locator('#zero-form .add-first').click();
   await page.locator('#zero-form .add-first').click();
   await expect(rows(page, 'lines'), 'limit 3').toHaveCount(3);
-  await page.evaluate(() => (document.getElementById('line-0-phone').inputmask.createdByPage = true));
+  await page.evaluate(() => (document.getElementById('line-0-phone').inputmask.flagged = true));
   await rows(page, 'lines').nth(1).locator('.remove-item').click();
 
   expect(await maskedInputs(page, 'zero-form')).toEqual([
-    { id: 'line-0-phone', name: 'Line[0][phone]', value: '555-0002', emptyMask: '___-____', clearIncomplete: false, createdByPage: true },
-    { id: 'line-1-phone', name: 'Line[1][phone]', value: '', emptyMask: '___-____', clearIncomplete: false, createdByPage: false },
+    { id: 'line-0-phone', name: 'Line[0][phone]', value: '555-0002', emptyMask: '___-____', clearIncomplete: false, kept: true },
+    { id: 'line-1-phone', name: 'Line[1][phone]', value: '', emptyMask: '___-____', clearIncomplete: false, kept: false },
   ]);
   expect(await formHandlers(page, 'zero-form'), 'pairs of the 2 live and the 2 deleted masked inputs').toEqual({ submit: 4, reset: 4 });
   expect(
-    (await maskedInputs(page, 'inputmask-form')).map((input) => [input.id, input.createdByPage]),
+    (await maskedInputs(page, 'inputmask-form')).map((input) => [input.id, input.kept]),
     'the other form keeps its instances',
   ).toEqual([
     ['contact-0-phone', true],
@@ -226,27 +226,49 @@ test('a form without rendered rows masks inserted rows, also after deleting the 
 test('nested rows are masked under their own names and keep their instances when outer or inner rows change', async ({ page }) => {
   expectKnownDefect('rendered-inputmask-nested');
   await openScenario(page, 'inputmask');
-  await flagPageInstances(page);
 
+  const kept = async () => (await maskedInputs(page, 'nested-form')).map((input) => [input.id, input.kept]);
+
+  // Every step flags the live instances first, so the replacement of any of them fails at the step that caused it.
+  await flagInstances(page);
   await page.locator('#nested-form .add-room').click();
-  await type(page, 'room-0-1-phone', '5550011');
-  await page.locator('#nested-form .add-house').click();
-  await page.locator('#nested-form .house').nth(1).locator('.add-room').click();
-  await type(page, 'room-1-1-phone', '5551111');
-  await rows(page, 'rooms').first().locator('.remove-room').click();
+  expect(await kept(), 'inner insertion').toEqual([
+    ['room-0-0-phone', true],
+    ['room-0-1-phone', false],
+  ]);
 
-  expect(await maskedInputs(page, 'nested-form')).toEqual([
-    { id: 'room-0-0-phone', name: 'Room[0][0][phone]', value: '555-0011', emptyMask: '___-____', clearIncomplete: false, createdByPage: false },
-    { id: 'room-1-0-phone', name: 'Room[1][0][phone]', value: '', emptyMask: '___-____', clearIncomplete: false, createdByPage: false },
-    { id: 'room-1-1-phone', name: 'Room[1][1][phone]', value: '555-1111', emptyMask: '___-____', clearIncomplete: false, createdByPage: false },
+  await type(page, 'room-0-1-phone', '5550011');
+  await flagInstances(page);
+  await page.locator('#nested-form .add-house').click();
+  expect(await kept(), 'outer insertion').toEqual([
+    ['room-0-0-phone', true],
+    ['room-0-1-phone', true],
+    ['room-1-0-phone', false],
+  ]);
+
+  await flagInstances(page);
+  await page.locator('#nested-form .house').nth(1).locator('.add-room').click();
+  expect(await kept(), 'inner insertion in the second house').toEqual([
+    ['room-0-0-phone', true],
+    ['room-0-1-phone', true],
+    ['room-1-0-phone', true],
+    ['room-1-1-phone', false],
+  ]);
+
+  await type(page, 'room-1-1-phone', '5551111');
+  await flagInstances(page);
+  await rows(page, 'rooms').first().locator('.remove-room').click();
+  expect(await maskedInputs(page, 'nested-form'), 'inner deletion renumbers the remaining room').toEqual([
+    { id: 'room-0-0-phone', name: 'Room[0][0][phone]', value: '555-0011', emptyMask: '___-____', clearIncomplete: false, kept: true },
+    { id: 'room-1-0-phone', name: 'Room[1][0][phone]', value: '', emptyMask: '___-____', clearIncomplete: false, kept: true },
+    { id: 'room-1-1-phone', name: 'Room[1][1][phone]', value: '555-1111', emptyMask: '___-____', clearIncomplete: false, kept: true },
   ]);
 
   // Deleting the second house releases nothing the first house holds.
-  await page.evaluate(() => (document.getElementById('room-0-0-phone').inputmask.createdByPage = true));
   await page.locator('#nested-form .house').nth(1).locator('.remove-house').click();
   await expect(page.locator('#nested-form .house')).toHaveCount(1);
   expect(await maskedInputs(page, 'nested-form')).toEqual([
-    { id: 'room-0-0-phone', name: 'Room[0][0][phone]', value: '555-0011', emptyMask: '___-____', clearIncomplete: false, createdByPage: true },
+    { id: 'room-0-0-phone', name: 'Room[0][0][phone]', value: '555-0011', emptyMask: '___-____', clearIncomplete: false, kept: true },
   ]);
   expect(await duplicateIds(page)).toEqual([]);
 });
