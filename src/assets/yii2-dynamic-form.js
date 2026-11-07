@@ -178,7 +178,7 @@
     // in, counted from the left. Later numeric segments, such as the `1` of `model-0-rates-1-amount`, are literal keys
     // and stay.
     var _validationKey = function (id, level) {
-        var remaining = level === undefined ? Infinity : level;
+        var remaining = level;
         return id.replace(/-\d+(?=-)/g, function (segment) {
             if (remaining <= 0) {
                 return segment;
@@ -236,12 +236,22 @@
         }).join('-') + path.after;
     };
 
+    // Whether an element sits in a row of the widget it belongs to: below a `widgetItem` match inside its container,
+    // the outermost of which is a row for _rowsOf(). An element of the container outside the rows is not a row field,
+    // even when its id has the shape of one.
+    var _inRow = function ($elem) {
+        var $container = $elem.closest('div[data-dynamicform]');
+        return $elem.parentsUntil($container, _optionsOf($container).widgetItem).length > 0;
+    };
+
     // Calls back for every element of the widget rows that has a validator: its own registration when it was rendered
     // with one, otherwise the template of its field. Inputs and the wrappers ActiveForm registers for radio and
     // checkbox lists count; the wrapper name comes from the inputs inside it.
     var _eachValidated = function ($root, callback) {
         var state = _validationState($root);
-        $root.find('[id]').each(function () {
+        $root.find('[id]').filter(function () {
+            return _inRow($(this));
+        }).each(function () {
             var id = $(this).attr('id');
             var attribute = $(this).data('dynamicformAttribute') || state.templates[_validationKeyOf($(this), id)];
             var name = $(this).attr('name') || $(this).find('[name]').first().attr('name');
@@ -252,7 +262,7 @@
     };
 
     // Key of a registered attribute whose input is not rendered (rows removed by the server for `min` 0), matched
-    // against the configured field templates.
+    // against the configured field templates; the id itself when none describes it, so it is not taken as a template.
     var _templateKeyFor = function (keys, id) {
         for (var key in keys) {
             var pattern = _escapeRegExp(key).replace(/\\\{\\\}/g, '\\d+');
@@ -260,7 +270,7 @@
                 return key;
             }
         }
-        return _validationKey(id);
+        return id;
     };
 
     // Ids of the validated fields of the root widget and of the widgets nested in it, as `{}` templates.
@@ -281,8 +291,9 @@
     };
 
     // Copies the validators ActiveForm registered for the widget rows: those declared in `fields`, including rows the
-    // server removed for `min` 0, and those bound to an input inside the container. The copy is also kept on the
-    // element itself, so a renumbered row keeps its own rule while new rows take the field template.
+    // server removed for `min` 0, and those bound to an input inside a row. The copy is also kept on the element itself,
+    // so a renumbered row keeps its own rule while new rows take the field template. An input of the container outside
+    // the rows keeps its registration as ActiveForm made it.
     var _rememberValidation = function ($root) {
         var data = _formOf($root).data('yiiActiveForm');
         var state = _validationState($root);
@@ -292,8 +303,11 @@
         var keys = _templateKeys($root);
         $.each(data.attributes, function () {
             var $input = $root.find('[id="' + this.id + '"]');
+            if ($input.length > 0 && !_inRow($input)) {
+                return true;
+            }
             var key = $input.length > 0 ? _validationKeyOf($input, this.id) : _templateKeyFor(keys, this.id);
-            if (key !== this.id && (keys[key] || $input.length > 0)) {
+            if (key !== this.id) {
                 var copy = $.extend(true, {}, this);
                 state.templates[key] = copy;
                 $input.data('dynamicformAttribute', copy);
@@ -469,23 +483,21 @@
     };
 
     // Registers the validator of one row element; its initial value comes from that element, not from a page-wide id
-    // lookup, because another form may render the same ids.
+    // lookup, because another form may render the same ids. `attribute` is the template _eachValidated() found.
     var _fixFormValidatonInput = function ($form, attribute, id, name, $input) {
-        if (attribute !== undefined) {
-            attribute = $.extend(true, {}, attribute);
-            attribute.id = id;
-            attribute.container = ".field-" + id;
-            attribute.input = "#" + id;
-            attribute.name = name;
-            attribute.value = $input.val();
-            attribute.status = 0;
+        attribute = $.extend(true, {}, attribute);
+        attribute.id = id;
+        attribute.container = ".field-" + id;
+        attribute.input = "#" + id;
+        attribute.name = name;
+        attribute.value = $input.val();
+        attribute.status = 0;
 
-            if ($form.yiiActiveForm("find", id) !== undefined) {
-                $form.yiiActiveForm("remove", id);
-            }
-
-            $form.yiiActiveForm("add", attribute);
+        if ($form.yiiActiveForm("find", id) !== undefined) {
+            $form.yiiActiveForm("remove", id);
         }
+
+        $form.yiiActiveForm("add", attribute);
     };
 
     var _fixFormValidaton = function ($root) {

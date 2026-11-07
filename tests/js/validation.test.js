@@ -115,6 +115,64 @@ describe('row validators', () => {
     });
   });
 
+  test('initialization keeps the validators ActiveForm registered for the rendered rows', () => {
+    const $ = window.jQuery;
+    const fixture = tabularForm({ rows: [{ name: 'A' }, { name: 'B' }] });
+
+    mount(fixture, { init: false });
+    const before = [...$('#dynamic-form').data('yiiActiveForm').attributes];
+    initialize(fixture);
+
+    expect(
+      $('#dynamic-form').data('yiiActiveForm').attributes.filter((attribute, index) => attribute !== before[index]),
+      'No registration of a rendered row may be replaced.',
+    ).toEqual([]);
+  });
+
+  test('a validated field inside the container but outside the rows keeps the validator ActiveForm registered', () => {
+    const $ = window.jQuery;
+    const fixture = tabularForm();
+
+    fixture.html = fixture.html.replace(
+      '<button type="button" class="add-item add-first">',
+      `${field('order-total', 'Total', textInput('order-total', 'Order[total]'))}<button type="button" class="add-item add-first">`,
+    );
+    fixture.validation['dynamic-form'].push(requiredAttribute('order-total', 'total', 'Total cannot be blank.'));
+    mount(fixture);
+    const registration = $('#dynamic-form').yiiActiveForm('find', 'order-total');
+
+    insert(options(), insertButton(0));
+    remove(options(), removeButton(1));
+
+    expect($('#dynamic-form').yiiActiveForm('find', 'order-total'), 'The field outside the rows is not a row field.').toBe(
+      registration,
+    );
+  });
+
+  test('an input inside the container but outside the rows with the id of a row field keeps its rule to itself', async () => {
+    const $ = window.jQuery;
+    const fixture = tabularForm();
+
+    // Rendered above the rows, so ActiveForm registers it first.
+    fixture.html = fixture.html.replace(
+      '<div class="container-items">',
+      `${field('formmodel-9-name', 'Outside', textInput('formmodel-9-name', 'FormModel[9][name]'))}<div class="container-items">`,
+    );
+    fixture.validation['dynamic-form'].unshift(requiredAttribute('formmodel-9-name', '[9]name', 'Outside cannot be blank.'));
+    mount(fixture);
+    const registration = $('#dynamic-form').yiiActiveForm('find', 'formmodel-9-name');
+
+    insert(options(), insertButton(0));
+
+    expect(
+      { registration: $('#dynamic-form').yiiActiveForm('find', 'formmodel-9-name') === registration, errors: await validate('dynamic-form') },
+      'The inserted row must run the row rule and the outside input keep its own registration.',
+    ).toEqual({
+      registration: true,
+      errors: { 'formmodel-0-name': '', 'formmodel-1-name': blankError, 'formmodel-9-name': 'Outside cannot be blank.' },
+    });
+  });
+
   test('a form without client validation keeps no validators', async () => {
     mount(tabularForm({ validation: false, rows: [{ name: 'A' }, { name: 'B' }] }));
 
@@ -149,6 +207,47 @@ describe('template discovery', () => {
       $('#dynamic-form').data('yiiActiveForm').attributes.map(({ id, value }) => [id, value]),
       'The validator of the removed server row must be replaced by one that tracks the inserted input.',
     ).toEqual([['formmodel-0-name', '']]);
+  });
+
+  test('a zero-start form keeps apart the validators of fields whose id starts with the id of another', async () => {
+    const id = (index, attribute) => `formmodel-${index}-${attribute}`;
+    const input = (index, attribute, label) =>
+      field(id(index, attribute), label, textInput(id(index, attribute), `FormModel[${index}][${attribute}]`));
+    const row = (index) => `<div class="item">${input(index, 'name', 'Name')}${input(index, 'name_alias', 'Alias')}${buttons()}</div>`;
+    const fixture = {
+      html:
+        '<form id="alias-form"><div class="dynamic_form" data-dynamicform="dynamicform_alias"><div class="items"></div>' +
+        '<button type="button" class="add-item">Add</button></div></form>',
+      widgets: {
+        dynamicform_alias: widgetOptions({
+          widgetContainer: 'dynamic_form',
+          formId: 'alias-form',
+          min: 0,
+          fields: [
+            { id: 'formmodel-{}-name', name: 'FormModel[{}][name]' },
+            { id: 'formmodel-{}-name_alias', name: 'FormModel[{}][name_alias]' },
+          ],
+          template: row(0),
+        }),
+      },
+      validation: {
+        'alias-form': [
+          requiredAttribute(id(0, 'name'), '[0]name', blankError),
+          requiredAttribute(id(0, 'name_alias'), '[0]name_alias', 'Alias cannot be blank.'),
+        ],
+      },
+    };
+
+    mount(fixture);
+    insert(fixture.widgets.dynamicform_alias, document.querySelector('.add-item'));
+    insert(fixture.widgets.dynamicform_alias, document.querySelector('.add-item'));
+
+    expect(await validate('alias-form'), 'Each field of each inserted row must run its own rule.').toEqual({
+      [id(0, 'name')]: blankError,
+      [id(0, 'name_alias')]: 'Alias cannot be blank.',
+      [id(1, 'name')]: blankError,
+      [id(1, 'name_alias')]: 'Alias cannot be blank.',
+    });
   });
 
   test('an inner widget without rendered rows validates the rows inserted into a new outer row', async () => {
@@ -292,6 +391,69 @@ describe('template discovery', () => {
       'formmodel-1-name': 'Name must be digits.',
       'formmodel-2-name': '',
     });
+  });
+});
+
+describe('fields the widget does not declare', () => {
+  const undeclared = (settings) => {
+    const fixture = tabularForm(settings);
+
+    delete fixture.widgets.dynamicform_rows.fields;
+    return fixture;
+  };
+
+  test('rows past the tenth keep one validator each across a deletion', () => {
+    mount(undeclared({ rows: Array.from({ length: 11 }, (_row, index) => ({ name: `Row ${index}` })) }));
+
+    remove(options(), removeButton(0));
+
+    expect(validatorIds('dynamic-form'), 'Every remaining row, and only those, must be validated.').toEqual(
+      Array.from({ length: 10 }, (_row, index) => `formmodel-${index}-name`).sort(),
+    );
+  });
+
+  test('a field of the row model inside the container but outside the rows keeps its own rule', async () => {
+    const fixture = undeclared();
+
+    // A tree model: the parent and its child rows render the same form name.
+    fixture.html = fixture.html.replace(
+      '<button type="button" class="add-item add-first">',
+      `${field('formmodel-name', 'Parent', textInput('formmodel-name', 'FormModel[name]'))}<button type="button" class="add-item add-first">`,
+    );
+    fixture.validation['dynamic-form'].push(requiredAttribute('formmodel-name', 'name', 'Parent cannot be blank.'));
+    mount(fixture);
+
+    insert(options(), insertButton(0));
+
+    expect(await validate('dynamic-form'), 'The row rule must not replace the rule of the parent field.').toEqual({
+      'formmodel-0-name': '',
+      'formmodel-1-name': blankError,
+      'formmodel-name': 'Parent cannot be blank.',
+    });
+  });
+
+  test.each([
+    ['after both initializations', false],
+    ['before both initializations', true],
+  ])('a row inserted %s and removed by the application loses its validator on updateContainer', (_timing, early) => {
+    const $ = window.jQuery;
+    const fixture = undeclared();
+    const attributes = fixture.validation['dynamic-form'];
+
+    if (early) {
+      delete fixture.validation;
+    }
+    mount(fixture, { init: !early });
+    insert(options(), insertButton(0));
+    if (early) {
+      initialize(fixture);
+      $('#dynamic-form').yiiActiveForm(attributes, { scrollToError: false });
+    }
+    rows()[1].remove();
+
+    $('.dynamicform_wrapper').yiiDynamicForm('updateContainer');
+
+    expect(validatorIds('dynamic-form'), 'Only the remaining row may keep a validator.').toEqual(['formmodel-0-name']);
   });
 });
 
