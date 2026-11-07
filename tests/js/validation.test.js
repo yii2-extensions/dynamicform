@@ -173,6 +173,20 @@ describe('row validators', () => {
     });
   });
 
+  test('a validated input the application moves out of its row keeps its validator on updateContainer', async () => {
+    const $ = window.jQuery;
+
+    mount(tabularForm({ rows: [{ name: '' }, { name: 'B' }] }));
+    $('.dynamicform_wrapper .add-first').before($('.field-formmodel-0-name'));
+
+    $('.dynamicform_wrapper').yiiDynamicForm('updateContainer');
+
+    expect(await validate('dynamic-form'), 'The moved input must still run its rule.').toEqual({
+      'formmodel-0-name': blankError,
+      'formmodel-1-name': '',
+    });
+  });
+
   test('a form without client validation keeps no validators', async () => {
     mount(tabularForm({ validation: false, rows: [{ name: 'A' }, { name: 'B' }] }));
 
@@ -458,6 +472,31 @@ describe('fields the widget does not declare', () => {
 });
 
 describe('nested validators', () => {
+  test('a field of an outer row inside the inner widget but outside its rows follows its row', async () => {
+    const fixture = nestedForm({ otherHouses: [['h1', ['r10']]] });
+    const note = (index) => `house-${index}-note`;
+    let index = 0;
+
+    // The outer row field sits in the header of the inner widget, next to its rows.
+    fixture.html = fixture.html.replace(/<div class="dynamicform_inner" data-dynamicform="dynamicform_rooms">/g, (container) => {
+      const id = note(index++);
+      return `${container}${field(id, 'Note', textInput(id, `House[${index - 1}][note]`, 'n'))}`;
+    });
+    fixture.validation['nested-form'].push(
+      requiredAttribute(note(0), '[0]note', 'Note cannot be blank.'),
+      requiredAttribute('room-1-0-name', '[1][0]name', 'Room cannot be blank.'),
+      requiredAttribute('house-1-name', '[1]name', 'House cannot be blank.'),
+      requiredAttribute(note(1), '[1]note', 'Note cannot be blank.'),
+    );
+    const { dynamicform_houses: housesOptions } = mount(fixture);
+
+    remove(housesOptions, houses()[0].querySelector('.remove-house'));
+
+    expect(validatorIds('nested-form'), 'The validators must follow the remaining house, renumbered.').toEqual(
+      ['house-0-name', note(0), 'room-0-0-name'],
+    );
+  });
+
   test('validators mirror the visible nested inputs after insertions and deletions', async () => {
     const fixture = nestedForm();
     const { dynamicform_houses: housesOptions, dynamicform_rooms: roomsOptions } = mount(fixture);

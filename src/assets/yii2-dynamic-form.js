@@ -236,24 +236,24 @@
         }).join('-') + path.after;
     };
 
-    // Whether an element sits in a row of the widget it belongs to: below a `widgetItem` match inside its container,
-    // the outermost of which is a row for _rowsOf(). An element of the container outside the rows is not a row field,
-    // even when its id has the shape of one.
+    // Whether an element sits in a row of a widget it is nested in: below a `widgetItem` match inside that widget's
+    // container, the outermost of which is a row for _rowsOf(). A field of an outer row may sit in an inner widget next
+    // to its rows. An element outside every row is not a row field, even when its id has the shape of one.
     var _inRow = function ($elem) {
-        var $container = $elem.closest('div[data-dynamicform]');
-        return $elem.parentsUntil($container, _optionsOf($container).widgetItem).length > 0;
+        return $elem.parents('div[data-dynamicform]').filter(function () {
+            return $elem.parentsUntil(this, _optionsOf($(this)).widgetItem).length > 0;
+        }).length > 0;
     };
 
-    // Calls back for every element of the widget rows that has a validator: its own registration when it was rendered
-    // with one, otherwise the template of its field. Inputs and the wrappers ActiveForm registers for radio and
-    // checkbox lists count; the wrapper name comes from the inputs inside it.
+    // Calls back for every element of the widget that has a validator: its own registration when it was rendered with
+    // one, which follows it also out of its row, otherwise, inside a row, the template of its field. Inputs and the
+    // wrappers ActiveForm registers for radio and checkbox lists count; the wrapper name comes from the inputs inside it.
     var _eachValidated = function ($root, callback) {
         var state = _validationState($root);
-        $root.find('[id]').filter(function () {
-            return _inRow($(this));
-        }).each(function () {
+        $root.find('[id]').each(function () {
             var id = $(this).attr('id');
-            var attribute = $(this).data('dynamicformAttribute') || state.templates[_validationKeyOf($(this), id)];
+            var attribute = $(this).data('dynamicformAttribute') ||
+                (_inRow($(this)) && state.templates[_validationKeyOf($(this), id)]);
             var name = $(this).attr('name') || $(this).find('[name]').first().attr('name');
             if (attribute && name !== undefined) {
                 callback(id, name, attribute, $(this));
