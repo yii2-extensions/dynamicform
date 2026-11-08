@@ -244,9 +244,9 @@ describe('special name and id shapes', () => {
     ).toEqual(['model-2024-0-x|Model[2024][0][x]|kept', 'model-2024-1-x|Model[2024][1][x]|']);
   });
 
-  test('a non-tabular id gets the row index after a dash and keeps it across updates', () => {
+  test('a non-tabular id gets the row index after a dash, keeps it across updates and follows its row', () => {
     const $ = window.jQuery;
-    const fixture = tabularForm();
+    const fixture = tabularForm({ rows: [{ name: 'A' }, { name: 'B' }] });
 
     fixture.html = fixture.html.replace(
       '<button type="button" class="add-item">',
@@ -258,6 +258,11 @@ describe('special name and id shapes', () => {
     $('.dynamicform_wrapper').yiiDynamicForm('updateContainer');
 
     expect(document.querySelector('[name="Extra"]').id, 'The index must be appended once, after a dash.').toBe('extra-0');
+
+    rows()[0].parentNode.appendChild(rows()[0]);
+    $('.dynamicform_wrapper').yiiDynamicForm('updateContainer');
+
+    expect(document.querySelector('[name="Extra"]').id, 'The moved row must take its new index.').toBe('extra-1');
   });
 
   test('custom non-tabular ids stay unique and labelled across rows', () => {
