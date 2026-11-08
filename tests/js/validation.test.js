@@ -129,6 +129,17 @@ describe('row validators', () => {
     ).toEqual([]);
   });
 
+  test('initialization called on the container registers the rendered rows ActiveForm did not register', () => {
+    mount(tabularForm({ rows: [{ name: 'A' }, { name: 'B' }], registered: [0] }), { init: false });
+
+    window.jQuery('.dynamicform_wrapper').yiiDynamicForm(options());
+
+    expect(validatorIds('dynamic-form'), 'The second row must get the validator of the first.').toEqual([
+      'formmodel-0-name',
+      'formmodel-1-name',
+    ]);
+  });
+
   test('a validated field inside the container but outside the rows keeps the validator ActiveForm registered', () => {
     const $ = window.jQuery;
     const fixture = tabularForm();

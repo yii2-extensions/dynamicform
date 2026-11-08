@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, test } from 'vitest';
 
-import { inputmaskForm, maskRenderedInputs } from './fixtures/inputmask.js';
+import { inputmaskForm, inputmaskRow, maskRenderedInputs } from './fixtures/inputmask.js';
 import { insert, mount, remove } from './support/dom.js';
 import { loadInputmaskEnvironment } from './support/environment.js';
 
@@ -68,5 +68,16 @@ describe('Inputmask instances', () => {
     insert(options(), button(0, '.add-item'));
 
     expect(formSubmitHandlers(), 'one more for the masked input of the clone').toBe(5);
+  });
+
+  test('updateContainer masks a row the application appended outside addItem', () => {
+    setup();
+
+    const $ = window.jQuery;
+
+    $('.dynamic_form .items').append(inputmaskRow(1, ''));
+    $('.dynamic_form').yiiDynamicForm('updateContainer');
+
+    expect(input('formmodel-1-phone').inputmask?.opts.mask, 'instance of the appended row').toBe('999-9999');
   });
 });

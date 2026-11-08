@@ -7,6 +7,7 @@ import {
   namedSegmentForm,
   numericLiteralForm,
 } from './fixtures/identity.js';
+import { patternAttribute } from './fixtures/markup.js';
 import { houses, inputs, nestedForm, roomsOf } from './fixtures/nested.js';
 import { blankError, insertButton, options, removeButton, rows, tabularForm } from './fixtures/tabular.js';
 import { insert, mount, remove } from './support/dom.js';
@@ -109,6 +110,22 @@ describe('tabular rows', () => {
     });
   });
 
+  test('updateContainer before initialization keeps the different rules of reordered rows with their rows', async () => {
+    const $ = window.jQuery;
+    const fixture = tabularForm({ rows: [{ name: '' }, { name: 'abc' }] });
+
+    fixture.validation['dynamic-form'][1] = patternAttribute('formmodel-1-name', '[1]name', /^\d+$/, 'Name must be digits.');
+    mount(fixture, { init: false });
+    rows()[0].parentNode.insertBefore(rows()[1], rows()[0]);
+
+    $('.dynamicform_wrapper').yiiDynamicForm('updateContainer');
+
+    expect(await validate('dynamic-form'), 'Each rule must follow its input to the new index.').toEqual({
+      'formmodel-0-name': 'Name must be digits.',
+      'formmodel-1-name': blankError,
+    });
+  });
+
   test('rows with multi-digit indexes keep identities and validators', async () => {
     const values = Array.from({ length: 11 }, (_value, index) => ({ name: `N${index}` }));
 
@@ -154,6 +171,20 @@ describe('tabular rows', () => {
       meta10 ? `${meta10.id}|${meta10.getAttribute('name')}` : 'missing',
       'The undeclared hidden input from row 11 must renumber to index 10 after deleting row 0.',
     ).toBe('meta-10-ts|Meta[10][ts]');
+  });
+
+  test('an undeclared name that does not end with a bracket is kept whole', () => {
+    const fixture = tabularForm();
+
+    fixture.html = fixture.html.replace(
+      '<button type="button" class="add-item">',
+      '<input type="hidden" id="meta-0-ts" name="Meta[0][ts]suffix"><button type="button" class="add-item">',
+    );
+    mount(fixture);
+
+    window.jQuery('.dynamicform_wrapper').yiiDynamicForm('updateContainer');
+
+    expect(document.getElementById('meta-0-ts').getAttribute('name'), 'The suffix must not be cut.').toBe('Meta[0][ts]suffix');
   });
 
   test('controls with non-tabular names keep their names', () => {
@@ -211,6 +242,22 @@ describe('special name and id shapes', () => {
       Array.from(document.querySelectorAll('.item input'), (input) => `${input.id}|${input.name}|${input.value}`),
       'Literal key 2024 must survive; only the row index may change.',
     ).toEqual(['model-2024-0-x|Model[2024][0][x]|kept', 'model-2024-1-x|Model[2024][1][x]|']);
+  });
+
+  test('a non-tabular id gets the row index after a dash and keeps it across updates', () => {
+    const $ = window.jQuery;
+    const fixture = tabularForm();
+
+    fixture.html = fixture.html.replace(
+      '<button type="button" class="add-item">',
+      '<input type="text" id="extra" name="Extra"><button type="button" class="add-item">',
+    );
+    mount(fixture);
+
+    $('.dynamicform_wrapper').yiiDynamicForm('updateContainer');
+    $('.dynamicform_wrapper').yiiDynamicForm('updateContainer');
+
+    expect(document.querySelector('[name="Extra"]').id, 'The index must be appended once, after a dash.').toBe('extra-0');
   });
 
   test('custom non-tabular ids stay unique and labelled across rows', () => {
