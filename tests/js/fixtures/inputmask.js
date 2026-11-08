@@ -8,7 +8,8 @@ import { buttons, field, textInput, widgetOptions } from './markup.js';
 const maskedInput = (id, name, value) =>
   textInput(id, name, value).replace('>', ' data-plugin-inputmask="inputmask_phone">');
 
-function row(index, phone) {
+/** One rendered row with a masked phone input. */
+export function inputmaskRow(index, phone) {
   const id = `formmodel-${index}-phone`;
 
   return `<div class="item">${field(id, 'Phone', maskedInput(id, `FormModel[${index}][phone]`, phone))}${buttons()}</div>`;
@@ -18,14 +19,14 @@ export function inputmaskForm({ phones = ['555-0100'] } = {}) {
   return {
     html:
       '<form id="im-form"><div class="dynamic_form" data-dynamicform="dynamicform_im">' +
-      `<div class="items">${phones.map((phone, index) => row(index, phone)).join('')}</div></div>` +
+      `<div class="items">${phones.map((phone, index) => inputmaskRow(index, phone)).join('')}</div></div>` +
       `${maskedInput('outside', 'outside', '555-0199')}</form>`,
     widgets: {
       dynamicform_im: widgetOptions({
         widgetContainer: 'dynamic_form',
         formId: 'im-form',
         fields: [{ id: 'formmodel-{}-phone', name: 'FormModel[{}][phone]' }],
-        template: row(0, phones[0]),
+        template: inputmaskRow(0, phones[0]),
       }),
     },
     globals: { inputmask_phone: { mask: '999-9999' } },
