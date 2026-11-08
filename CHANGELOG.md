@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - fix: initialize Kartik DatePicker controls of inserted rows on their own element, keep existing instances and release deleted inline calendars.
 - test: cover validator templates of rows the server did not render and reuse `_escapeRegExp()` to match them, dropping an unreachable pattern.
 - test: cover validator keys and registration of prefixed, undeclared and application-removed row fields, dropping three unreachable checks.
+- test: cover ID and name rewriting via regex fallback for inputs with an undeclared model prefix across insert, delete and reorder.
 
 ## 1.0.2 May 20, 2026
 
