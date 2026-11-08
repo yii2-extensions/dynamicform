@@ -77,6 +77,28 @@ export function rootOutsideForm() {
   };
 }
 
+/**
+ * A root rendered inside `host-form` whose configured `formId` names another id. With `otherForm` that id is a second
+ * form, rendered after the host with one registered field of its own; without it no element has that id. It covers
+ * the form lookup of the jQuery API only: `DynamicFormWidget` binds its click handlers and initialization on the
+ * `formId` element, which therefore must be the form of the rows (docs/configuration.md).
+ */
+export function rootInsideForm({ formId, otherForm = false }) {
+  const a = root({ formId, container: 'dynamicform_inside', variable: 'dynamicform_inside', model: 'A', values: ['a0'], insertClass: 'add-a' });
+  const other = otherForm
+    ? `<form id="${formId}">${field('other-0-name', 'Other', textInput('other-0-name', 'Other[0][name]', 'o0'))}</form>`
+    : '';
+
+  return {
+    html: `<form id="host-form">${a.html}</form>${other}`,
+    widgets: { dynamicform_inside: a.options },
+    validation: {
+      'host-form': a.attributes,
+      ...(otherForm ? { [formId]: [requiredAttribute('other-0-name', '[0]name', 'Other cannot be blank.')] } : {}),
+    },
+  };
+}
+
 /** Issue #6 structure: rows are `tr` elements inside the `tbody` of the configured body table. */
 export function tableRowsForm() {
   const row = (index, value) => {

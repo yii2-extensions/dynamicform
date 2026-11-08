@@ -1,7 +1,7 @@
-import { field, requiredAttribute, textInput, widgetOptions } from './markup.js';
+import { field, hiddenInput, requiredAttribute, textInput, widgetOptions } from './markup.js';
 
 /**
- * Two nested widgets (houses containing rooms) in one form, the README's nested example.
+ * Two nested widgets (houses containing rooms) in one form, the README's nested example, and a three-level form.
  */
 function room(house, index, name = '') {
   const id = `room-${house}-${index}-name`;
@@ -63,6 +63,36 @@ export function nestedForm({ rooms = ['r00'], otherHouses = [] } = {}) {
         ),
       ],
     },
+  };
+}
+
+/**
+ * Three nested widgets (sections, groups, lines) in one form: section 0 holds the groups `[a]` and `[b, c]`, section 1
+ * the group `[d]`. A line holds the declared `Line[2024][s][g][l][name]`, whose literal key `2024` only the declared
+ * pattern tells apart from the row indexes; the first line of a group also holds the undeclared `Note[s][g][ts]`, whose
+ * model prefix no widget declares and which carries the section and group indexes only.
+ */
+export function threeLevelForm() {
+  const line = (s, g, l, value) =>
+    `<div class="line">${textInput(`line-2024-${s}-${g}-${l}-name`, `Line[2024][${s}][${g}][${l}][name]`, value)}` +
+    `${l === 0 ? hiddenInput(`note-${s}-${g}-ts`, `Note[${s}][${g}][ts]`, `n${s}${g}`) : ''}</div>`;
+  const group = (s, g, values) =>
+    `<div class="group"><div class="dynamicform_lines" data-dynamicform="dynamicform_lines"><div class="lines">${values.map((value, l) => line(s, g, l, value)).join('')}</div></div></div>`;
+  const section = (s, groups) =>
+    `<div class="section"><div class="dynamicform_groups" data-dynamicform="dynamicform_groups"><div class="groups">${groups.map((values, g) => group(s, g, values)).join('')}</div></div></div>`;
+  const level = (container, body, item, template, fields = []) =>
+    widgetOptions({ widgetContainer: container, widgetBody: `.${body}`, widgetItem: `.${item}`, formId: 'three-level-form', fields, template });
+
+  return {
+    html: `<form id="three-level-form"><div class="dynamicform_sections" data-dynamicform="dynamicform_sections"><div class="sections">${section(0, [['a'], ['b', 'c']])}${section(1, [['d']])}</div></div></form>`,
+    widgets: {
+      dynamicform_sections: level('dynamicform_sections', 'sections', 'section', section(0, [['a'], ['b', 'c']])),
+      dynamicform_groups: level('dynamicform_groups', 'groups', 'group', group(0, 0, ['a'])),
+      dynamicform_lines: level('dynamicform_lines', 'lines', 'line', line(0, 0, 0, 'a'), [
+        { id: 'line-2024-{}-{}-{}-name', name: 'Line[2024][{}][{}][{}][name]' },
+      ]),
+    },
+    validation: { 'three-level-form': [] },
   };
 }
 

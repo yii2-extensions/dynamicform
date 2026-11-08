@@ -8,7 +8,7 @@ import {
   numericLiteralForm,
 } from './fixtures/identity.js';
 import { patternAttribute } from './fixtures/markup.js';
-import { houses, inputs, nestedForm, roomsOf } from './fixtures/nested.js';
+import { houses, inputs, nestedForm, roomsOf, threeLevelForm } from './fixtures/nested.js';
 import { blankError, insertButton, options, removeButton, rows, tabularForm } from './fixtures/tabular.js';
 import { insert, mount, remove } from './support/dom.js';
 import { loadEnvironment } from './support/environment.js';
@@ -386,5 +386,26 @@ describe('nested widgets', () => {
       seq9 ? `${seq9.id}|${seq9.getAttribute('name')}` : 'missing',
       'The undeclared hidden input from inner row 10 must renumber to index 9 after deleting row 0.',
     ).toBe('seq-0-9-ts|Seq[0][9][ts]');
+  });
+
+  test('updateContainer keeps two indexes on an undeclared field in a third-level row and renumbers its group', () => {
+    mount(threeLevelForm());
+    const [first, second] = document.querySelector('.groups').children;
+
+    first.before(second);
+    window.jQuery('.dynamicform_sections').yiiDynamicForm('updateContainer');
+
+    expect(
+      Array.from(document.querySelectorAll('#three-level-form input'), (input) => `${input.id}|${input.name}|${input.value}`),
+      'The note must keep its section and group indexes only; the declared line keeps its literal key and three indexes.',
+    ).toEqual([
+      'line-2024-0-0-0-name|Line[2024][0][0][0][name]|b',
+      'note-0-0-ts|Note[0][0][ts]|n01',
+      'line-2024-0-0-1-name|Line[2024][0][0][1][name]|c',
+      'line-2024-0-1-0-name|Line[2024][0][1][0][name]|a',
+      'note-0-1-ts|Note[0][1][ts]|n00',
+      'line-2024-1-0-0-name|Line[2024][1][0][0][name]|d',
+      'note-1-0-ts|Note[1][0][ts]|n10',
+    ]);
   });
 });
