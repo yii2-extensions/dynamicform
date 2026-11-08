@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, test } from 'vitest';
 
-import { namesIn, rootOutsideForm, tableRowsForm, twoFormsPage, twoRootsForm } from './fixtures/roots.js';
+import { namesIn, rootInsideForm, rootOutsideForm, tableRowsForm, twoFormsPage, twoRootsForm } from './fixtures/roots.js';
 import { insert, mount, remove } from './support/dom.js';
 import { loadEnvironment } from './support/environment.js';
 import { validate, validatorIds } from './support/state.js';
@@ -101,6 +101,39 @@ describe('form lookup', () => {
       'a-0-name',
       'a-1-name',
     ]);
+  });
+
+  test('a root inside a form validates its rows in that form when formId names another form', async () => {
+    const { dynamicform_inside: inside } = mount(rootInsideForm({ formId: 'other-form', otherForm: true }), { init: false });
+
+    window.jQuery('#host-form').yiiDynamicForm(inside);
+    insert(inside, document.querySelector('.add-a'));
+
+    expect(
+      { host: validatorIds('host-form'), other: validatorIds('other-form') },
+      'The inserted row must be registered in the enclosing form only.',
+    ).toEqual({ host: ['a-0-name', 'a-1-name'], other: ['other-0-name'] });
+    expect(await validate('host-form'), 'The enclosing form must run the rule of the inserted row.').toEqual({
+      'a-0-name': '',
+      'a-1-name': 'A cannot be blank.',
+    });
+    expect(await validate('other-form'), 'The other form must keep only its own rule.').toEqual({ 'other-0-name': '' });
+  });
+
+  test('a root inside a form validates its rows in that form when formId matches no element', async () => {
+    const { dynamicform_inside: inside } = mount(rootInsideForm({ formId: 'missing-form' }), { init: false });
+
+    window.jQuery('#host-form').yiiDynamicForm(inside);
+    insert(inside, document.querySelector('.add-a'));
+
+    expect(validatorIds('host-form'), 'The inserted row must be registered in the enclosing form.').toEqual([
+      'a-0-name',
+      'a-1-name',
+    ]);
+    expect(await validate('host-form'), 'The enclosing form must run the rule of the inserted row.').toEqual({
+      'a-0-name': '',
+      'a-1-name': 'A cannot be blank.',
+    });
   });
 });
 
