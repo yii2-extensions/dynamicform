@@ -79,7 +79,9 @@ export function rootOutsideForm() {
 
 /**
  * A root rendered inside `host-form` whose configured `formId` names another id. With `otherForm` that id is a second
- * form, rendered after the host with one registered field of its own; without it no element has that id.
+ * form, rendered after the host with one registered field of its own; without it no element has that id. It covers
+ * the form lookup of the jQuery API only: `DynamicFormWidget` binds its click handlers and initialization on the
+ * `formId` element, which therefore must be the form of the rows (docs/configuration.md).
  */
 export function rootInsideForm({ formId, otherForm = false }) {
   const a = root({ formId, container: 'dynamicform_inside', variable: 'dynamicform_inside', model: 'A', values: ['a0'], insertClass: 'add-a' });

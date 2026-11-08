@@ -390,19 +390,22 @@ describe('nested widgets', () => {
 
   test('updateContainer keeps two indexes on an undeclared field in a third-level row and renumbers its group', () => {
     mount(threeLevelForm());
-    const groups = document.querySelectorAll('.groups > .group');
+    const [first, second] = document.querySelector('.groups').children;
 
-    groups[0].parentNode.insertBefore(groups[1], groups[0]);
+    first.before(second);
     window.jQuery('.dynamicform_sections').yiiDynamicForm('updateContainer');
 
     expect(
       Array.from(document.querySelectorAll('#three-level-form input'), (input) => `${input.id}|${input.name}|${input.value}`),
-      'The note must keep its section and group indexes only; the declared line keeps all three.',
+      'The note must keep its section and group indexes only; the declared line keeps its literal key and three indexes.',
     ).toEqual([
-      'line-0-0-0-name|Line[0][0][0][name]|l1',
-      'note-0-0-ts|Note[0][0][ts]|n1',
-      'line-0-1-0-name|Line[0][1][0][name]|l0',
-      'note-0-1-ts|Note[0][1][ts]|n0',
+      'line-2024-0-0-0-name|Line[2024][0][0][0][name]|b',
+      'note-0-0-ts|Note[0][0][ts]|n01',
+      'line-2024-0-0-1-name|Line[2024][0][0][1][name]|c',
+      'line-2024-0-1-0-name|Line[2024][0][1][0][name]|a',
+      'note-0-1-ts|Note[0][1][ts]|n00',
+      'line-2024-1-0-0-name|Line[2024][1][0][0][name]|d',
+      'note-1-0-ts|Note[1][0][ts]|n10',
     ]);
   });
 });
