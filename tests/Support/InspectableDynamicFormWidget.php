@@ -8,10 +8,16 @@ use yii\web\View;
 use Yii2\Extensions\DynamicForm\DynamicFormWidget;
 
 /**
- * Calls the protected hooks of {@see DynamicFormWidget} from a subclass, as application widgets do.
+ * Calls the protected hooks of {@see DynamicFormWidget} from a subclass, as application widgets do, and counts the
+ * calls of the overridden {@see initOptions()} hook.
  */
 final class InspectableDynamicFormWidget extends DynamicFormWidget
 {
+    /**
+     * @var int Number of {@see initOptions()} calls; PHPUnit restores static properties after each test.
+     */
+    public static int $initOptionsCalls = 0;
+
     public function callGetHashVarName(): mixed
     {
         return $this->getHashVarName();
@@ -30,5 +36,12 @@ final class InspectableDynamicFormWidget extends DynamicFormWidget
     public function callRegisterOptions(View $view): void
     {
         $this->registerOptions($view);
+    }
+
+    protected function initOptions(): void
+    {
+        self::$initOptionsCalls++;
+
+        parent::initOptions();
     }
 }
