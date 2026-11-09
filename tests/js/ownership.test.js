@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, test } from 'vitest';
 
-import { namesIn, rootInsideForm, rootOutsideForm, tableRowsForm, twoFormsPage, twoRootsForm } from './fixtures/roots.js';
+import { namesIn, rootInsideForm, rootOutsideForm, rootWithForeignContainer, tableRowsForm, twoFormsPage, twoRootsForm } from './fixtures/roots.js';
 import { insert, mount, remove } from './support/dom.js';
 import { loadEnvironment } from './support/environment.js';
 import { validate, validatorIds } from './support/state.js';
@@ -131,6 +131,26 @@ describe('form lookup', () => {
       'a-1-name',
     ]);
     expect(await validate('host-form'), 'The enclosing form must run the rule of the inserted row.').toEqual({
+      'a-0-name': '',
+      'a-1-name': 'A cannot be blank.',
+    });
+  });
+});
+
+describe('foreign container class', () => {
+  test('a non-widget element sharing the container class does not block initialization', async () => {
+    const { dynamicform_a: a } = mount(rootWithForeignContainer());
+
+    expect(validatorIds('foreign-form'), 'The widget row must be registered after init.').toEqual(['a-0-name']);
+
+    insert(a, document.querySelector('.add-a'));
+
+    expect(validatorIds('foreign-form'), 'The inserted row must be registered.').toEqual(['a-0-name', 'a-1-name']);
+    expect(
+      document.getElementById('foreign-container').tagName.toLowerCase(),
+      'The foreign element must be preserved unchanged.',
+    ).toBe('p');
+    expect(await validate('foreign-form'), 'The enclosing form must run only the real widget rules.').toEqual({
       'a-0-name': '',
       'a-1-name': 'A cannot be blank.',
     });

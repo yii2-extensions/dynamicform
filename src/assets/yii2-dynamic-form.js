@@ -35,7 +35,10 @@
             return this.each(function () {
                 widgetOptions.template = _parseTemplate(widgetOptions);
                 _containersOf($(this), widgetOptions).each(function () {
-                    _attachValidation(_rootOf($(this)));
+                    var $root = _rootOf($(this));
+                    if ($root.length > 0) {
+                        _attachValidation($root);
+                    }
                 });
             });
         },

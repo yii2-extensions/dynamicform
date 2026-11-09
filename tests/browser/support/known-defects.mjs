@@ -10,6 +10,7 @@ export const knownDefects = {
   'rendered-required-rule': { variants: {} },
   'rendered-no-validation': { variants: {} },
   'rendered-zero-start': { variants: {} },
+  'rendered-foreign-container': { variants: {} },
   'rendered-numeric-literal-key': { variants: {} },
   'rendered-preload-blank': { variants: {} },
   'rendered-preload-validation': { variants: {} },
