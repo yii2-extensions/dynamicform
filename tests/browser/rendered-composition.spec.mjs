@@ -283,3 +283,69 @@ test('a form id with quotes and CSS syntax inserts, deletes and submits rows', a
     { id: '', name: '', code: '' },
   ]);
 });
+
+test('an id with an apostrophe is renumbered with its label and container class and the insertion completes', async ({ page }) => {
+  expectKnownDefect('rendered-selector-syntax-id');
+  await openScenario(page, 'selector-syntax-id');
+
+  const rows = page.locator('.dynamicform_wrapper .container-items > .item');
+  // Label target and container classes of each text input, read without selectors built from the id. The classes are
+  // sorted: renumbering moves `field-<id>` to the end of the list.
+  const fields = () =>
+    rows.evaluateAll((items) =>
+      items.map((item) =>
+        Array.from(item.querySelectorAll('input[type=text]'), (input) => {
+          const group = input.closest('.form-group');
+
+          return {
+            id: input.id,
+            name: input.name,
+            label: group.querySelector('label').getAttribute('for'),
+            container: Array.from(group.classList).sort(),
+          };
+        }),
+      ),
+    );
+  const row = (index) => [
+    {
+      id: `formmodel-${index}-name`,
+      name: `FormModel[${index}][name]`,
+      label: `formmodel-${index}-name`,
+      container: [`field-formmodel-${index}-name`, 'form-group', 'required'],
+    },
+    {
+      id: `formmodel-${index}-owner's-code`,
+      name: `FormModel[${index}][code]`,
+      label: `formmodel-${index}-owner's-code`,
+      container: [`field-formmodel-${index}-owner's-code`, 'form-group'],
+    },
+  ];
+
+  expect(await fields(), 'Fixture must render the custom id').toEqual([row(0)]);
+  await page.evaluate(() => {
+    window.__afterInsert = 0;
+    window.jQuery('.dynamicform_wrapper').on('afterInsert', () => {
+      window.__afterInsert++;
+    });
+  });
+
+  await rows.nth(0).locator('.add-item').click();
+  await expect(rows).toHaveCount(2);
+
+  expect(await page.evaluate(() => window.__afterInsert), 'afterInsert must follow the completed insertion').toBe(1);
+  expect(await fields(), 'The inserted row must take index 1 in ids, names, labels and containers').toEqual([row(0), row(1)]);
+  expect(await validatorIds(page), 'The generated id of the inserted row must be validated').toEqual([
+    'formmodel-0-name',
+    'formmodel-1-name',
+  ]);
+
+  await page.locator('#formmodel-1-name').fill('Second');
+  await rows.nth(1).locator('input[name="FormModel[1][code]"]').fill('B2');
+
+  const payload = await submitAndCapture(page);
+
+  expect(payload.post.FormModel, 'Payload must contain both rows').toEqual([
+    { id: '1', name: 'Saved', code: 'A1' },
+    { id: '', name: 'Second', code: 'B2' },
+  ]);
+});

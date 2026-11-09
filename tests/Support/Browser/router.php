@@ -73,6 +73,9 @@ $scenarios = [
     'foreign-container' => ['foreignContainer' => true],
     // Numeric literal keys around the row index: a row form name holding `[2024]` and a `[7]code` field.
     'numeric-literal-key' => ['rowFormName' => 'FormModel[2024]', 'codeKey' => '[7]'],
+    // A custom `code` id holding an apostrophe, which CSS selector syntax reads as a string delimiter; `{i}` is the row
+    // index. `code` has no rule, so ActiveForm registers no validator for it.
+    'selector-syntax-id' => ['codeId' => "formmodel-{i}-owner's-code"],
     // Stored rows with every kind of control a form reset restores, next to a sibling form with its own widget.
     'reset' => ['view' => 'reset'],
     // Real Kartik Select2 and DepDrop widgets: `[Production]`/`[Sales]` literal keys in one form, `Row[2024]` in another.
@@ -184,6 +187,7 @@ $scenario = array_replace(
         'sameContainer' => false,
         'rowFormName' => 'FormModel',
         'codeKey' => '',
+        'codeId' => '',
         'foreignContainer' => false,
         'submitUrl' => "/{$variant}/submit/{$name}",
         'endpointUrl' => "/{$variant}",
