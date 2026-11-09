@@ -45,6 +45,27 @@ the update action can match them:
 <?= $form->field($modelAddress, "[{$i}]full_name")->textInput(['maxlength' => true]) ?>
 ```
 
+When rows are inserted, deleted or renumbered through `updateContainer`, the plugin rewrites the row indexes in the `id`
+and `name` of every element of a row, and in the matching `label[for]` and `field-<id>` container class:
+
+- **Row model inputs.** The widget sends one id and name pattern per `formFields` attribute, built from the form name of
+  `model`, such as `address-{}-full_name` and `Address[{}][full_name]`. The part before `{}` (`address-`, `Address[`) is
+  shared by every input of that model, so an input that starts with it followed by its row indexes is located through it
+  even when its attribute is not listed in `formFields`, such as the hidden primary key. The row indexes follow that
+  prefix, one per widget the input is nested in; what follows them, numeric keys included, is kept. A literal key in the
+  form name of the model, such as `Model[2024]`, belongs to the prefix (`model-2024-`, `Model[2024][`).
+- **Other inputs.** An id or name that starts with another model name, such as `Meta[0][5][ts]`, has no declared pattern
+  and is renumbered by position: in the first run of numeric segments after the model name (`-0-5-` in `meta-0-5-ts`,
+  `[0][5]` in `Meta[0][5][ts]`), the first segments, up to one per widget the input is nested in from the outermost, are
+  the row indexes; the remaining segments are literal keys and are kept. `Meta[0][5][ts]` in the second row of a widget
+  that is not nested becomes `Meta[1][5][ts]`.
+- **Numeric keys before the row index.** Position cannot tell a numeric key in front of the row indexes from an index:
+  `Other[2024][0][x]` would have `2024` replaced. Such a key is supported only in the form name of `model`, whose
+  declared patterns locate the index after it; there is no option to declare patterns for other models.
+- **Other shapes.** An id without a numeric segment between two other segments gets the row index appended once after a
+  dash (`extra` becomes `extra-0`). A name is kept unless its numeric bracket segments are followed by a final bracket
+  segment, as in `Meta[0][ts]`.
+
 ## Server-side models
 
 `Yii2\Extensions\DynamicForm\Models\Model::createMultiple()` returns one model per posted row: it reuses the existing

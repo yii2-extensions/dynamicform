@@ -6,6 +6,7 @@ import {
   digitNamesForm,
   namedSegmentForm,
   numericLiteralForm,
+  trailingLiteralKeyForm,
 } from './fixtures/identity.js';
 import { patternAttribute } from './fixtures/markup.js';
 import { houses, inputs, nestedForm, roomsOf, threeLevelForm } from './fixtures/nested.js';
@@ -290,6 +291,62 @@ describe('special name and id shapes', () => {
       Array.from(document.querySelectorAll('.item input'), (input) => input.id),
       'Custom ids must be stable across updates.',
     ).toEqual(ids);
+  });
+});
+
+describe('undeclared fields with a literal key after the row index', () => {
+  // `Meta` is not the row model, so `meta-<index>-5-ts` reaches the positional fallback: the first numeric segment is
+  // the row index of the flat widget and `5` stays as a literal key.
+  const row = (index, name, ts) => [
+    ...identity(index, name, ''),
+    {
+      id: `meta-${index}-5-ts`,
+      name: `Meta[${index}][5][ts]`,
+      value: ts,
+      label: 'Timestamp',
+      container: `field-meta-${index}-5-ts`,
+    },
+  ];
+  const three = [
+    { name: 'A', ts: 't0' },
+    { name: 'B', ts: 't1' },
+    { name: 'C', ts: 't2' },
+  ];
+
+  test('inserting a row gives the field the next row index and keeps the literal key', () => {
+    mount(trailingLiteralKeyForm(three.slice(0, 2)));
+
+    insert(options(), insertButton(1));
+
+    expect(rowIdentities(rows()), 'Only the row index may change; the new row must be blank.').toEqual([
+      row(0, 'A', 't0'),
+      row(1, 'B', 't1'),
+      row(2, '', ''),
+    ]);
+  });
+
+  test('deleting the first row renumbers the field of the remaining rows and keeps the literal key', () => {
+    mount(trailingLiteralKeyForm(three));
+
+    remove(options(), removeButton(0));
+
+    expect(rowIdentities(rows()), 'Remaining rows must keep their values under consecutive row indexes.').toEqual([
+      row(0, 'B', 't1'),
+      row(1, 'C', 't2'),
+    ]);
+  });
+
+  test('updateContainer renumbers the field of rows reordered by the application and keeps the literal key', () => {
+    mount(trailingLiteralKeyForm(three));
+    rows()[0].before(rows()[2]);
+
+    window.jQuery('.dynamicform_wrapper').yiiDynamicForm('updateContainer');
+
+    expect(rowIdentities(rows()), 'Rows must take their new positions as row indexes.').toEqual([
+      row(0, 'C', 't2'),
+      row(1, 'A', 't0'),
+      row(2, 'B', 't1'),
+    ]);
   });
 });
 

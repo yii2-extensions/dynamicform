@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, test } from 'vitest';
 
-import { namesIn, rootInsideForm, rootOutsideForm, rootWithForeignContainer, rootWithForeignContainerPreload, tableRowsForm, twoFormsPage, twoRootsForm } from './fixtures/roots.js';
+import { ancestorWithForeignContainer, namesIn, rootInsideForm, rootOutsideForm, rootWithForeignContainer, rootWithForeignContainerPreload, tableRowsForm, twoFormsPage, twoRootsForm } from './fixtures/roots.js';
 import { initialize, insert, mount, remove } from './support/dom.js';
 import { loadEnvironment } from './support/environment.js';
 import { validate, validatorIds } from './support/state.js';
@@ -171,6 +171,29 @@ describe('foreign container class', () => {
       validatorIds('foreign-form'),
       'After init the pre-load row validator must be attached by _attachValidation.',
     ).toEqual(['a-0-name', 'a-1-name']);
+  });
+
+  test('init on an ancestor attaches the widget validators and keeps a foreign element outside every form', async () => {
+    const $ = window.jQuery;
+    const fixture = ancestorWithForeignContainer();
+
+    mount(fixture, { init: false });
+    const foreign = document.getElementById('foreign-container').outerHTML;
+
+    expect(validatorIds('foreign-form'), 'Before init only the ActiveForm-registered validator exists.').toEqual(['a-0-name']);
+    expect(
+      () => $('#foreign-page').yiiDynamicForm(fixture.widgets.dynamicform_a),
+      'A foreign element without a form or options must not stop initialization.',
+    ).not.toThrow();
+    expect(validatorIds('foreign-form'), 'Init must attach the validator of the row inserted before it.').toEqual([
+      'a-0-name',
+      'a-1-name',
+    ]);
+    expect(document.getElementById('foreign-container').outerHTML, 'The foreign element must be unchanged.').toBe(foreign);
+    expect(await validate('foreign-form'), 'The attached validator must run on its row.').toEqual({
+      'a-0-name': '',
+      'a-1-name': 'A cannot be blank.',
+    });
   });
 });
 

@@ -1,4 +1,5 @@
 import { buttons, field, textInput, widgetOptions } from './markup.js';
+import { tabularForm } from './tabular.js';
 
 /**
  * Single-widget forms whose rows use unusual name or id shapes.
@@ -34,6 +35,30 @@ export function numericLiteralForm() {
     `<div class="item">${textInput('model-2024-0-x', 'Model[2024][0][x]', 'kept')}${buttons()}</div>`,
     [{ id: 'model-2024-{}-x', name: 'Model[2024][{}][x]' }],
   );
+}
+
+/**
+ * The tabular widget with one more field per row, `Meta[<index>][5][ts]`, whose model prefix the widget does not
+ * declare, so its row index is located by position: the first numeric segment is the row index of the flat widget and
+ * the following `5` is a literal key. `rows` are `{ name, ts }` values; the template row has a blank `ts`.
+ */
+export function trailingLiteralKeyForm(rows) {
+  const fixture = tabularForm({ rows: rows.map(({ name }) => ({ name })) });
+  const button = '<button type="button" class="add-item">';
+  const meta = (index, value) =>
+    field(`meta-${index}-5-ts`, 'Timestamp', textInput(`meta-${index}-5-ts`, `Meta[${index}][5][ts]`, value));
+  let index = 0;
+
+  fixture.html = fixture.html.replace(new RegExp(button, 'g'), () => {
+    const html = `${meta(index, rows[index].ts)}${button}`;
+
+    index++;
+
+    return html;
+  });
+  fixture.widgets.dynamicform_rows.template = fixture.widgets.dynamicform_rows.template.replace(button, `${meta(0, '')}${button}`);
+
+  return fixture;
 }
 
 /** Custom ids that do not follow the tabular `<model>-<index>-<attribute>` pattern. */
