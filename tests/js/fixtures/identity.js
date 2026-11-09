@@ -61,6 +61,24 @@ export function trailingLiteralKeyForm(rows) {
   return fixture;
 }
 
+/**
+ * The tabular widget with one more field, `Note[0][text]`, whose custom id holds CSS selector syntax:
+ * `note-0-text<separator>en`. Next to it, a span that is not a field container has the classes `field-note-0-text en`,
+ * which a selector built from that id reads as its own. The template row has a blank note.
+ */
+export function selectorSyntaxForm(separator) {
+  const fixture = tabularForm();
+  const button = '<button type="button" class="add-item">';
+  const id = `note-0-text${separator}en`;
+  const note = (value) =>
+    `${field(id, 'Note', textInput(id, 'Note[0][text]', value))}<span class="field-note-0-text en"></span>${button}`;
+
+  fixture.html = fixture.html.replace(button, () => note('n0'));
+  fixture.widgets.dynamicform_rows.template = fixture.widgets.dynamicform_rows.template.replace(button, () => note(''));
+
+  return fixture;
+}
+
 /** Custom ids that do not follow the tabular `<model>-<index>-<attribute>` pattern. */
 export function customIdForm() {
   return singleRowForm(

@@ -6,6 +6,7 @@ import {
   digitNamesForm,
   namedSegmentForm,
   numericLiteralForm,
+  selectorSyntaxForm,
   trailingLiteralKeyForm,
 } from './fixtures/identity.js';
 import { patternAttribute } from './fixtures/markup.js';
@@ -346,6 +347,64 @@ describe('undeclared fields with a literal key after the row index', () => {
       row(0, 'C', 't2'),
       row(1, 'A', 't0'),
       row(2, 'B', 't1'),
+    ]);
+  });
+});
+
+describe('ids holding CSS selector syntax', () => {
+  // The label target and the full container class of every text input, and the classes of the span, which is not a
+  // field container. The Yii-generated `formmodel-*` fields are the control.
+  const state = () =>
+    Array.from(rows(), (row) => ({
+      fields: Array.from(row.querySelectorAll('input[type=text]'), (input) => {
+        const group = input.closest('.form-group');
+
+        return {
+          id: input.id,
+          name: input.getAttribute('name'),
+          value: input.value,
+          labelFor: group.querySelector('label').getAttribute('for'),
+          container: group.className,
+        };
+      }),
+      span: row.querySelector('span').className,
+    }));
+  const row = (index, separator, name, code, note) => ({
+    fields: [
+      ...identity(index, name, code).map(({ id, name: fieldName, value, container }) => ({
+        id,
+        name: fieldName,
+        value,
+        labelFor: id,
+        container: `form-group ${container}`,
+      })),
+      {
+        id: `note-${index}-text${separator}en`,
+        name: `Note[${index}][text]`,
+        value: note,
+        labelFor: `note-${index}-text${separator}en`,
+        container: `form-group field-note-${index}-text${separator}en`,
+      },
+    ],
+    span: 'field-note-0-text en',
+  });
+
+  test.each([
+    { character: 'a period', separator: '.' },
+    { character: 'a colon', separator: ':' },
+    { character: 'an apostrophe', separator: "'" },
+  ])('inserting a row renumbers an id with $character with its own label and container class', ({ separator }) => {
+    const inserted = [];
+
+    mount(selectorSyntaxForm(separator));
+    window.jQuery('.dynamicform_wrapper').on('afterInsert', (_event, element) => inserted.push(element));
+
+    insert(options(), insertButton(0));
+
+    expect(inserted, 'The insertion must complete and report the new row once.').toEqual([rows()[1]]);
+    expect(state(), 'Only the field of the renumbered id may change its label target and container class.').toEqual([
+      row(0, separator, 'Saved', 'A1', 'n0'),
+      row(1, separator, '', '', ''),
     ]);
   });
 });

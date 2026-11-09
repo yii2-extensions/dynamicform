@@ -47,11 +47,10 @@ the update action can match them:
 
 When rows are inserted, deleted or renumbered through `updateContainer`, the plugin rewrites the row indexes in the `id`
 and `name` of every element of a row. For each id it changes, it also updates the `label[for]` and the `field-<id>`
-container class that match the old id among the elements inside the row. The class is located with a CSS selector built
-from the old id, so it is left unchanged when the row element itself is the field container, or when the id holds
-characters a selector reads as syntax, such as `.` or `:`; an id with a quote makes the update throw. Ids made of
-letters, digits, `-` and `_`, as Yii generates them for ordinary model and attribute names, avoid the second case. The
-row indexes are located as follows:
+container class that match the old id among the elements inside the row. Both are compared with the old id as literal
+text, so an id holding characters such as `.`, `:` or a quote is updated like any other, and an element whose classes
+only resemble a selector built from that id is left unchanged. The row element itself is not among those elements, so
+its class is left unchanged when it is also the field container. The row indexes are located as follows:
 
 - **Row model inputs.** The widget sends one id and name pattern per `formFields` attribute, built from the form name of
   `model`, such as `address-{}-full_name` and `Address[{}][full_name]`. The part before `{}` (`address-`, `Address[`) is

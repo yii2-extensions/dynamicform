@@ -441,11 +441,17 @@
         }
 
         if (id !== newID) {
-            $elem.closest(widgetOptions.widgetItem).find('.field-' + id).each(function () {
+            // The container class and the label target are compared with the old id as literal text: a selector built
+            // from it would read characters such as `.`, `:` or a quote as selector syntax.
+            $elem.closest(widgetOptions.widgetItem).find('*').filter(function () {
+                return $(this).hasClass('field-' + id);
+            }).each(function () {
                 $(this).removeClass('field-' + id).addClass('field-' + newID);
             });
             // update "for" attribute
-            $elem.closest(widgetOptions.widgetItem).find("label[for='" + id + "']").attr('for', newID);
+            $elem.closest(widgetOptions.widgetItem).find('label').filter(function () {
+                return $(this).attr('for') === id;
+            }).attr('for', newID);
         }
 
         return newID;
