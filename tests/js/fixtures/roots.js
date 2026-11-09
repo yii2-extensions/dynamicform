@@ -113,6 +113,22 @@ export function rootWithForeignContainer() {
   };
 }
 
+/**
+ * Foreign container + a row inserted before DynamicForm's `init`: the DOM holds two rows but ActiveForm is
+ * initialized with only the first validator, as PHP would emit it; the second row was added after `DOMContentLoaded`
+ * but before `window.load`.
+ */
+export function rootWithForeignContainerPreload() {
+  const a = root({ formId: 'foreign-form', container: 'dynamicform_wrapper', variable: 'dynamicform_a', model: 'A', values: ['a0', ''], insertClass: 'add-a' });
+
+  return {
+    html: `<form id="foreign-form"><p class="dynamicform_wrapper" id="foreign-container"></p>${a.html}</form>`,
+    widgets: { dynamicform_a: a.options },
+    // Only the first row's validator is registered; the second was inserted before window.load.
+    validation: { 'foreign-form': a.attributes.slice(0, 1) },
+  };
+}
+
 /** Issue #6 structure: rows are `tr` elements inside the `tbody` of the configured body table. */
 export function tableRowsForm() {
   const row = (index, value) => {

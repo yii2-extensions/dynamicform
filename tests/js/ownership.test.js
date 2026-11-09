@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, test } from 'vitest';
 
-import { namesIn, rootInsideForm, rootOutsideForm, rootWithForeignContainer, tableRowsForm, twoFormsPage, twoRootsForm } from './fixtures/roots.js';
-import { insert, mount, remove } from './support/dom.js';
+import { namesIn, rootInsideForm, rootOutsideForm, rootWithForeignContainer, rootWithForeignContainerPreload, tableRowsForm, twoFormsPage, twoRootsForm } from './fixtures/roots.js';
+import { initialize, insert, mount, remove } from './support/dom.js';
 import { loadEnvironment } from './support/environment.js';
 import { validate, validatorIds } from './support/state.js';
 
@@ -154,6 +154,23 @@ describe('foreign container class', () => {
       'a-0-name': '',
       'a-1-name': 'A cannot be blank.',
     });
+  });
+
+  test('init attaches the validator for a row inserted before initialization', () => {
+    const fixture = rootWithForeignContainerPreload();
+    mount(fixture, { init: false });
+
+    expect(
+      validatorIds('foreign-form'),
+      'Before init only the ActiveForm-registered validator exists.',
+    ).toEqual(['a-0-name']);
+
+    initialize(fixture);
+
+    expect(
+      validatorIds('foreign-form'),
+      'After init the pre-load row validator must be attached by _attachValidation.',
+    ).toEqual(['a-0-name', 'a-1-name']);
   });
 });
 
