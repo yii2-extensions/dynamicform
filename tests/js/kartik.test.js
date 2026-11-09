@@ -20,7 +20,7 @@ function setup(fixtureOptions) {
   const requests = [];
 
   mount(kartikForm(fixtureOptions));
-  enhanceKartik();
+  enhanceKartik(fixtureOptions);
   vi.spyOn($, 'ajax').mockImplementation((settings) => {
     requests.push({ url: settings.url, all: settings.data.depdrop_all_params });
   });
@@ -77,7 +77,7 @@ describe('DepDrop rows', () => {
     ]);
   });
 
-  test('a dependency or parameter outside the rows keeps its id after insertion and renumbering', () => {
+  test('a dependency or parameter outside the rows keeps its id after insertion and renumbering, with or without a numeric segment', () => {
     const $ = window.jQuery;
     const requests = setup({ shared: true });
 
@@ -86,19 +86,42 @@ describe('DepDrop rows', () => {
 
     expect(
       [0, 1].map((index) => [$(`#formmodel-${index}-region`).data('depdrop').depends, $(`#formmodel-${index}-region`).data('params')]),
-      'Only the ids of the row follow the row; the shared input keeps its id.',
+      'Only the ids of the row follow the row; the shared inputs keep their ids.',
     ).toEqual([
-      [['formmodel-0-country', 'filter-2024-token'], ['formmodel-0-kind', 'filter-2024-token']],
-      [['formmodel-1-country', 'filter-2024-token'], ['formmodel-1-kind', 'filter-2024-token']],
+      [['formmodel-0-country', 'filter-2024-token'], ['formmodel-0-kind', 'filter-2024-token', 'filter-token']],
+      [['formmodel-1-country', 'filter-2024-token'], ['formmodel-1-kind', 'filter-2024-token', 'filter-token']],
     ]);
 
     $('#formmodel-1-kind').val('saved');
     change('formmodel-1-country', 'it');
 
-    expect(requests[0], 'The request carries the value of the shared input.').toEqual({
+    expect(requests[0], 'The request carries the values of the shared inputs.').toEqual({
       url: '/depdrop/regions',
-      all: { 'formmodel-1-country': 'it', 'filter-2024-token': 'T', 'formmodel-1-kind': 'saved' },
+      all: { 'formmodel-1-country': 'it', 'filter-2024-token': 'T', 'formmodel-1-kind': 'saved', 'filter-token': 'F' },
     });
+  });
+
+  test('a DepDrop of another model takes the row index of its own id for a dependency of the row model', () => {
+    const $ = window.jQuery;
+    const requests = setup({ otherModel: true });
+
+    insert(options(), button(0, '.add-item'));
+    remove(options(), button(0, '.remove-item'));
+
+    expect(
+      [0, 1].map((index) => [$(`#meta-${index}-region`).data('depdrop').depends, $(`#meta-${index}-region`).data('params')]),
+      'Renumbered and inserted DepDrops depend on the declared inputs of their own row.',
+    ).toEqual([
+      [['formmodel-0-country'], ['formmodel-0-kind']],
+      [['formmodel-1-country'], ['formmodel-1-kind']],
+    ]);
+
+    change('formmodel-1-country', 'es');
+
+    expect(requests).toEqual([
+      { url: '/depdrop/regions', all: { 'formmodel-1-country': 'es', 'formmodel-1-kind': '' } },
+      { url: '/depdrop/sites', all: { 'formmodel-1-country': 'es' } },
+    ]);
   });
 
   test('each inserted row gets one DepDrop of its own row and repeated insertions add no listener', () => {

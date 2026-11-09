@@ -6,10 +6,17 @@ import { buttons, select, widgetOptions } from './markup.js';
  * select, a DepDrop (`data-krajee-depdrop`) whose request also carries the Select2 value (`params`), and a DepDrop
  * rendered as Select2, after Krajee's loading indicator. Every rendered row has its own DepDrop variables, as Kartik
  * registers one per widget. `declared: false` omits the `fields` metadata, like a widget configured without
- * `formFields`, so ids are located by their numeric segments. `shared: true` adds an input outside the rows whose id
- * holds a numeric segment (`filter-2024-token`) to the DepDrop dependencies and parameters.
+ * `formFields`, so ids are located by their numeric segments. `shared: true` adds two inputs outside the rows: one whose
+ * id holds a numeric segment (`filter-2024-token`), in the DepDrop dependencies and parameters, and one whose id holds
+ * none (`filter-token`), in the parameters. `otherModel: true` renders the first DepDrop as an input of another model
+ * (`meta-<i>-region`, `Meta[<i>][region]`), which the declared fields do not describe, depending on the row model.
  */
-const row = (index, { kind, country, region, site }) => {
+const regionOf = (index, otherModel) =>
+  otherModel
+    ? { id: `meta-${index}-region`, name: `Meta[${index}][region]` }
+    : { id: `formmodel-${index}-region`, name: `FormModel[${index}][region]` };
+
+const row = (index, { kind, country, region, site }, otherModel) => {
   const id = (attribute) => `formmodel-${index}-${attribute}`;
   const name = (attribute) => `FormModel[${index}][${attribute}]`;
 
@@ -22,7 +29,7 @@ const row = (index, { kind, country, region, site }) => {
       attributes: ' data-krajee-select2="select2_kind" data-s2-options="s2options_kartik"',
     }) +
     select(id('country'), name('country'), { es: 'Spain', fr: 'France', it: 'Italy' }, { selected: [country], prompt: '-' }) +
-    select(id('region'), name('region'), { [region]: region }, {
+    select(regionOf(index, otherModel).id, regionOf(index, otherModel).name, { [region]: region }, {
       selected: [region],
       attributes: ` data-krajee-depdrop="depdrop_region_${index}"`,
     }) +
@@ -39,8 +46,8 @@ const rendered = [
   { kind: 'other', country: 'fr', region: 'fr-north', site: 'fr-main' },
 ];
 
-export function kartikForm({ declared = true, shared = false } = {}) {
-  const rows = rendered.map((values, index) => row(index, values)).join('');
+export function kartikForm({ declared = true, shared = false, otherModel = false } = {}) {
+  const rows = rendered.map((values, index) => row(index, values, otherModel)).join('');
   const globals = {
     select2_kind: { placeholder: 'Choose', width: 'auto' },
     select2_site: { placeholder: 'Site', width: 'auto' },
@@ -50,7 +57,7 @@ export function kartikForm({ declared = true, shared = false } = {}) {
   rendered.forEach((_values, index) => {
     globals[`depdrop_region_${index}`] = {
       depends: [`formmodel-${index}-country`, ...(shared ? ['filter-2024-token'] : [])],
-      params: [`formmodel-${index}-kind`, ...(shared ? ['filter-2024-token'] : [])],
+      params: [`formmodel-${index}-kind`, ...(shared ? ['filter-2024-token', 'filter-token'] : [])],
       url: '/depdrop/regions',
     };
     globals[`depdrop_site_${index}`] = { depends: [`formmodel-${index}-country`], url: '/depdrop/sites' };
@@ -59,7 +66,10 @@ export function kartikForm({ declared = true, shared = false } = {}) {
   return {
     html:
       '<form id="kartik-form">' +
-      (shared ? '<input type="hidden" id="filter-2024-token" name="Filter[2024][token]" value="T">' : '') +
+      (shared
+        ? '<input type="hidden" id="filter-2024-token" name="Filter[2024][token]" value="T">' +
+          '<input type="hidden" id="filter-token" name="Filter[token]" value="F">'
+        : '') +
       '<div class="dynamic_form" data-dynamicform="dynamicform_kartik">' +
       `<div class="items">${rows}</div></div></form>`,
     widgets: {
@@ -67,7 +77,7 @@ export function kartikForm({ declared = true, shared = false } = {}) {
         widgetContainer: 'dynamic_form',
         formId: 'kartik-form',
         limit: 6,
-        template: row(0, rendered[0]),
+        template: row(0, rendered[0], otherModel),
         fields: declared
           ? ['kind', 'country', 'region', 'site'].map((attribute) => ({
               id: `formmodel-{}-${attribute}`,
@@ -80,15 +90,15 @@ export function kartikForm({ declared = true, shared = false } = {}) {
   };
 }
 
-/** Runs, for every rendered row, the scripts Kartik registers on DOM ready. */
-export function enhanceKartik() {
+/** Runs, for every rendered row, the scripts Kartik registers on DOM ready; `otherModel` as for kartikForm(). */
+export function enhanceKartik({ otherModel = false } = {}) {
   const $ = window.jQuery;
 
   rendered.forEach((_values, index) => {
     const id = (attribute) => `formmodel-${index}-${attribute}`;
 
     $.when($(`#${id('kind')}`).select2(window.select2_kind)).done(window.initS2Loading(id('kind'), 's2options_kartik'));
-    $(`#${id('region')}`).depdrop(window[`depdrop_region_${index}`]);
+    $(`#${regionOf(index, otherModel).id}`).depdrop(window[`depdrop_region_${index}`]);
     $(`#${id('site')}`).depdrop(window[`depdrop_site_${index}`]);
     $.when($(`#${id('site')}`).select2(window.select2_site)).done(window.initS2Loading(id('site'), 's2options_kartik'));
     window.initDepdropS2(id('site'), 'Loading ...');
