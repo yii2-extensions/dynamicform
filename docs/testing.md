@@ -277,7 +277,8 @@ loads the same bootstrap-datepicker fork and `datepicker-kv.js`.
 | [kartik-v/yii2-widget-datepicker](https://github.com/kartik-v/yii2-widget-datepicker) | 1.4.8   | Composer; bundles bootstrap-datepicker 1.8.0 as `kvDatepicker` |
 
 Other versions and the remaining advertised integrations (time picker, maskMoney, fileinput, TouchSpin, Spectrum,
-NumberControl) are not covered by these tests, nor are the DatePicker `TYPE_BUTTON` and `TYPE_RANGE` layouts.
+NumberControl) are not covered by these tests, nor are the DatePicker `TYPE_BUTTON` and `TYPE_RANGE` layouts and DepDrop
+controls inside nested widgets.
 
 Inputmask 5.0.10 binds a `submit` and a `reset` handler on the form for every input it masks, and its `remove()` does
 not unbind them; the handlers of the masked inputs of a deleted row therefore stay bound to the form.

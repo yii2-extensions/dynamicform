@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - fix: skip foreign elements sharing the container class in `init` so a misplaced element does not throw and block subsequent POS_LOAD scripts.
 - test: cover literal keys after the row index of undeclared fields and `init` on an ancestor with a foreign container, documenting the fallback.
 - fix: compare old ids literally when renumbering `field-<id>` classes and `label[for]`, so ids with `.`, `:` or quotes neither throw nor stay stale.
+- test: cover DepDrop parameters outside the rows whose id has no numeric segment and DepDrops of another model depending on row inputs.
 
 ## 1.0.2 May 20, 2026
 
