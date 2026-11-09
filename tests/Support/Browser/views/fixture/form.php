@@ -18,11 +18,13 @@ declare(strict_types=1);
  *   deleteButton: string,
  *   rowFormName: string,
  *   codeKey: string,
+ *   foreignContainer: bool,
  *   submitUrl: string
  * } $scenario
  */
 
 use yii\helpers\Html;
+use yii\web\View;
 use yii\widgets\ActiveForm;
 use Yii2\Extensions\DynamicForm\DynamicFormWidget;
 use Yii2\Extensions\DynamicForm\Tests\Support\{FormModel, PersistedFormModel};
@@ -43,6 +45,13 @@ $form = ActiveForm::begin([
     'enableClientValidation' => $scenario['clientValidation'],
     'enableClientScript' => $scenario['clientScript'],
 ]);
+
+if ($scenario['foreignContainer']) {
+    // A non-widget element sharing the container class sits before the widget to verify that init skips it.
+    echo '<p class="dynamicform_wrapper" id="foreign-container"></p>';
+    // A flag set at POS_LOAD after the widget initialization confirms that the foreign element does not block it.
+    $this->registerJs('window.__posLoadRan = true;', View::POS_LOAD);
+}
 
 DynamicFormWidget::begin([
     'widgetContainer' => 'dynamicform_wrapper',

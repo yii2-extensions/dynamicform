@@ -78,6 +78,27 @@ test('submits the payload of existing and inserted rows', async ({ page }) => {
   ]);
 });
 
+test('a foreign element sharing the container class does not block initialization or a later POS_LOAD script', async ({ page }) => {
+  expectKnownDefect('rendered-foreign-container');
+  await openScenario(page, 'foreign-container');
+
+  expect(
+    await page.evaluate(() => window.__posLoadRan),
+    'The POS_LOAD flag registered after the widget must be set.',
+  ).toBe(true);
+  expect(await validatorIds(page), 'The widget row must be registered after init.').toEqual(['formmodel-0-name']);
+  expect(
+    await page.evaluate(() => document.getElementById('foreign-container')?.tagName.toLowerCase()),
+    'The foreign element must be preserved unchanged.',
+  ).toBe('p');
+
+  await rows(page).nth(0).locator('.add-item').click();
+  expect(await validatorIds(page), 'The inserted row must be registered.').toEqual(['formmodel-0-name', 'formmodel-1-name']);
+
+  await expectSubmitBlocked(page);
+  await expect(page.locator('.field-formmodel-1-name .help-block')).toHaveText(blankError);
+});
+
 test('executes the required rule on an inserted row', async ({ page }) => {
   expectKnownDefect('rendered-required-rule');
   await openScenario(page, 'validation');
