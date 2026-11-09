@@ -46,7 +46,12 @@ the update action can match them:
 ```
 
 When rows are inserted, deleted or renumbered through `updateContainer`, the plugin rewrites the row indexes in the `id`
-and `name` of every element of a row, and in the matching `label[for]` and `field-<id>` container class:
+and `name` of every element of a row. For each id it changes, it also updates the `label[for]` and the `field-<id>`
+container class that match the old id among the elements inside the row. The class is located with a CSS selector built
+from the old id, so it is left unchanged when the row element itself is the field container, or when the id holds
+characters a selector reads as syntax, such as `.` or `:`; an id with a quote makes the update throw. Ids made of
+letters, digits, `-` and `_`, as Yii generates them for ordinary model and attribute names, avoid the second case. The
+row indexes are located as follows:
 
 - **Row model inputs.** The widget sends one id and name pattern per `formFields` attribute, built from the form name of
   `model`, such as `address-{}-full_name` and `Address[{}][full_name]`. The part before `{}` (`address-`, `Address[`) is
@@ -54,17 +59,19 @@ and `name` of every element of a row, and in the matching `label[for]` and `fiel
   even when its attribute is not listed in `formFields`, such as the hidden primary key. The row indexes follow that
   prefix, one per widget the input is nested in; what follows them, numeric keys included, is kept. A literal key in the
   form name of the model, such as `Model[2024]`, belongs to the prefix (`model-2024-`, `Model[2024][`).
-- **Other inputs.** An id or name that starts with another model name, such as `Meta[0][5][ts]`, has no declared pattern
-  and is renumbered by position: in the first run of numeric segments after the model name (`-0-5-` in `meta-0-5-ts`,
-  `[0][5]` in `Meta[0][5][ts]`), the first segments, up to one per widget the input is nested in from the outermost, are
-  the row indexes; the remaining segments are literal keys and are kept. `Meta[0][5][ts]` in the second row of a widget
-  that is not nested becomes `Meta[1][5][ts]`.
+- **Other inputs.** An id or name that starts with another model name, such as `Meta[0][5][ts]`, and not with a declared
+  prefix has no declared pattern and is renumbered by position: in the first run of numeric segments after the model
+  name (`-0-5-` in `meta-0-5-ts`, `[0][5]` in `Meta[0][5][ts]`), the first segments, up to one per widget the input is
+  nested in from the outermost, are the row indexes; the remaining segments are literal keys and are kept.
+  `Meta[0][5][ts]` in the second row of a widget that is not nested becomes `Meta[1][5][ts]`.
 - **Numeric keys before the row index.** Position cannot tell a numeric key in front of the row indexes from an index:
   `Other[2024][0][x]` would have `2024` replaced. Such a key is supported only in the form name of `model`, whose
-  declared patterns locate the index after it; there is no option to declare patterns for other models.
-- **Other shapes.** An id without a numeric segment between two other segments gets the row index appended once after a
-  dash (`extra` becomes `extra-0`). A name is kept unless its numeric bracket segments are followed by a final bracket
-  segment, as in `Meta[0][ts]`.
+  declared patterns locate the index after it; there is no option to declare patterns for other models. Conversely, an
+  input of another model whose id or name starts with a declared prefix is read as a row model input: when the form name
+  of `model` is `Model[0]`, the `5` of `Model[0][5][ts]` is taken for the row index and replaced, even in the first row.
+- **Other shapes.** When no declared prefix matches, an id without a numeric segment between two other segments gets the
+  row index appended once after a dash (`extra` becomes `extra-0`). A name is kept unless its numeric bracket segments
+  are followed by a final bracket segment, as in `Meta[0][ts]`.
 
 ## Server-side models
 
