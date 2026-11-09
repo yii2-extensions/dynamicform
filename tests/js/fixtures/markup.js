@@ -2,17 +2,18 @@
  * Builders for the markup that Yii's `ActiveForm`/`Html` helpers render for tabular inputs.
  *
  * They mirror the default Yii 2 ActiveField template closely enough for the plugin: a `.field-<id>` container, a
- * `label[for]`, the control and a `.help-block`. Values are escaped for attribute context.
+ * `label[for]`, the control and a `.help-block`. Values, and the ids of `field()` and `textInput()`, are escaped for
+ * attribute context.
  */
 const escape = (value) =>
   String(value).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 export function field(id, label, control) {
-  return `<div class="form-group field-${id}"><label class="control-label" for="${id}">${label}</label>${control}<div class="help-block"></div></div>`;
+  return `<div class="form-group field-${escape(id)}"><label class="control-label" for="${escape(id)}">${label}</label>${control}<div class="help-block"></div></div>`;
 }
 
 export function textInput(id, name, value = '') {
-  return `<input type="text" id="${id}" class="form-control" name="${name}" value="${escape(value)}">`;
+  return `<input type="text" id="${escape(id)}" class="form-control" name="${name}" value="${escape(value)}">`;
 }
 
 export function hiddenInput(id, name, value = '') {

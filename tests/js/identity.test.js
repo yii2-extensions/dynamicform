@@ -393,6 +393,7 @@ describe('ids holding CSS selector syntax', () => {
     { character: 'a period', separator: '.' },
     { character: 'a colon', separator: ':' },
     { character: 'an apostrophe', separator: "'" },
+    { character: 'a double quote', separator: '"' },
   ])('inserting a row renumbers an id with $character with its own label and container class', ({ separator }) => {
     const inserted = [];
 
