@@ -129,6 +129,24 @@ export function rootWithForeignContainerPreload() {
   };
 }
 
+/**
+ * The preload widget of rootWithForeignContainerPreload() in `foreign-form`, inside the page element `foreign-page`,
+ * after a foreign element that shares the container class outside every form. Initializing through `foreign-page`
+ * reaches both the foreign element and the widget; only the widget has a form and options.
+ */
+export function ancestorWithForeignContainer() {
+  const a = root({ formId: 'foreign-form', container: 'dynamicform_wrapper', variable: 'dynamicform_a', model: 'A', values: ['a0', ''], insertClass: 'add-a' });
+
+  return {
+    html:
+      '<div id="foreign-page"><p class="dynamicform_wrapper" id="foreign-container" data-role="notice">Notice</p>' +
+      `<form id="foreign-form">${a.html}</form></div>`,
+    widgets: { dynamicform_a: a.options },
+    // Only the first row's validator is registered; the second was inserted before window.load.
+    validation: { 'foreign-form': a.attributes.slice(0, 1) },
+  };
+}
+
 /** Issue #6 structure: rows are `tr` elements inside the `tbody` of the configured body table. */
 export function tableRowsForm() {
   const row = (index, value) => {
