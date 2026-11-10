@@ -124,11 +124,11 @@ The hosted documentation covers Yii 22.0. If it does not match the installed rev
 [![Yii 22.0.x](https://img.shields.io/badge/22.0.x-0073AA.svg?style=for-the-badge&logo=yii&logoColor=white)](https://github.com/yiisoft/yii2/tree/22.0)
 [![Latest Stable Version](https://img.shields.io/packagist/v/yii2-extensions/dynamicform.svg?style=for-the-badge&logo=packagist&logoColor=white&label=Stable)](https://packagist.org/packages/yii2-extensions/dynamicform)
 [![Total Downloads](https://img.shields.io/packagist/dt/yii2-extensions/dynamicform.svg?style=for-the-badge&logo=composer&logoColor=white&label=Downloads)](https://packagist.org/packages/yii2-extensions/dynamicform)
+[![PHPStan Level Max](https://img.shields.io/badge/PHPStan-Level%20Max-4F5D95.svg?style=for-the-badge&logo=github&logoColor=white)](https://github.com/yii2-extensions/dynamicform/actions/workflows/static.yml)
 
 ## Code quality
 
 [![Codecov](https://img.shields.io/codecov/c/github/yii2-extensions/dynamicform.svg?style=for-the-badge&logo=codecov&logoColor=white&label=Coverage)](https://codecov.io/github/yii2-extensions/dynamicform)
-[![PHPStan Level Max](https://img.shields.io/badge/PHPStan-Level%20Max-4F5D95.svg?style=for-the-badge&logo=github&logoColor=white)](https://github.com/yii2-extensions/dynamicform/actions/workflows/static.yml)
 [![Quality](https://img.shields.io/github/actions/workflow/status/yii2-extensions/dynamicform/quality.yml?style=for-the-badge&label=Quality&logo=github)](https://github.com/yii2-extensions/dynamicform/actions/workflows/quality.yml)
 [![Assets](https://img.shields.io/github/actions/workflow/status/yii2-extensions/dynamicform/assets.yml?style=for-the-badge&label=Assets&logo=github)](https://github.com/yii2-extensions/dynamicform/actions/workflows/assets.yml)
 [![ECS](https://img.shields.io/github/actions/workflow/status/yii2-extensions/dynamicform/ecs.yml?style=for-the-badge&label=ECS&logo=github)](https://github.com/yii2-extensions/dynamicform/actions/workflows/ecs.yml)
