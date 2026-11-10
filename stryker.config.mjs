@@ -5,7 +5,7 @@ process.env.DYNAMICFORM_LIBRARY_ROOT = process.cwd();
 
 /** @type {import("@stryker-mutator/api/core").PartialStrykerOptions} */
 const config = {
-  ignorePatterns: ['/internal', '/runtime', '/vendor', '/playwright-report', '/test-results'],
+  ignorePatterns: ['/.agents', '/.claude', '/internal', '/runtime', '/vendor', '/playwright-report', '/test-results'],
   mutate: ['src/assets/yii2-dynamic-form.js'],
   testRunner: 'vitest',
   vitest: {
