@@ -23,7 +23,6 @@
     };
 
     var events = {
-        beforeInsert: 'beforeInsert',
         afterInsert: 'afterInsert',
         beforeDelete: 'beforeDelete',
         afterDelete: 'afterDelete',
@@ -75,11 +74,12 @@
         });
 
         $template.find('input, textarea, select').each(function () {
+            // Clones take the default state of checkboxes, radios and options, the `checked` and `selected` attributes,
+            // and not their current state; a single select without a selected option shows its first one.
             if ($(this).is(':checkbox, :radio')) {
-                $(this).prop('checked', false).removeAttr('checked');
+                $(this).removeAttr('checked');
             } else if ($(this).is('select')) {
-                $(this).find('option').prop('selected', false).removeAttr('selected');
-                $(this).val($(this).prop('multiple') ? [] : '');
+                $(this).find('option').removeAttr('selected');
             } else {
                 // Yii's hidden checkbox/radio inputs carry the configured unchecked value.
                 var name = $(this).attr('name');
@@ -93,15 +93,12 @@
                 }
             }
         });
-        $template.find('.select2-container').remove();
         // Krajee renders a loading indicator, named after the id of the rendered control, that its own initialization
         // removes; a clone is initialized under another id, so the indicator would stay.
         $template.find('.kv-plugin-loading').remove();
         // Kartik renders the date of an inline DatePicker in `data-date` of its container, which bootstrap-datepicker
         // reads before the input value.
         $template.find('[data-krajee-kvdatepicker]').parent().removeAttr('data-date');
-        $template.find('[data-select2-id]').removeAttr('data-select2-id');
-        $template.find('.select2-hidden-accessible').removeClass('select2-hidden-accessible').removeAttr('aria-hidden tabindex');
 
         return $template;
     };
@@ -109,7 +106,7 @@
     // The outermost dynamic-form container an element belongs to; it owns the rows, the validators and the form, so
     // another container with the same class elsewhere on the page is never touched.
     var _rootOf = function ($element) {
-        return $element.parents('div[data-dynamicform]').addBack().filter('div[data-dynamicform]').first();
+        return $element.parents().addBack().filter('div[data-dynamicform]').first();
     };
 
     var _optionsOf = function ($container) {
@@ -127,11 +124,12 @@
         return $form.length > 0 ? $form : $(window.document.getElementById(_optionsOf($root).formId));
     };
 
-    // Validator templates and the ids registered through this root, kept on the root element.
+    // Validator templates and the ids registered through this root (each id keyed by itself), kept on the root element.
+    // The maps have no prototype, so an id such as `constructor` names no inherited property.
     var _validationState = function ($root) {
         var state = $root.data('dynamicformValidation');
         if (!state) {
-            state = { templates: {}, ids: [] };
+            state = { templates: Object.create(null), ids: Object.create(null) };
             $root.data('dynamicformValidation', state);
         }
         return state;
@@ -158,8 +156,7 @@
 
         if (count < widgetOptions.limit) {
             _prepare($root, widgetOptions);
-            var $toclone = $(widgetOptions.template);
-            var $newclone = $toclone.clone(false, false);
+            var $newclone = widgetOptions.template.clone();
 
             if (widgetOptions.insertPosition === 'top') {
                 $container.find(widgetOptions.widgetBody).prepend($newclone);
@@ -220,23 +217,17 @@
         var level = _inputLevel($elem);
         var separator = attribute === 'id' ? '-' : '][';
         var indexes = '\\d+' + new Array(level).join(_escapeRegExp(separator) + '\\d+');
-        var found = null;
+        var fields = (options && options.fields) || [];
 
-        $.each((options && options.fields) || [], function () {
-            var pattern = this[attribute] || '';
-            var position = pattern.indexOf('{}');
-            if (position <= 0) {
-                return true;
-            }
-            var before = pattern.substring(0, position);
+        for (var i = 0; i < fields.length; i++) {
+            var before = fields[i][attribute].substring(0, fields[i][attribute].indexOf('{}'));
             var match = value.match(new RegExp('^' + _escapeRegExp(before) + '(' + indexes + ')' + (attribute === 'id' ? '(?=-|$)' : '(?=\\])')));
             if (match) {
-                found = { before: before, indexes: match[1].split(separator), after: value.substring(before.length + match[1].length) };
-                return false;
+                return { before: before, indexes: match[1].split(separator), after: value.substring(before.length + match[1].length) };
             }
-        });
+        }
 
-        return found;
+        return null;
     };
 
     // Template key of the validator of a rendered element: its id with the row indexes replaced by `{}`.
@@ -278,30 +269,19 @@
     // Key of a registered attribute whose input is not rendered (rows removed by the server for `min` 0), matched
     // against the configured field templates; the id itself when none describes it, so it is not taken as a template.
     var _templateKeyFor = function (keys, id) {
-        for (var key in keys) {
-            var pattern = _escapeRegExp(key).replace(/\\\{\\\}/g, '\\d+');
-            if (new RegExp('^' + pattern + '$').test(id)) {
-                return key;
-            }
-        }
-        return id;
+        var matching = $.grep(keys, function (key) {
+            return new RegExp('^' + _escapeRegExp(key).replace(/\\\{\\\}/g, '\\d+') + '$').test(id);
+        });
+        return matching.length > 0 ? matching[0] : id;
     };
 
     // Ids of the validated fields of the root widget and of the widgets nested in it, as `{}` templates.
     var _templateKeys = function ($root) {
-        var keys = {};
-        var collect = function (options) {
-            $.each((options && options.fields) || [], function () {
-                keys[this.id] = true;
+        return $.map($root.find('div[data-dynamicform]').addBack(), function (container) {
+            return $.map(_optionsOf($(container)).fields, function (field) {
+                return field.id;
             });
-        };
-
-        collect(_optionsOf($root));
-        $root.find('div[data-dynamicform]').each(function () {
-            collect(_optionsOf($(this)));
         });
-
-        return keys;
     };
 
     // Copies the validators ActiveForm registered for the widget rows: those declared in `fields`, including rows the
@@ -315,19 +295,25 @@
             return;
         }
         var keys = _templateKeys($root);
+        // The elements of the root by id, looked up as literal text: a selector built from an id would read quotes as
+        // selector syntax.
+        var elements = Object.create(null);
+        $root.find('[id]').each(function () {
+            elements[this.id] = (elements[this.id] || $()).add(this);
+        });
         $.each(data.attributes, function () {
-            var $input = $root.find('[id="' + this.id + '"]');
+            var id = this.id;
+            var $input = elements[id] || $();
             if ($input.length > 0 && !_inRow($input)) {
                 return true;
             }
-            var key = $input.length > 0 ? _validationKeyOf($input, this.id) : _templateKeyFor(keys, this.id);
-            if (key !== this.id) {
-                var copy = $.extend(true, {}, this);
+            var key = $input.length > 0 ? _validationKeyOf($input, id) : _templateKeyFor(keys, id);
+            if (key !== id) {
+                // A copy, so the rule a row keeps does not change with the registration ActiveForm updates.
+                var copy = $.extend({}, this);
                 state.templates[key] = copy;
                 $input.data('dynamicformAttribute', copy);
-                if (state.ids.indexOf(this.id) === -1) {
-                    state.ids.push(this.id);
-                }
+                state.ids[id] = id;
             }
         });
     };
@@ -356,7 +342,7 @@
         _eachValidated($root, function (id, name, attribute, $input) {
             if ($form.yiiActiveForm('find', id) === undefined) {
                 _fixFormValidatonInput($form, attribute, id, name, $input);
-                state.ids.push(id);
+                state.ids[id] = id;
             }
         });
     };
@@ -364,10 +350,10 @@
     var _removeValidations = function ($root) {
         var $form = _formOf($root);
         var state = _validationState($root);
-        state.ids.forEach(function (id) {
+        $.each(state.ids, function (id) {
             $form.yiiActiveForm('remove', id);
         });
-        state.ids = [];
+        state.ids = Object.create(null);
     };
 
     var _deleteItem = function (widgetOptions, e, $elem) {
@@ -382,7 +368,6 @@
             var eventResult = $container.triggerHandler(events.beforeDelete, $todelete);
             if (eventResult !== false) {
                 _prepare($root, widgetOptions);
-                _removeValidations($root);
                 // TomSelect listens on the document and the window for each instance until it is destroyed, which
                 // removing its row does not do.
                 $todelete.find('select.tomselected').each(function () {
@@ -406,19 +391,13 @@
     // Returns the row identifiers of an id or name: the first becomes the root row index, each following one the
     // position of the row of the widget nested at that level.
     var _rowIdentifiers = function ($elem, identifiers, index) {
+        var containers = $elem.parents('div[data-dynamicform]').get().reverse();
+
         identifiers[0] = index;
-
-        if (identifiers.length > 1) {
-            var widgetsOptions = [];
-            $elem.parents('div[data-dynamicform]').each(function (i) {
-                widgetsOptions[i] = _optionsOf($(this));
-            });
-
-            widgetsOptions = widgetsOptions.reverse();
-            for (var i = identifiers.length - 1; i >= 1; i--) {
-                if (widgetsOptions[i]) {
-                    identifiers[i] = $elem.closest(widgetsOptions[i].widgetItem).index();
-                }
+        for (var i = identifiers.length - 1; i >= 1; i--) {
+            var options = _optionsOf($(containers[i]));
+            if (options) {
+                identifiers[i] = $elem.closest(options.widgetItem).index();
             }
         }
 
@@ -436,7 +415,7 @@
             if (path !== null) {
                 newID = path.before + _rowIdentifiers($elem, path.indexes, index).join('-') + path.after;
                 $elem.attr('id', newID);
-            } else if (matches && matches.length === 4) {
+            } else if (matches) {
                 matches[2] = matches[2].substring(1, matches[2].length - 1);
                 var identifiers = _rowIdentifiers($elem, matches[2].split('-'), index);
 
@@ -478,7 +457,7 @@
             if (path !== null) {
                 name = path.before + _rowIdentifiers($elem, path.indexes, index).join('][') + path.after;
                 $elem.attr('name', name);
-            } else if (matches && matches.length === 4) {
+            } else if (matches) {
                 matches[2] = matches[2].replace(/\]\[/g, "-").replace(/\]|\[/g, '');
                 var identifiers = _rowIdentifiers($elem, matches[2].split('-'), index);
 
@@ -504,8 +483,8 @@
 
     // Selector of a registered element for the element `id`: where the selector names the id of the registration it
     // comes from, as is or backslash-escaped as `$.escapeSelector()` writes it, that id is replaced by the new one in the
-    // same form, so application `ActiveField::$selectors` survive; otherwise it is the escaped default, `fallback`.
-    var _rowSelector = function (selector, sourceId, id, fallback) {
+    // same form, so application `ActiveField::$selectors` survive; otherwise `null`, so the escaped default applies.
+    var _rowSelector = function (selector, sourceId, id) {
         var found = false;
         var pattern = new RegExp(String(sourceId).replace(/[^\w-]/g, function (character) {
             return '\\\\?' + _escapeRegExp(character);
@@ -515,7 +494,7 @@
             return match.indexOf('\\') === -1 ? id : id.replace(/[^\w-]/g, '\\$&');
         });
 
-        return found ? rewritten : fallback;
+        return found ? rewritten : null;
     };
 
     // Registers the validator of one row element; its initial value comes from that element, not from a page-wide id
@@ -523,8 +502,8 @@
     var _fixFormValidatonInput = function ($form, attribute, id, name, $input) {
         attribute = $.extend(true, {}, attribute);
         var escapedId = _escapeSelector(id);
-        var container = _rowSelector(attribute.container, attribute.id, id, ".field-" + escapedId);
-        var input = _rowSelector(attribute.input, attribute.id, id, "#" + escapedId);
+        var container = _rowSelector(attribute.container, attribute.id, id);
+        var input = _rowSelector(attribute.input, attribute.id, id);
         var $container = $form.find(container);
         var $selectedInput = $form.find(input);
 
@@ -537,10 +516,8 @@
         attribute.value = $input.val();
         attribute.status = 0;
 
-        if ($form.yiiActiveForm("find", id) !== undefined) {
-            $form.yiiActiveForm("remove", id);
-        }
-
+        // A registration the application made for the id is replaced; removing an id without one changes nothing.
+        $form.yiiActiveForm("remove", id);
         $form.yiiActiveForm("add", attribute);
     };
 
@@ -553,7 +530,7 @@
         _removeValidations($root);
         _eachValidated($root, function (id, name, attribute, $input) {
             _fixFormValidatonInput($form, attribute, id, name, $input);
-            state.ids.push(id);
+            state.ids[id] = id;
         });
     };
 
@@ -567,17 +544,13 @@
         var matchID = inputID.match(regexID);
         var $row = $elem.parents(_optionsOf(_rootOf($elem)).widgetItem).last();
 
-        if (inputPath === null && !(matchID && matchID.length === 4)) {
-            return ids;
-        }
-
         return $.map(ids, function (id) {
             var dependPath = inputPath === null ? null : _declaredPath($elem, id, 'id');
             var match = id.match(regexID);
             var rowID = id;
             if (dependPath !== null) {
                 rowID = dependPath.before + inputPath.indexes.join('-') + dependPath.after;
-            } else if (matchID && matchID.length === 4 && match && match.length === 4) {
+            } else if (matchID && match) {
                 rowID = match[1] + matchID[2] + match[3];
             }
             var inRow = $row.find('[id]').filter(function () {
@@ -593,13 +566,13 @@
     // through which it reads their values change, so renumbering adds no listener and no duplicated request. Returns
     // whether a DepDrop was created.
     var _restoreKrajeeDepdrop = function ($elem) {
-        var configDepdrop = $.extend(true, {}, eval($elem.attr('data-krajee-depdrop')));
+        // The options variable is shared by every row; dependent-dropdown copies the options it is given, and a
+        // missing `params` becomes an empty list, which it treats as its default.
+        var configDepdrop = $.extend({}, eval($elem.attr('data-krajee-depdrop')));
         var depdrop = $elem.data('depdrop');
 
         configDepdrop.depends = _depdropRowIDs($elem, configDepdrop.depends);
-        if (Array.isArray(configDepdrop.params)) {
-            configDepdrop.params = _depdropRowIDs($elem, configDepdrop.params);
-        }
+        configDepdrop.params = _depdropRowIDs($elem, configDepdrop.params);
 
         if (depdrop === undefined) {
             $elem.depdrop(configDepdrop);
@@ -611,10 +584,8 @@
         for (var index = 0; index < depdrop.depends.length; ++index) {
             depdrop.depends[index] = configDepdrop.depends[index];
         }
-        if (Array.isArray(configDepdrop.params)) {
-            depdrop.params = configDepdrop.params;
-            $elem.data('params', configDepdrop.params);
-        }
+        depdrop.params = configDepdrop.params;
+        $elem.data('params', configDepdrop.params);
         return false;
     };
 
@@ -625,7 +596,7 @@
     var _renumberTomSelect = function (select) {
         var tomselect = select.tomselect;
         // An instance without the TomSelect 2 internals is left as it is.
-        if (tomselect.inputId === undefined || tomselect.inputId === select.id) {
+        if (tomselect.inputId === undefined) {
             return;
         }
 
@@ -666,22 +637,11 @@
         // MaskedInput. Only inputs without an instance (those of inserted rows) are masked: an instance refers to its
         // element, not to its id, so a renumbered row keeps it with its value and the options the page set on it.
         // Masking an input again binds another `submit`/`reset` handler pair on the form, which Inputmask never unbinds.
-        var $hasInputmask = $items.find('[data-plugin-inputmask]');
-        if ($hasInputmask.length > 0) {
-            $hasInputmask.each(function () {
-                if (this.inputmask === undefined) {
-                    $(this).inputmask(eval($(this).attr('data-plugin-inputmask')));
-                }
-            });
-        }
-
-        // JUI Datepicker
-        /*$( ".picker" ).each(function() {
-            $( this ).datepicker({
-                dateFormat : 'dd-mm-yy',
-                language : 'en',
-            });
-        });*/
+        $items.find('[data-plugin-inputmask]').each(function () {
+            if (this.inputmask === undefined) {
+                $(this).inputmask(eval($(this).attr('data-plugin-inputmask')));
+            }
+        });
 
         // "kartik-v/yii2-widget-datepicker": `data-krajee-kvdatepicker` names the global variable holding the options.
         // Only controls without an instance (those of inserted rows) are initialized: an instance refers to its
@@ -699,73 +659,33 @@
             }
         });
 
-        // "kartik-v/yii2-widget-timepicker"
-        var $hasTimepicker = $items.find('[data-krajee-timepicker]');
-        if ($hasTimepicker.length > 0) {
-            $hasTimepicker.each(function () {
-                $(this).removeData().off();
-                $(this).parent().find('.bootstrap-timepicker-widget').remove();
-                $(this).unbind();
-                $(this).timepicker(eval($(this).attr('data-krajee-timepicker')));
-            });
-        }
+        // "kartik-v/yii2-widget-timepicker", "kartik-v/yii2-widget-fileinput" and "kartik-v/yii2-widget-touchspin":
+        // `data-krajee-<plugin>` names the global variable holding the options. Each plugin initializes only an element
+        // without an instance (those of inserted rows); an instance refers to its element, and the markup it generates
+        // sits in the row, so a renumbered row keeps both.
+        $items.find('[data-krajee-timepicker]').each(function () {
+            $(this).timepicker(eval($(this).attr('data-krajee-timepicker')));
+        });
+        $items.find('[data-krajee-fileinput]').each(function () {
+            $(this).fileinput(eval($(this).attr('data-krajee-fileinput')));
+        });
+        $items.find('[data-krajee-TouchSpin]').each(function () {
+            $(this).TouchSpin(eval($(this).attr('data-krajee-TouchSpin')));
+        });
 
-        // "kartik-v/yii2-money"
-        var $hasMaskmoney = $items.find('[data-krajee-maskMoney]');
-        if ($hasMaskmoney.length > 0) {
-            $hasMaskmoney.each(function () {
-                $(this).parent().find('input').removeData().off();
-                var id = '#' + $(this).attr('id');
-                var displayID = id + '-disp';
-                $(displayID).maskMoney('destroy');
-                $(displayID).maskMoney(eval($(this).attr('data-krajee-maskMoney')));
-                $(displayID).maskMoney('mask', parseFloat($(id).val()));
-                $(displayID).on('change', function () {
-                    var numDecimal = $(displayID).maskMoney('unmasked')[0];
-                    $(id).val(numDecimal);
-                    $(id).trigger('change');
-                });
-            });
-        }
+        // "kartik-v/yii2-money": the hidden input holding the value names the options; its display input, `<id>-disp`,
+        // is masked. The server binds the display of each rendered row to the ids of that row, which renumbering
+        // changes, so every display gets one handler bound to its own elements in place of the `change`/`keyup` ones.
+        $items.find('[data-krajee-maskMoney]').each(function () {
+            var $value = $(this);
+            var $display = $(window.document.getElementById(this.id + '-disp'));
 
-        // "kartik-v/yii2-widget-fileinput"
-        var $hasFileinput = $items.find('[data-krajee-fileinput]');
-        if ($hasFileinput.length > 0) {
-            $hasFileinput.each(function () {
-                $(this).fileinput(eval($(this).attr('data-krajee-fileinput')));
+            $display.maskMoney(eval($value.attr('data-krajee-maskMoney')));
+            $display.maskMoney('mask', parseFloat($value.val()));
+            $display.off('change keyup').on('change', function () {
+                $value.val($display.maskMoney('unmasked')[0]).trigger('change');
             });
-        }
-
-        // "kartik-v/yii2-widget-touchspin"
-        var $hasTouchSpin = $items.find('[data-krajee-TouchSpin]');
-        if ($hasTouchSpin.length > 0) {
-            $hasTouchSpin.each(function () {
-                $(this).TouchSpin('destroy');
-                $(this).TouchSpin(eval($(this).attr('data-krajee-TouchSpin')));
-            });
-        }
-
-        // "kartik-v/yii2-widget-colorinput"
-        var $hasSpectrum = $items.find('[data-krajee-spectrum]');
-        if ($hasSpectrum.length > 0) {
-            $hasSpectrum.each(function () {
-                var id = '#' + $(this).attr('id');
-                var sourceID = id + '-source';
-                $(sourceID).spectrum('destroy');
-                $(sourceID).unbind();
-                $(id).unbind();
-                var configSpectrum = eval($(this).attr('data-krajee-spectrum'));
-                configSpectrum.change = function (color) {
-                    jQuery(id).val(color.toString());
-                };
-                $(sourceID).attr('name', $(sourceID).attr('id'));
-                $(sourceID).spectrum(configSpectrum);
-                $(sourceID).spectrum('set', jQuery(id).val());
-                $(id).on('change', function () {
-                    $(sourceID).spectrum('set', jQuery(id).val());
-                });
-            });
-        }
+        });
 
         // "kartik-v/yii2-widget-depdrop"
         var $newDepdrops = $();
@@ -777,13 +697,11 @@
 
         // "TomSelect": `data-tomselect` marks the selects in the server markup, so clones carry it; `tomselected` is
         // the class TomSelect itself adds to an initialized select. Initialized selects keep their instance.
-        var $hasTomSelect = $items.find('select[data-tomselect], select.tomselected');
-        if ($hasTomSelect.length > 0 && typeof TomSelect !== 'undefined') {
-            $hasTomSelect.each(function () {
+        if (typeof TomSelect !== 'undefined') {
+            $items.find('select[data-tomselect], select.tomselected').each(function () {
                 if (!this.tomselect) {
                     new TomSelect(this, {
                         plugins: ['remove_button', 'dropdown_input'],
-                        width: '100%',
                         allowEmptyOption: true
                     });
                 } else {
@@ -794,45 +712,41 @@
 
         // "kartik-v/yii2-widget-select2": `data-s2-options` names the global variable holding the Kartik options (theme,
         // reset, toggle all, order) that initS2Loading() applies once Select2 is initialized.
-        var $hasSelect2 = $items.find('[data-krajee-select2]');
-        if ($hasSelect2.length > 0) {
-            $hasSelect2.each(function () {
-                var id = $(this).attr('id');
-                var select2 = $(this).data('select2');
-                // A Select2 created for the current id (Select2 4 names its instance `select2-<id>`) stays as it is:
-                // initializing it again would destroy its dropdown together with the controls Kartik moved into it, such
-                // as the toggle all button. New and renumbered controls are initialized.
-                if (select2 !== undefined && select2.id === 'select2-' + id.replace(/(:|\.|\[|\]|,)/g, '')) {
-                    return;
-                }
-                var configSelect2 = eval($(this).attr('data-krajee-select2'));
-                $.when($('#' + id).select2(configSelect2)).done(initS2Loading(id, $(this).attr('data-s2-options')));
-                // Select2 3.x announced its dropdown with `select2-open`, styled by Kartik's initSelect2DropStyle() of
-                // that time; Select2 4 emits `select2:open` and current Kartik releases define no such function.
-                if (typeof initSelect2DropStyle === 'function') {
-                    $('#' + id).off('select2-open.dynamicform').on('select2-open.dynamicform', function () {
-                        initSelect2DropStyle(id);
-                    });
-                }
-                // The server registered Kartik's Select2 handling of DepDrop requests (loading text, `change` after
-                // each load) for the rendered rows only; a DepDrop created for a new row gets it here.
-                if ($newDepdrops.is(this) && typeof initDepdropS2 === 'function') {
-                    var configDepdrop = eval($(this).attr('data-krajee-depdrop'));
-                    initDepdropS2(id, configDepdrop.loadingText ? configDepdrop.loadingText : 'Loading ...');
-                }
-            });
-        }
+        $items.find('[data-krajee-select2]').each(function () {
+            var id = $(this).attr('id');
+            var select2 = $(this).data('select2');
+            // A Select2 created for the current id (Select2 4 names its instance `select2-<id>`) stays as it is:
+            // initializing it again would destroy its dropdown together with the controls Kartik moved into it, such
+            // as the toggle all button. New and renumbered controls are initialized, through the element itself, as
+            // an id may hold selector syntax.
+            if (select2 !== undefined && select2.id === 'select2-' + id.replace(/(:|\.|\[|\]|,)/g, '')) {
+                return;
+            }
+            var configSelect2 = eval($(this).attr('data-krajee-select2'));
+            $.when($(this).select2(configSelect2)).done(initS2Loading(id, $(this).attr('data-s2-options')));
+            // Select2 3.x announced its dropdown with `select2-open`, styled by Kartik's initSelect2DropStyle() of
+            // that time; Select2 4 emits `select2:open` and current Kartik releases define no such function.
+            if (typeof initSelect2DropStyle === 'function') {
+                $(this).off('select2-open.dynamicform').on('select2-open.dynamicform', function () {
+                    initSelect2DropStyle(id);
+                });
+            }
+            // The server registered Kartik's Select2 handling of DepDrop requests (loading text, `change` after
+            // each load) for the rendered rows only; a DepDrop created for a new row gets it here.
+            if ($newDepdrops.is(this) && typeof initDepdropS2 === 'function') {
+                var configDepdrop = eval($(this).attr('data-krajee-depdrop'));
+                initDepdropS2(id, configDepdrop.loadingText ? configDepdrop.loadingText : 'Loading ...');
+            }
+        });
 
-        // "kartik-v/yii2-numbercontrol"
-        var $hasNumberControl = $items.find('[data-krajee-numbercontrol]');
-        if ($hasNumberControl.length > 0) {
-            $hasNumberControl.each(function () {
-                var configNumberControl = eval($(this).attr('data-krajee-numbercontrol'));
-                configNumberControl.displayId = $(this).parent().prev().attr('id');
-                if ($(this).data('numberControl')) { $(this).numberControl('destroy'); }
-                $(this).numberControl(configNumberControl);
-            });
-        }
+        // "kartik-v/yii2-number": the hidden input holding the value names the options; the display input before its
+        // wrapper is masked. The options name the display of the rendered row, so each row is initialized with its own;
+        // an initialized row keeps its instance.
+        $items.find('[data-krajee-numbercontrol]').each(function () {
+            $(this).numberControl($.extend({}, eval($(this).attr('data-krajee-numbercontrol')), {
+                displayId: $(this).parent().prev().attr('id')
+            }));
+        });
     };
 
 })(window.jQuery);

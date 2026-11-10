@@ -13,7 +13,6 @@ use yii\helpers\Html;
 use yii\helpers\Json;
 use yii\web\View;
 
-use function array_diff_key;
 use function array_intersect_key;
 use function implode;
 use function in_array;
@@ -320,7 +319,7 @@ class DynamicFormWidget extends \yii\base\Widget
         }
 
         ob_start();
-        ob_implicit_flush(false);
+        ob_implicit_flush(false); // @codeCoverageIgnore
     }
 
     /**
@@ -402,7 +401,11 @@ class DynamicFormWidget extends \yii\base\Widget
      */
     private function comparableOptions(): array
     {
-        return array_diff_key($this->_options, ['template' => true]);
+        $options = $this->_options;
+
+        unset($options['template']);
+
+        return $options;
     }
 
     /**

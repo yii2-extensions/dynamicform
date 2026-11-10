@@ -60,6 +60,19 @@ const datePickerLibraries = [
   'vendor/kartik-v/yii2-widget-datepicker/src/assets/js/datepicker-kv.js',
 ];
 
+/**
+ * Kartik input widgets pinned in composer.json: yii2-widget-timepicker 1.0.5, yii2-widget-fileinput 1.1.1 (with
+ * bootstrap-fileinput 5.5.4), yii2-widget-touchspin 1.2.4, yii2-money 1.2.3 and yii2-number 1.0.5, as their asset bundles
+ * register them; NumberControl masks through Inputmask, loaded by loadInputmaskEnvironment().
+ */
+const kartikInputLibraries = [
+  'vendor/kartik-v/yii2-widget-timepicker/src/assets/js/bootstrap-timepicker.js',
+  'vendor/kartik-v/bootstrap-fileinput/js/fileinput.js',
+  'vendor/kartik-v/yii2-widget-touchspin/src/assets/js/jquery.bootstrap-touchspin.js',
+  'vendor/kartik-v/yii2-money/src/assets/js/jquery.maskMoney.js',
+  'vendor/kartik-v/yii2-number/src/assets/js/number.js',
+];
+
 export const variant = process.env.DYNAMICFORM_JS_VARIANT ?? 'source';
 
 /** Defect registry key of the loaded asset: both source variants share the source file. */
@@ -170,6 +183,26 @@ export async function loadDatePickerEnvironment() {
     for (const library of datePickerLibraries) {
       if (!existsSync(join(libraryRoot, library))) {
         throw new Error(`${join(libraryRoot, library)} is missing; run composer install (require-dev pins the Kartik DatePicker).`);
+      }
+
+      evaluateScript(libraryRoot, library);
+    }
+  }
+
+  return $;
+}
+
+/**
+ * Loads the environment, Inputmask and the real Kartik input widget scripts, which define `jQuery.fn.timepicker`,
+ * `fileinput`, `TouchSpin`, `maskMoney` and `numberControl`.
+ */
+export async function loadKartikInputsEnvironment() {
+  const $ = await loadInputmaskEnvironment();
+
+  if ($.fn.numberControl === undefined) {
+    for (const library of kartikInputLibraries) {
+      if (!existsSync(join(libraryRoot, library))) {
+        throw new Error(`${join(libraryRoot, library)} is missing; run composer install (require-dev pins the Kartik input widgets).`);
       }
 
       evaluateScript(libraryRoot, library);

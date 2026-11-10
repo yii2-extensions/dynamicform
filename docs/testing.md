@@ -268,7 +268,9 @@ it on the rendered selects as an application does; `tests/js/tomselect.test.js` 
 scenario renders Yii's own `yii\widgets\MaskedInput`, which publishes Inputmask from `bower-asset/inputmask` and masks
 the rendered inputs; `tests/js/inputmask.test.js` loads the same `jquery.inputmask.js`. The `datepicker` scenario
 renders Kartik DatePicker as a prepended component, as `TYPE_INPUT` and as `TYPE_INLINE`; `tests/js/datepicker.test.js`
-loads the same bootstrap-datepicker fork and `datepicker-kv.js`.
+loads the same bootstrap-datepicker fork and `datepicker-kv.js`. `tests/js/kartik-inputs.test.js` loads the scripts the
+asset bundles of the Kartik TimePicker, FileInput, TouchSpin, MaskMoney and NumberControl widgets register, on the
+markup those widgets render; no browser scenario renders them.
 
 | Library                                                                               | Version | Installed by                                                   |
 | ------------------------------------------------------------------------------------- | ------- | -------------------------------------------------------------- |
@@ -281,10 +283,15 @@ loads the same bootstrap-datepicker fork and `datepicker-kv.js`.
 | [TomSelect](https://github.com/orchidjs/tom-select)                                   | 2.4.3   | npm (`tom-select`), complete build                             |
 | [Inputmask](https://github.com/RobinHerbots/Inputmask)                                | 5.0.10  | Composer (`bower-asset/inputmask`), jQuery build               |
 | [kartik-v/yii2-widget-datepicker](https://github.com/kartik-v/yii2-widget-datepicker) | 1.4.8   | Composer; bundles bootstrap-datepicker 1.8.0 as `kvDatepicker` |
+| [kartik-v/yii2-widget-timepicker](https://github.com/kartik-v/yii2-widget-timepicker) | 1.0.5   | Composer; bundles bootstrap-timepicker                         |
+| [kartik-v/yii2-widget-fileinput](https://github.com/kartik-v/yii2-widget-fileinput)   | 1.1.1   | Composer; installs bootstrap-fileinput 5.5.4                   |
+| [kartik-v/yii2-widget-touchspin](https://github.com/kartik-v/yii2-widget-touchspin)   | 1.2.4   | Composer; bundles Bootstrap TouchSpin 4.2.5                    |
+| [kartik-v/yii2-money](https://github.com/kartik-v/yii2-money)                         | 1.2.3   | Composer; bundles jquery-maskmoney 3.1.1                       |
+| [kartik-v/yii2-number](https://github.com/kartik-v/yii2-number)                       | 1.0.5   | Composer; masks through Inputmask                              |
 
-Other versions and the remaining advertised integrations (time picker, maskMoney, fileinput, TouchSpin, Spectrum,
-NumberControl) are not covered by these tests, nor are the DatePicker `TYPE_BUTTON` and `TYPE_RANGE` layouts and DepDrop
-controls inside nested widgets.
+Other versions are not covered by these tests, nor are the DatePicker `TYPE_BUTTON` and `TYPE_RANGE` layouts and DepDrop
+controls inside nested widgets. Kartik ColorInput (Spectrum) has no handling: since 1.0.1 it renders no
+`data-krajee-spectrum` marker.
 
 Inputmask 5.0.10 binds a `submit` and a `reset` handler on the form for every input it masks, and its `remove()` does
 not unbind them; the handlers of the masked inputs of a deleted row therefore stay bound to the form.

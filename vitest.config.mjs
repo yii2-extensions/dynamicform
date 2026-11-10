@@ -13,18 +13,14 @@ export default defineConfig({
       include: ['src/assets/yii2-dynamic-form.js'],
       reporter: ['text', 'json-summary'],
       reportsDirectory: 'runtime/coverage-js',
-      // Floors of the measured coverage; nothing is excluded from the report. Select2 and DepDrop run against the
-      // real Kartik scripts (tests/js/kartik.test.js), TomSelect against its real build (tests/js/tomselect.test.js),
-      // Inputmask against its real build (tests/js/inputmask.test.js) and the Kartik DatePicker against its real scripts
-      // (tests/js/datepicker.test.js); the uncovered code is the remaining third-party restore logic (Kartik time
-      // picker, maskMoney, fileinput, TouchSpin, Spectrum, NumberControl), whose versioned fixtures belong to later
-      // Phase 5 blocks. Raise
-      // these floors with that work; never lower them.
+      // The whole plugin is covered; nothing is excluded from the report. Select2 and DepDrop run against the real
+      // Kartik scripts (tests/js/kartik.test.js), TomSelect, Inputmask and the Kartik DatePicker, TimePicker, FileInput,
+      // TouchSpin, MaskMoney and NumberControl against their real builds. Never lower these thresholds.
       thresholds: {
-        branches: 91,
-        functions: 89,
-        lines: 89,
-        statements: 89,
+        branches: 100,
+        functions: 100,
+        lines: 100,
+        statements: 100,
       },
     },
     environment: 'jsdom',

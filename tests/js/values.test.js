@@ -92,6 +92,24 @@ describe('cloned controls', () => {
       'Clone must come from the parsed template, not the live row.',
     ).toEqual(['Edited', '']);
   });
+
+  test('a new outer row keeps the content around the single row of the inner template', () => {
+    const fixture = nestedForm();
+    const hint = '<p class="rooms-hint">One room at least</p>';
+
+    fixture.html = fixture.html.replace('<div class="rooms">', `<div class="rooms">${hint}`);
+    fixture.widgets.dynamicform_houses.template = fixture.widgets.dynamicform_houses.template.replace(
+      '<div class="rooms">',
+      `<div class="rooms">${hint}`,
+    );
+    mount(fixture);
+    insert(fixture.widgets.dynamicform_houses, document.querySelector('.add-house'));
+
+    expect(
+      Array.from(houses(), (house) => house.querySelectorAll('.rooms > .rooms-hint, .rooms > .room').length),
+      'Each house must hold the hint and its single room.',
+    ).toEqual([2, 2]);
+  });
 });
 
 /** Changes every control of a row by script, including the disabled one, so a reset that restores nothing shows. */

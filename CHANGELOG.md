@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - test: cover DepDrop parameters outside the rows whose id has no numeric segment and DepDrops of another model depending on row inputs.
 - test: cover `init` validating `model` and `formFields` before the `initOptions()` hook and a `null` record state keeping rows at zero minimum.
 - fix: keep custom `ActiveField::$selectors` on inserted rows, require `yiisoft/yii2` `^2.0.55 || ^22.0`.
+- fix: initialize Kartik `TimePicker`, `TouchSpin` and `NumberControl` only in new rows, bind `MaskMoney` per row and drop dead Spectrum handling.
 
 ## 1.0.2 May 20, 2026
 

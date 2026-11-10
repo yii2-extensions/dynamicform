@@ -316,6 +316,44 @@ describe('DepDrop dependencies of rows with literal keys', () => {
 });
 
 describe('nested rows with literal keys', () => {
+  test('a DepDrop of an inner row depends on its own row through the whole index path', () => {
+    const $ = window.jQuery;
+    const fixture = literalNestedForm();
+    const name = /(<input type="text" id="room-2024-0-0-7-name"[^>]*>)/g;
+    const kind = '$1<select id="room-2024-0-0-7-kind" name="Room[2024][0][0][7][kind]" data-krajee-depdrop="depdrop_kind"></select>';
+
+    // Like the Kartik plugin, the first configuration of an element wins.
+    $.fn.depdrop = function (config) {
+      return this.each(function () {
+        if ($(this).data('depdrop') === undefined) {
+          $(this).data('depdrop', config);
+        }
+      });
+    };
+    onTestFinished(() => {
+      delete $.fn.depdrop;
+    });
+
+    fixture.html = fixture.html.replace(name, kind);
+    fixture.widgets.dynamicform_literal_houses.template = fixture.widgets.dynamicform_literal_houses.template.replace(name, kind);
+    fixture.widgets.dynamicform_literal_rooms.template = fixture.widgets.dynamicform_literal_rooms.template.replace(name, kind);
+    fixture.globals = { depdrop_kind: { depends: ['room-2024-0-0-7-name'] } };
+    const { dynamicform_literal_houses: housesOptions, dynamicform_literal_rooms: roomsOptions } = mount(fixture);
+    const houses = () => document.querySelectorAll('#literal-nested-form .houses > .house');
+
+    insert(housesOptions, document.querySelector('.add-house'));
+    insert(roomsOptions, houses()[1].querySelector('.add-room'));
+
+    expect(
+      Array.from(document.querySelectorAll('[data-krajee-depdrop]'), (element) => [element.id, $(element).data('depdrop').depends]),
+      'Each DepDrop must depend on the room it is in.',
+    ).toEqual([
+      ['room-2024-0-0-7-kind', ['room-2024-0-0-7-name']],
+      ['room-2024-1-0-7-kind', ['room-2024-1-0-7-name']],
+      ['room-2024-1-1-7-kind', ['room-2024-1-1-7-name']],
+    ]);
+  });
+
   test('inner rows renumber their index path and keep the literal keys of both levels', async () => {
     const fixture = literalNestedForm();
     const { dynamicform_literal_houses: housesOptions, dynamicform_literal_rooms: roomsOptions } = mount(fixture);

@@ -140,25 +140,27 @@ describe('row validators', () => {
     });
   });
 
-  test('a validated field inside the container but outside the rows keeps the validator ActiveForm registered', () => {
-    const $ = window.jQuery;
-    const fixture = tabularForm();
+  // `constructor` names a property every plain object inherits.
+  test.each(['order-total', 'constructor'])(
+    'a validated field inside the container but outside the rows keeps the validator ActiveForm registered: %s',
+    (id) => {
+      const $ = window.jQuery;
+      const fixture = tabularForm();
 
-    fixture.html = fixture.html.replace(
-      '<button type="button" class="add-item add-first">',
-      `${field('order-total', 'Total', textInput('order-total', 'Order[total]'))}<button type="button" class="add-item add-first">`,
-    );
-    fixture.validation['dynamic-form'].push(requiredAttribute('order-total', 'total', 'Total cannot be blank.'));
-    mount(fixture);
-    const registration = $('#dynamic-form').yiiActiveForm('find', 'order-total');
+      fixture.html = fixture.html.replace(
+        '<button type="button" class="add-item add-first">',
+        `${field(id, 'Total', textInput(id, 'Order[total]'))}<button type="button" class="add-item add-first">`,
+      );
+      fixture.validation['dynamic-form'].push(requiredAttribute(id, 'total', 'Total cannot be blank.'));
+      mount(fixture);
+      const registration = $('#dynamic-form').yiiActiveForm('find', id);
 
-    insert(options(), insertButton(0));
-    remove(options(), removeButton(1));
+      insert(options(), insertButton(0));
+      remove(options(), removeButton(1));
 
-    expect($('#dynamic-form').yiiActiveForm('find', 'order-total'), 'The field outside the rows is not a row field.').toBe(
-      registration,
-    );
-  });
+      expect($('#dynamic-form').yiiActiveForm('find', id), 'The field outside the rows is not a row field.').toBe(registration);
+    },
+  );
 
   test('an input inside the container but outside the rows with the id of a row field keeps its rule to itself', async () => {
     const $ = window.jQuery;
@@ -192,10 +194,126 @@ describe('row validators', () => {
 
     $('.dynamicform_wrapper').yiiDynamicForm('updateContainer');
 
+    expect(validatorIds('dynamic-form'), 'The moved input must keep one validator.').toEqual(['formmodel-0-name', 'formmodel-1-name']);
     expect(await validate('dynamic-form'), 'The moved input must still run its rule.').toEqual({
       'formmodel-0-name': blankError,
       'formmodel-1-name': '',
     });
+  });
+
+  test('a row deleted before the window-load initialization leaves no validator for the removed index', () => {
+    mount(tabularForm({ rows: [{ name: 'A' }, { name: 'B' }] }), { init: false });
+
+    remove(options(), removeButton(0));
+
+    expect(validatorIds('dynamic-form'), 'Only the renumbered row may be validated.').toEqual(['formmodel-0-name']);
+  });
+
+  test('a form whose ActiveForm the application destroyed still inserts rows', () => {
+    const $ = window.jQuery;
+
+    mount(tabularForm());
+    $('#dynamic-form').yiiActiveForm('destroy');
+
+    insert(options(), insertButton(0));
+
+    expect([rows().length, $('#dynamic-form').data('yiiActiveForm')], 'Rows must change without client validation.').toEqual([
+      2,
+      undefined,
+    ]);
+  });
+
+  test('a registration takes the name of its input, or of the inputs inside the element, and needs one', () => {
+    const $ = window.jQuery;
+    const fixture = tabularForm();
+    // An empty list renders its wrapper without inputs, after the unchecked sentinel.
+    const tags = (index) => `<input type="hidden" name="FormModel[${index}][tags]" value=""><div id="formmodel-${index}-tags"></div>`;
+
+    fixture.html = fixture.html.replace('<button type="button" class="add-item">', `${tags(0)}<button type="button" class="add-item">`);
+    fixture.widgets.dynamicform_rows.template = fixture.widgets.dynamicform_rows.template.replace(
+      '<button type="button" class="add-item">',
+      `${tags(0)}<button type="button" class="add-item">`,
+    );
+    fixture.validation['dynamic-form'].push(requiredAttribute('formmodel-0-tags', '[0]tags', 'Tags cannot be blank.'));
+    mount(fixture);
+
+    insert(options(), insertButton(0));
+
+    expect(
+      $('#dynamic-form').data('yiiActiveForm').attributes.map((attribute) => [attribute.id, attribute.name]),
+      'Only elements with a name are registered, under the name they submit.',
+    ).toEqual([
+      ['formmodel-0-name', 'FormModel[0][name]'],
+      ['formmodel-1-name', 'FormModel[1][name]'],
+    ]);
+  });
+
+  test('every row registration owns the nested options of its rule', () => {
+    const $ = window.jQuery;
+    const fixture = tabularForm();
+
+    fixture.validation['dynamic-form'][0].options = { trim: true };
+    mount(fixture);
+
+    insert(options(), insertButton(0));
+
+    const [first, second] = $('#dynamic-form').data('yiiActiveForm').attributes;
+    expect([first.options, second.options], 'Both rows must carry the rule options.').toEqual([{ trim: true }, { trim: true }]);
+    expect(second.options, 'A row must not share the options object of another row.').not.toBe(first.options);
+  });
+
+  test('an application selector naming the id more than once follows the row in every occurrence', () => {
+    const $ = window.jQuery;
+    const fixture = tabularForm();
+
+    fixture.validation['dynamic-form'][0].input = 'label[for="formmodel-0-name"] + #formmodel-0-name';
+    mount(fixture);
+
+    insert(options(), insertButton(0));
+
+    expect(
+      $('#dynamic-form').data('yiiActiveForm').attributes.map((attribute) => attribute.input),
+      'Each occurrence of the id must name the row of the registration.',
+    ).toEqual(['label[for="formmodel-0-name"] + #formmodel-0-name', 'label[for="formmodel-1-name"] + #formmodel-1-name']);
+  });
+
+  // Default selectors escape an id as `$.escapeSelector()` (CSS.escape) does. The ids are set by script, as markup
+  // cannot hold a NUL character.
+  test.each([
+    ['a leading dash', '-formmodel-{i}-name'],
+    ['a trailing dash', 'formmodel-{i}-name-'],
+    ['a space', 'formmodel-{i}-first name'],
+    ['a control character', 'formmodel-{i}-na\u0001me'],
+    ['a delete character', 'formmodel-{i}-na\u007fme'],
+    ['a NUL character', 'formmodel-{i}-na\u0000me'],
+  ])('the default selectors of an id with %s are escaped like CSS.escape', (_shape, pattern) => {
+    const $ = window.jQuery;
+    const id = (index) => pattern.replace('{i}', index);
+    const row = `<div class="item"><input type="text" class="name" name="FormModel[0][name]">${buttons()}</div>`;
+    const fixture = {
+      html: `<form id="f"><div class="dynamicform_wrapper" data-dynamicform="w"><div class="items">${row}</div></div></form>`,
+      widgets: {
+        w: widgetOptions({
+          widgetContainer: 'dynamicform_wrapper',
+          formId: 'f',
+          insertPosition: 'top',
+          fields: [{ id: pattern.replace('{i}', '{}'), name: 'FormModel[{}][name]' }],
+          template: row,
+        }),
+      },
+      validation: { f: [{ ...requiredAttribute(id(0), '[0]name', blankError), input: 'input.name', container: '.item' }] },
+    };
+
+    mount(fixture, { init: false });
+    document.querySelector('.name').id = id(0);
+    initialize(fixture);
+    insert(window.w, document.querySelector('.add-item'));
+
+    const registered = $('#f').data('yiiActiveForm').attributes.find((attribute) => attribute.id === id(1));
+    expect([registered.input, registered.container], 'The shifted row must use the escaped defaults.').toEqual([
+      `#${$.escapeSelector(id(1))}`,
+      `.field-${$.escapeSelector(id(1))}`,
+    ]);
   });
 
   // `ActiveField::$selectors` replaces Yii's `#<id>` and `.field-<id>`; an id holding a period needs escaped ones.
@@ -205,6 +323,12 @@ describe('row validators', () => {
   test.each([
     ['backslash-escaped selectors follow', 'formmodel-{i}-name.x', escaped, escaped],
     ['attribute selectors follow', 'formmodel-{i}-name.x', attribute, attribute],
+    ...['1formmodel', '-1formmodel'].map((prefix) => [
+      `selectors without the id escape the ${prefix} prefix`,
+      `${prefix}-{i}-name`,
+      () => ['[name="FormModel[0][name]"]', '.form-group'],
+      (id) => [`#${window.jQuery.escapeSelector(id)}`, `.field-${window.jQuery.escapeSelector(id)}`],
+    ]),
     [
       'selectors without the id become the defaults',
       'formmodel-{i}-name',
@@ -327,6 +451,49 @@ describe('row validators', () => {
     });
     expect($form.find('.field-formmodel-1-code .help-block').text()).toBe('');
   });
+
+  test.each(['name', 'name.x'])(
+    'custom validation containers without Yii field classes follow insertion and deletion: %s',
+    async (suffix) => {
+      const $ = window.jQuery;
+      const id = (index) => `formmodel-${index}-${suffix}`;
+      const container = (index) => `#validation-${$.escapeSelector(id(index))}`;
+      const row = (index, value) =>
+        `<div class="item"><section id="validation-${id(index)}">${textInput(id(index), `FormModel[${index}][name]`, value)}<div class="help-block"></div></section>${buttons()}</div>`;
+      const fixture = {
+        html: `<form id="f"><div class="dynamicform_wrapper" data-dynamicform="w"><div class="items">${row(0, 'Saved')}</div></div></form>`,
+        widgets: {
+          w: widgetOptions({
+            widgetContainer: 'dynamicform_wrapper',
+            formId: 'f',
+            fields: [{ id: `formmodel-{}-${suffix}`, name: 'FormModel[{}][name]' }],
+            template: row(0, ''),
+          }),
+        },
+        validation: {
+          f: [{ ...requiredAttribute(id(0), '[0]name', blankError), input: `#${$.escapeSelector(id(0))}`, container: container(0) }],
+        },
+      };
+      mount(fixture);
+
+      insert(window.w, document.querySelector('.add-item'));
+
+      expect(await validate('f'), 'Errors must appear in the application container, without a default field class.').toEqual({
+        [id(0)]: '',
+        [id(1)]: blankError,
+      });
+      expect($(container(1)).hasClass('has-error'), 'ActiveForm must mark the inserted custom container invalid.').toBe(true);
+
+      remove(window.w, document.querySelector('.remove-item'));
+
+      expect(await validate('f'), 'The custom error container must follow the remaining row after renumbering.').toEqual({
+        [id(0)]: blankError,
+      });
+      document.getElementById(id(0)).value = 'Corrected';
+      expect(await validate('f')).toEqual({ [id(0)]: '' });
+      expect($(container(0)).hasClass('has-error'), 'Correcting the field must clear the custom container error state.').toBe(false);
+    },
+  );
 
   test('a form without client validation keeps no validators', async () => {
     mount(tabularForm({ validation: false, rows: [{ name: 'A' }, { name: 'B' }] }));
@@ -565,6 +732,39 @@ describe('fields the widget does not declare', () => {
     expect(validatorIds('dynamic-form'), 'Every remaining row, and only those, must be validated.').toEqual(
       Array.from({ length: 10 }, (_row, index) => `formmodel-${index}-name`).sort(),
     );
+  });
+
+  test('an attribute the application registered for a future row of an undeclared field is replaced, not duplicated', () => {
+    mount(undeclared());
+    window.jQuery('#dynamic-form').yiiActiveForm('add', requiredAttribute('formmodel-1-name', '[1]name', blankError));
+
+    insert(options(), insertButton(0));
+
+    expect(
+      window.jQuery('#dynamic-form').data('yiiActiveForm').attributes.map((attribute) => attribute.id),
+      'Each input must have exactly one validator.',
+    ).toEqual(['formmodel-0-name', 'formmodel-1-name']);
+  });
+
+  test('the rule of an undeclared field is not lent to an input whose renumbered id lacks its row index', () => {
+    const fixture = tabularForm();
+    // `Meta[<i>][ts][0]` holds a literal key after the row index; the non-tabular `meta-ts` becomes `meta-ts-<i>`.
+    const inputs = (index) =>
+      `${textInput(`meta-${index}-ts-0`, `Meta[${index}][ts][0]`)}${textInput('meta-ts', 'Other')}<button type="button" class="add-item">`;
+
+    fixture.html = fixture.html.replace('<button type="button" class="add-item">', inputs(0));
+    fixture.widgets.dynamicform_rows.template = fixture.widgets.dynamicform_rows.template.replace('<button type="button" class="add-item">', inputs(0));
+    fixture.validation['dynamic-form'].push(requiredAttribute('meta-0-ts-0', '[0][ts][0]', 'Timestamp cannot be blank.'));
+    mount(fixture);
+
+    insert(options(), insertButton(0));
+
+    expect(validatorIds('dynamic-form'), 'Only the undeclared field of each row takes its rule.').toEqual([
+      'formmodel-0-name',
+      'formmodel-1-name',
+      'meta-0-ts-0',
+      'meta-1-ts-0',
+    ]);
   });
 
   test('a field of the row model inside the container but outside the rows keeps its own rule', async () => {
