@@ -199,6 +199,17 @@
         return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     };
 
+    // Escape a CSS identifier without requiring $.escapeSelector(), which is absent in Yii-supported jQuery 1/2.
+    var _escapeSelector = function (id) {
+        return String(id).replace(/(^-?\d)|^-$|[^\x80-\uFFFF\w-]/g, function (character, codePoint) {
+            if (codePoint || character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127) {
+                return character === '\0' ? '\uFFFD' :
+                    character.slice(0, -1) + '\\' + character.charCodeAt(character.length - 1).toString(16) + ' ';
+            }
+            return '\\' + character;
+        });
+    };
+
     // Locates the row indexes of an id or name (`attribute` is 'id' or 'name') through the `fields` of the widget the
     // element belongs to. Each field is `<prefix>{}<rest>`; the prefix is the form name of the row model, with any
     // literal keys it holds, so it is shared by every input of that model. The indexes follow the prefix, one per
@@ -491,13 +502,37 @@
         });
     };
 
+    // Selector of a registered element for the element `id`: where the selector names the id of the registration it
+    // comes from, as is or backslash-escaped as `$.escapeSelector()` writes it, that id is replaced by the new one in the
+    // same form, so application `ActiveField::$selectors` survive; otherwise it is the escaped default, `fallback`.
+    var _rowSelector = function (selector, sourceId, id, fallback) {
+        var found = false;
+        var pattern = new RegExp(String(sourceId).replace(/[^\w-]/g, function (character) {
+            return '\\\\?' + _escapeRegExp(character);
+        }), 'g');
+        var rewritten = String(selector).replace(pattern, function (match) {
+            found = true;
+            return match.indexOf('\\') === -1 ? id : id.replace(/[^\w-]/g, '\\$&');
+        });
+
+        return found ? rewritten : fallback;
+    };
+
     // Registers the validator of one row element; its initial value comes from that element, not from a page-wide id
     // lookup, because another form may render the same ids. `attribute` is the template _eachValidated() found.
     var _fixFormValidatonInput = function ($form, attribute, id, name, $input) {
         attribute = $.extend(true, {}, attribute);
+        var escapedId = _escapeSelector(id);
+        var container = _rowSelector(attribute.container, attribute.id, id, ".field-" + escapedId);
+        var input = _rowSelector(attribute.input, attribute.id, id, "#" + escapedId);
+        var $container = $form.find(container);
+        var $selectedInput = $form.find(input);
+
+        // Replacing the id can leave other constraints, such as a tabular name, pointing at the old row. Keep only
+        // selectors that resolve to this field in this form, never a missing, different or additional field.
+        attribute.container = $container.length === 1 && $.contains($container[0], $input[0]) ? container : ".field-" + escapedId;
+        attribute.input = $selectedInput.length === 1 && $selectedInput[0] === $input[0] ? input : "#" + escapedId;
         attribute.id = id;
-        attribute.container = ".field-" + id;
-        attribute.input = "#" + id;
         attribute.name = name;
         attribute.value = $input.val();
         attribute.status = 0;

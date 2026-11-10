@@ -510,7 +510,7 @@ class DynamicFormWidget extends \yii\base\Widget
         $crawler->filter(
             $this->widgetItem
         )->each(
-            function ($nodes) {
+            function (Crawler $nodes) {
                 foreach ($nodes as $node) {
                     $node->parentNode?->removeChild($node);
                 }

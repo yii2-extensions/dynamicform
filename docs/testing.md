@@ -111,8 +111,14 @@ Run one group (`api`, `asset`, `model`, `widget`).
 composer tests -- --group widget
 ```
 
-The production-mode asset cases need the [runkit7](https://github.com/runkit7/runkit7) extension, as in CI; PHPUnit
-skips them without it.
+The production-mode asset cases (`YII_DEBUG=false`) need the [runkit7](https://github.com/runkit7/runkit7) extension;
+PHPUnit skips them without it. In the `build` workflow, setup-php installs runkit7 only on the Windows jobs for PHP 8.1,
+8.2 and 8.3, so the other jobs skip these cases. The browser acceptance tests cover the default selection of the
+minified asset in their `rendered-production` project on every run.
+
+The `build` workflow runs PHPUnit on PHP 8.1 to 8.5, on Ubuntu and Windows: with the Composer resolution of each PHP
+version (Symfony 6.4 on PHP 8.1, 7.x otherwise), with Symfony 6.4 on PHP 8.2 to 8.5, and with `yiisoft/yii2:22.0.x-dev`
+on PHP 8.3 to 8.5. Static analysis runs on PHP 8.5; the `assets` workflow serves the browser fixture with PHP 8.1.
 
 ## Workflow security checks
 
@@ -285,7 +291,7 @@ not unbind them; the handlers of the masked inputs of a deleted row therefore st
 
 With `YII_DEBUG=false`, Kartik registers `depdrop.min.js` of yii2-widget-depdrop 1.0.6, an older build that listens to
 event names dependent-dropdown 1.4.9 no longer triggers; its Select2 loading handling therefore does not run in the
-`production` project, for original and inserted rows alike.
+`rendered-production` browser project, for original and inserted rows alike.
 
 ## Minified asset
 
