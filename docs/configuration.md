@@ -97,8 +97,9 @@ its class is left unchanged when it is also the field container. The row indexes
 Inserted and renumbered rows are validated with the rules `ActiveForm` registered for their field, under the new id. The
 `input` and `container` selectors of that registration, including those set through `ActiveField::$selectors`, follow
 the id when they name it as is or escaped with backslashes, such as `#address-0-zip\.code` or `[id="address-0-zip"]`; a
-selector that does not name the id is replaced by Yii's defaults `#<id>` and `.field-<id>`. Yii's default selectors do
-not escape the id, so a validated field whose id holds a period needs escaped `selectors`.
+rewritten selector is kept only when it selects exactly the field or one container containing that field inside its
+form. Otherwise, including when another constraint still names the old row, it falls back to `#<id>` or `.field-<id>`
+with the id escaped. The initial Yii registration still needs escaped `selectors` for ids holding a period.
 
 ## Server-side models
 

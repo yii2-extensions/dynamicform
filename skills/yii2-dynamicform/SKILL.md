@@ -129,9 +129,10 @@ from `formFields` and the form name of `model`; other inputs are renumbered by p
 the row index is supported only in the form name of `model`. Positional ids and names must not contain line breaks.
 
 Inserted and renumbered rows reuse the client rules ActiveForm registered for their field. Custom
-`ActiveField::$selectors` follow the new id only when they name the id, as is or backslash-escaped; any other selector
-is replaced by `#<id>` and `.field-<id>`. Yii's default selectors do not escape ids, so a validated field whose id holds
-a period needs escaped selectors, and a validated field whose id holds an apostrophe stops `yii.activeForm` itself.
+`ActiveField::$selectors` follow the new id when they name it, as is or backslash-escaped, and still select exactly the
+field or one container containing it inside its form. Otherwise, including stale row-name constraints, the plugin uses
+`#<id>` or `.field-<id>` with the id escaped. The initial Yii registration still needs escaped selectors for ids
+holding a period; an id holding an apostrophe stops `yii.activeForm` itself.
 
 Events are triggered on the container that owns the clicked button: `beforeInsert` (informational, cannot cancel),
 `afterInsert`, `beforeDelete` (return `false` to cancel), `afterDelete` and `limitReached`. Bind them with

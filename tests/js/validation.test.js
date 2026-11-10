@@ -239,6 +239,95 @@ describe('row validators', () => {
     expect(await validate('f'), 'Both rows run their rule.').toEqual({ [id(0)]: '', [id(1)]: blankError });
   });
 
+  test.each(['formmodel-{i}-name', 'formmodel-{i}-name.x'])(
+    'compound selectors validate their own field after insertion and renumbering: %s',
+    async (pattern) => {
+      const $ = window.jQuery;
+      const id = (index) => pattern.replace('{i}', index);
+      const row = (index, value) =>
+        `<div class="item">${field(id(index), 'Name', textInput(id(index), `FormModel[${index}][name]`, value))}${buttons()}</div>`;
+      const input = `#${$.escapeSelector(id(0))}[name="FormModel[0][name]"]`;
+      const container = `.field-${$.escapeSelector(id(0))}:has([name="FormModel[0][name]"])`;
+      const fixture = {
+        // The other form has the same ids; selector checks must stay inside the owning form.
+        html: `<form id="other">${row(0, 'Other')}</form><form id="f"><div class="dynamicform_wrapper" data-dynamicform="w"><div class="items">${row(0, 'Saved')}</div></div></form>`,
+        widgets: {
+          w: widgetOptions({
+            widgetContainer: 'dynamicform_wrapper',
+            formId: 'f',
+            fields: [{ id: pattern.replace('{i}', '{}'), name: 'FormModel[{}][name]' }],
+            template: row(0, ''),
+          }),
+        },
+        validation: { f: [{ ...requiredAttribute(id(0), '[0]name', blankError), input, container }] },
+      };
+      mount(fixture);
+      const $form = $('#f');
+      const $rows = () => $form.find('.items > .item');
+
+      insert(window.w, $form.find('.add-item')[0]);
+
+      const attributes = $form.data('yiiActiveForm').attributes;
+      expect(attributes.map((attribute) => [attribute.input, attribute.container]), 'Keep valid selectors and fall back for stale names.').toEqual([
+        [input, container],
+        [`#${$.escapeSelector(id(1))}`, `.field-${$.escapeSelector(id(1))}`],
+      ]);
+      expect(await validate('f'), 'The inserted blank field must fail in its own form.').toEqual({ [id(0)]: '', [id(1)]: blankError });
+      expect($('#other .help-block').text(), 'Another form with identical ids must remain untouched.').toBe('');
+
+      $rows().first().find('input').val('');
+      $rows().last().find('input').val('Second');
+      $rows().first().appendTo($form.find('.items'));
+      $form.find('.dynamicform_wrapper').yiiDynamicForm('updateContainer');
+
+      expect(await validate('f'), 'Validation must follow the original field when its index changes.').toEqual({
+        [id(0)]: '',
+        [id(1)]: blankError,
+      });
+
+      remove(window.w, $rows().first().find('.remove-item')[0]);
+
+      expect(await validate('f'), 'The remaining blank field must still fail after deletion renumbers it.').toEqual({
+        [id(0)]: blankError,
+      });
+    },
+  );
+
+  test.each([
+    ['matches another field', '[name="FormModel[0][name]"]', ':has([name="FormModel[0][name]"])'],
+    ['also matches another field', '', ''],
+  ])('rewritten selector that %s falls back to its own field', async (_shape, inputConstraint, containerConstraint) => {
+    const $ = window.jQuery;
+    const fixture = tabularForm();
+    const attribute = fixture.validation['dynamic-form'][0];
+    attribute.input += `${inputConstraint}, #formmodel-1-code`;
+    attribute.container += `${containerConstraint}, .field-formmodel-1-code`;
+    mount(fixture);
+
+    insert(options(), insertButton(0));
+
+    const $form = $('#dynamic-form');
+    expect(
+      $form.data('yiiActiveForm').attributes.map((attribute) => [attribute.input, attribute.container]),
+      'A selector must resolve only to its own input and container.',
+    ).toEqual([
+      ['#formmodel-0-name', '.field-formmodel-0-name'],
+      ['#formmodel-1-name', '.field-formmodel-1-name'],
+    ]);
+    expect(await validate('dynamic-form'), 'The inserted required field must fail.').toEqual({
+      'formmodel-0-name': '',
+      'formmodel-1-name': blankError,
+    });
+
+    $('#formmodel-1-name').val('Valid');
+
+    expect(await validate('dynamic-form'), 'An unrelated blank field must not determine validation or receive the error.').toEqual({
+      'formmodel-0-name': '',
+      'formmodel-1-name': '',
+    });
+    expect($form.find('.field-formmodel-1-code .help-block').text()).toBe('');
+  });
+
   test('a form without client validation keeps no validators', async () => {
     mount(tabularForm({ validation: false, rows: [{ name: 'A' }, { name: 'B' }] }));
 
