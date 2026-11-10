@@ -131,8 +131,8 @@ the row index is supported only in the form name of `model`. Positional ids and 
 Inserted and renumbered rows reuse the client rules ActiveForm registered for their field. Custom
 `ActiveField::$selectors` follow the new id when they name it, as is or backslash-escaped, and still select exactly the
 field or one container containing it inside its form. Otherwise, including stale row-name constraints, the plugin uses
-`#<id>` or `.field-<id>` with the id escaped. The initial Yii registration still needs escaped selectors for ids
-holding a period; an id holding an apostrophe stops `yii.activeForm` itself.
+`#<id>` or `.field-<id>` with the id escaped. The initial Yii registration still needs escaped selectors for ids holding
+a period; an id holding an apostrophe stops `yii.activeForm` itself.
 
 Events are triggered on the container that owns the clicked button: `beforeInsert` (informational, cannot cancel),
 `afterInsert`, `beforeDelete` (return `false` to cancel), `afterDelete` and `limitReached`. Bind them with

@@ -201,8 +201,8 @@
 
     // Escape a CSS identifier without requiring $.escapeSelector(), which is absent in Yii-supported jQuery 1/2.
     var _escapeSelector = function (id) {
-        return String(id).replace(/([\0-\x1f\x7f]|^-?\d)|^-$|[^\x80-\uFFFF\w-]/g, function (character, codePoint) {
-            if (codePoint) {
+        return String(id).replace(/(^-?\d)|^-$|[^\x80-\uFFFF\w-]/g, function (character, codePoint) {
+            if (codePoint || character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127) {
                 return character === '\0' ? '\uFFFD' :
                     character.slice(0, -1) + '\\' + character.charCodeAt(character.length - 1).toString(16) + ' ';
             }
