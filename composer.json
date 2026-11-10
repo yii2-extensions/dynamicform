@@ -33,7 +33,7 @@
         "php": ">=8.1",
         "ext-dom": "*",
         "yiisoft/yii2": "^2.0.55 || ^22.0",
-        "symfony/css-selector": "^6.4||^7.0",
+        "symfony/css-selector": "^8.1.10",
         "symfony/dom-crawler": "^6.4||^7.0"
     },
     "require-dev": {
