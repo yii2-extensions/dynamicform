@@ -4,15 +4,18 @@
 
 - [`PHP`](https://www.php.net/downloads) 8.1 or higher with the `dom` extension.
 - [`Composer`](https://getcomposer.org/download/) for dependency management.
-- [`Yii2`](https://github.com/yiisoft/yii2) 2.0.49 or higher, or the `22.0.x` development line, which needs PHP 8.3 or
-  higher; the application opts into it by requiring `yiisoft/yii2:22.0.x-dev`.
+- [`Yii2`](https://github.com/yiisoft/yii2) 2.0.55 or higher, or the `22.0.x` development line, which needs PHP 8.3 or
+  higher; the application opts into it by requiring `yiisoft/yii2:22.0.x-dev`. Earlier 2.0 releases are affected by
+  security advisories, the most recent being CVE-2026-39850.
+- [`symfony/css-selector`](https://github.com/symfony/css-selector) and
+  [`symfony/dom-crawler`](https://github.com/symfony/dom-crawler) 6.4 or 7.x; Composer selects 6.4 on PHP 8.1.
 
 ## Installation
 
 Install the extension with [Composer](https://getcomposer.org/download/).
 
 ```bash
-composer require --prefer-dist yii2-extensions/dynamicform:^1.0
+composer require --prefer-dist yii2-extensions/dynamicform:^2.0
 ```
 
 ## Assets

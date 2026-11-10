@@ -491,13 +491,29 @@
         });
     };
 
+    // Selector of a registered element for the element `id`: where the selector names the id of the registration it
+    // comes from, as is or backslash-escaped as `$.escapeSelector()` writes it, that id is replaced by the new one in the
+    // same form, so application `ActiveField::$selectors` survive; otherwise it is Yii's default, `fallback`.
+    var _rowSelector = function (selector, sourceId, id, fallback) {
+        var found = false;
+        var pattern = new RegExp(String(sourceId).replace(/[^\w-]/g, function (character) {
+            return '\\\\?' + _escapeRegExp(character);
+        }), 'g');
+        var rewritten = String(selector).replace(pattern, function (match) {
+            found = true;
+            return match.indexOf('\\') === -1 ? id : id.replace(/[^\w-]/g, '\\$&');
+        });
+
+        return found ? rewritten : fallback;
+    };
+
     // Registers the validator of one row element; its initial value comes from that element, not from a page-wide id
     // lookup, because another form may render the same ids. `attribute` is the template _eachValidated() found.
     var _fixFormValidatonInput = function ($form, attribute, id, name, $input) {
         attribute = $.extend(true, {}, attribute);
+        attribute.container = _rowSelector(attribute.container, attribute.id, id, ".field-" + id);
+        attribute.input = _rowSelector(attribute.input, attribute.id, id, "#" + id);
         attribute.id = id;
-        attribute.container = ".field-" + id;
-        attribute.input = "#" + id;
         attribute.name = name;
         attribute.value = $input.val();
         attribute.status = 0;

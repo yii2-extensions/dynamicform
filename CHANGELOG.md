@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## 1.0.3 Under development
+## 2.0.0 Under development
 
 - chore: isolate quality tools, add PHP-rendered browser and compatibility tests, and align repository config with the template.
 - fix: scope widget registration per page, form and container, and route encoded click handlers and events to the owning container.
@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - fix: compare old ids literally when renumbering `field-<id>` classes and `label[for]`, so ids with `.`, `:` or quotes neither throw nor stay stale.
 - test: cover DepDrop parameters outside the rows whose id has no numeric segment and DepDrops of another model depending on row inputs.
 - test: cover `init` validating `model` and `formFields` before the `initOptions()` hook and a `null` record state keeping rows at zero minimum.
+- fix: keep custom `ActiveField::$selectors` on inserted rows, require `yiisoft/yii2` `^2.0.55 || ^22.0`.
 
 ## 1.0.2 May 20, 2026
 

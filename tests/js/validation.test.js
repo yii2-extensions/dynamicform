@@ -198,6 +198,47 @@ describe('row validators', () => {
     });
   });
 
+  // `ActiveField::$selectors` replaces Yii's `#<id>` and `.field-<id>`; an id holding a period needs escaped ones.
+  // `selectors` gives the application selectors of an id, `expected` the registered ones after insertion.
+  const escaped = (id) => [`#${id.replace('.', '\\.')}`, `.field-${id.replace('.', '\\.')}`];
+  const attribute = (id) => [`[id="${id}"]`, `[class~="field-${id}"]`];
+  test.each([
+    ['backslash-escaped selectors follow', 'formmodel-{i}-name.x', escaped, escaped],
+    ['attribute selectors follow', 'formmodel-{i}-name.x', attribute, attribute],
+    [
+      'selectors without the id become the defaults',
+      'formmodel-{i}-name',
+      () => ['[name="FormModel[0][name]"]', '.form-group'],
+      (id) => [`#${id}`, `.field-${id}`],
+    ],
+  ])('application %s on insertion', async (_shape, pattern, selectors, expected) => {
+    const id = (index) => pattern.replace('{i}', index);
+    const row = (index, value) =>
+      `<div class="item">${field(id(index), 'Name', textInput(id(index), `FormModel[${index}][name]`, value))}${buttons()}</div>`;
+    const [input, container] = selectors(id(0));
+    mount({
+      html: `<form id="f"><div class="dynamicform_wrapper" data-dynamicform="w"><div class="items">${row(0, 'Saved')}</div></div></form>`,
+      widgets: {
+        w: widgetOptions({
+          widgetContainer: 'dynamicform_wrapper',
+          formId: 'f',
+          fields: [{ id: pattern.replace('{i}', '{}'), name: 'FormModel[{}][name]' }],
+          template: row(0, ''),
+        }),
+      },
+      validation: { f: [{ ...requiredAttribute(id(0), '[0]name', blankError), input, container }] },
+    });
+
+    insert(window.w, document.querySelector('.add-item'));
+
+    const registered = window.jQuery('#f').data('yiiActiveForm').attributes;
+    expect(registered.map((attribute) => [attribute.id, attribute.input, attribute.container])).toEqual([
+      [id(0), ...expected(id(0))],
+      [id(1), ...expected(id(1))],
+    ]);
+    expect(await validate('f'), 'Both rows run their rule.').toEqual({ [id(0)]: '', [id(1)]: blankError });
+  });
+
   test('a form without client validation keeps no validators', async () => {
     mount(tabularForm({ validation: false, rows: [{ name: 'A' }, { name: 'B' }] }));
 

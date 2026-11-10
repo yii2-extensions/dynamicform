@@ -1,0 +1,148 @@
+---
+name: yii2-dynamicform
+description: Use when adding, nesting, validating or debugging repeatable rows of ActiveForm fields with DynamicFormWidget and Model::createMultiple() in a Yii2 application using yii2-extensions/dynamicform.
+license: BSD-3-Clause
+---
+
+# Repeatable form rows with yii2-dynamicform
+
+Use `Yii2\Extensions\DynamicForm\DynamicFormWidget` for the rows in the view and
+`Yii2\Extensions\DynamicForm\Models\Model::createMultiple()` for the posted rows. Do not use the namespace or options of
+the original `wbraganca/yii2-dynamicform` or of another fork. Match the application's installed package revision.
+
+## Read the relevant contract
+
+In a root package checkout, use `composer show --self --format=json` for metadata. For installed dependencies, resolve
+the real path and read the configured vendor directory's `composer/installed.php` (`versions[<package>]`):
+`install_path`, `pretty_version` and Composer's selected `reference`. Do not blindly prefer `source.reference` over
+`dist.reference`. For any live package checkout, including a symlinked path install, inspect its current `HEAD` and
+files even when clean; report metadata mismatches and let the actual files govern. Uncommitted changes have no matching
+SHA. Otherwise use the selected reference or a verified matching tag only after establishing its source provenance.
+Compare `composer.lock`; it may differ from the inspected installation.
+
+The package archive ships `README.md`, `CHANGELOG.md`, `src/` and this skill, but not the `docs/` guides. Read them from
+a checkout, or from `https://github.com/yii2-extensions/dynamicform/blob/<verified-reference>/docs/<guide>.md` after
+verifying the reference: `installation.md`, `configuration.md` (properties, row identity, validation selectors,
+integrations, events), `examples.md` (create, update and view) and `testing.md` (tested library versions). There is no
+hosted documentation site for this package. If the guides are unavailable or offline, use the PHPDoc of
+`src/DynamicFormWidget.php`, `src/Models/Model.php`, the plugin `src/assets/yii2-dynamic-form.js` and the changelog, and
+report the gap.
+
+## Install
+
+The package requires PHP 8.1 or higher with `dom`, `yiisoft/yii2` `^2.0.55 || ^22.0` and Symfony `css-selector` and
+`dom-crawler` 6.4 or 7.x. The Yii 22 line needs PHP 8.3 and an explicit `yiisoft/yii2:22.0.x-dev` requirement in the
+application. Install with `composer require yii2-extensions/dynamicform:^2.0`. `DynamicFormAsset` depends on
+`yii\web\JqueryAsset` and `yii\widgets\ActiveFormAsset`, so the application provides jQuery through its `@bower` alias,
+as the Yii application templates do; no Node.js toolchain or build is needed. `YII_DEBUG=false` loads
+`yii2-dynamic-form.min.js`; preserve any `assetManager.bundles` override of the bundle.
+
+## Render the rows
+
+Wrap the rows of one `ActiveForm` with `DynamicFormWidget::begin()` and `end()`. Required: `widgetContainer` (letters,
+digits and `_` only), `widgetBody`, `widgetItem`, `model`, `formId` (the `id` of that form) and `formFields`. Optional:
+`limit` (default 999), `min` (default 1) and `insertPosition` (`bottom` or `top`). Set both `insertButton` and
+`deleteButton` to non-empty CSS selectors. They default to `null` and are not validated: a null or empty selector binds
+the click handler directly to the form and can prevent unrelated click defaults, including submission. To omit an
+action, use a non-empty selector that matches no element rather than leaving it null or empty. Missing required options
+and invalid `widgetContainer` or `insertPosition` values throw `yii\base\InvalidConfigException`. Validate `min` and
+`limit` as integers with `0 <= min <= limit` in the application; the widget does not enforce their types or bounds.
+
+With integer `min=0`, the configured `model` controls the entire rendering: if its `isNewRecord` is truthy or the
+property is absent, every rendered `widgetItem` is removed, including markup for any persisted sibling rows. Otherwise
+all rendered rows remain, including new ones. The widget does not inspect each row model separately. If the configured
+model still counts as new when redisplaying a failed POST, this also removes submitted rows and their rendered errors.
+Preserve the posted rows through an application-specific rendering strategy and verify that users can still delete all
+optional rows. Do not mark an unsaved ActiveRecord as persisted to bypass this behavior.
+
+- Render one element per row matching `widgetItem` inside `widgetBody`; the first one becomes the client template, so
+  pass a non-empty list of row models, such as `[new Address()]` for a create form, and its first element as `model`.
+- Use tabular attributes, `$form->field($row, "[{$i}]attribute")`. Render the primary key of stored rows as a hidden
+  input, `Html::activeHiddenInput($row, "[{$i}]id")`, so the update action can match them.
+- List in `formFields` every attribute of the row model whose client validation inserted rows need.
+- Place the insert and delete buttons of a widget inside its container and outside the containers nested in it. With
+  `min=0`, keep an insert button outside every `widgetItem` of that widget, so it survives initial row removal and
+  deletion of the last row. Keep each delete button inside the row it deletes. Use `type="button"` for both controls.
+
+Nested widgets render the inner widget inside each outer row with tabular names `"[{$i}][{$j}]attribute"`, a distinct
+`widgetContainer` and identical options in every outer row; only the rendered rows may differ. Rendering the same
+container in the same form with other options throws `InvalidConfigException` naming the differing options. Two forms
+may reuse a container name with different options.
+
+## Handle the posted rows
+
+For one flat list of rows, after the request checks below:
+
+```php
+$models = Model::createMultiple(Address::class, $customer->addresses, 'id');
+Model::loadMultiple($models, Yii::$app->request->post());
+$valid = Model::validateMultiple($models);
+```
+
+`createMultiple($modelClass, $multipleModels = [], $pk = 'id')` reads `Yii::$app->request->post()` under the form name
+of `$modelClass`, keeps the posted order, reuses the given models whose key was posted and creates new ones for the
+rest. It does not load attributes, enforce row counts, or authorize keys. Before constructing models, enforce the
+application's minimum and maximum posted row counts on the server, including per-parent limits for nested lists. Widget
+`min`/`limit` are not server-side submission validation. `Model::validateMultiple([])` returns `true` and does not
+establish a minimum count. Define how the endpoint distinguishes an intentionally empty list from an invalid or missing
+group.
+
+Authorize the parent first and obtain existing children from its permitted relation. Validate posted keys before
+`createMultiple()` or loading attributes: reject non-empty keys outside that collection and repeated keys, using the
+schema's key normalization. The helper treats unknown keys as new rows and can reuse the same instance for repeated
+keys, so it does not reject either case. Use an explicit empty-key convention for new rows; do not treat a valid key
+such as `0` as empty. Keep primary and parent foreign keys out of mass assignment; select existing records by their
+validated keys and assign the authorized parent on the server. Only after the parent, all rows and counts pass
+validation, delete intentionally omitted stored children and save the remaining rows inside one transaction with a
+guarded rollback. A hidden key is user input, not authorization.
+
+The flat flow requires contiguous zero-based row indexes. `createMultiple()` returns a reindexed list, whereas
+`loadMultiple()` uses those indexes against the original payload; sparse indexes can leave rows empty or load the wrong
+row even when loading returns `true`. Reject malformed row shapes and sparse or non-list indexes before this flow, or
+rebuild and load each model explicitly from the same validated row entry. Authorize by primary key, not row number.
+
+For nested names such as `Option[i][j][attribute]`, rebuild each child list explicitly from the corresponding parent
+entry in the posted array. `createMultiple()` only iterates the first level under the form name; it neither traverses
+nested rows nor accepts a separate payload argument. Reuse or create, load and validate child models per parent,
+preserving the posted parent/child index mapping. Authorize each child key against its owning parent and save the
+complete hierarchy in the same transaction. Do not apply the flat example to a nested payload or treat a successful
+`loadMultiple()` return as proof that leaf attributes were loaded.
+
+## Client behavior
+
+The plugin rewrites row indexes in `id` and `name` on insertion, deletion and `updateContainer`, together with matching
+`label[for]` and `field-<id>` classes inside the row. Inputs of the row model are located through the patterns built
+from `formFields` and the form name of `model`; other inputs are renumbered by position. A numeric literal key before
+the row index is supported only in the form name of `model`. Positional ids and names must not contain line breaks.
+
+Inserted and renumbered rows reuse the client rules ActiveForm registered for their field. Custom
+`ActiveField::$selectors` follow the new id only when they name the id, as is or backslash-escaped; any other selector
+is replaced by `#<id>` and `.field-<id>`. Yii's default selectors do not escape ids, so a validated field whose id holds
+a period needs escaped selectors, and a validated field whose id holds an apostrophe stops `yii.activeForm` itself.
+
+Events are triggered on the container that owns the clicked button: `beforeInsert` (informational, cannot cancel),
+`afterInsert`, `beforeDelete` (return `false` to cancel), `afterDelete` and `limitReached`. Bind them with
+`$('.<widgetContainer>').on(...)`. After the application moves or appends rows outside the buttons, call
+`$('.<widgetContainer>').yiiDynamicForm('updateContainer')`. The jQuery methods `init`, `addItem`, `deleteItem` and
+`updateContainer` are the plugin API; do not call its private helpers.
+
+## Enhanced controls
+
+Tested versions are listed in `testing.md`: Select2 4.0.13 with Kartik Select2 2.2.5 and DepDrop 1.0.6, TomSelect 2.4.3,
+Inputmask 5.0.10 through `yii\widgets\MaskedInput`, and Kartik DatePicker 1.4.8 as a component, `TYPE_INPUT` and
+`TYPE_INLINE`. Mark TomSelect selects with `data-tomselect` and load a build with the `remove_button` and
+`dropdown_input` plugins; inserted rows get those fixed settings, not the settings of the rendered rows. Other versions,
+the time picker, maskMoney, fileinput, TouchSpin, Spectrum, NumberControl, DatePicker `TYPE_BUTTON`/`TYPE_RANGE` and
+DepDrop inside nested widgets are untested; state that instead of claiming support. Inputmask keeps the form handlers of
+deleted rows bound, and with `YII_DEBUG=false` Kartik's `depdrop.min.js` does not run its Select2 loading handling.
+
+## Verify the integration
+
+Exercise a real browser: insert at the limit, delete down to `min`, delete the first row and submit; check that the
+posted names are contiguous, that inserted rows are blank and validated, and that stored rows keep their values and
+keys. Check that zero rows still leave an insert button, unrelated submit buttons work, and failed POSTs retain rows and
+errors. On a disposable application fixture, submit over-limit, missing and malformed payloads, plus foreign and
+duplicate primary keys, and verify the endpoint rejects invalid requests before any writes. Repeat with
+`YII_DEBUG=false` for the minified asset and with every nested level in use. Count event callbacks and enhanced-control
+instances after several cycles to detect duplicates. The package's own browser tests run on Chromium with Yii 2.0.55;
+report other browsers, Yii 22 client behavior and untested integrations as unverified.
