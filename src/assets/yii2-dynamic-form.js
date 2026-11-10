@@ -125,10 +125,11 @@
     };
 
     // Validator templates and the ids registered through this root (each id keyed by itself), kept on the root element.
+    // The maps have no prototype, so an id such as `constructor` names no inherited property.
     var _validationState = function ($root) {
         var state = $root.data('dynamicformValidation');
         if (!state) {
-            state = { templates: {}, ids: {} };
+            state = { templates: Object.create(null), ids: Object.create(null) };
             $root.data('dynamicformValidation', state);
         }
         return state;
@@ -294,12 +295,15 @@
             return;
         }
         var keys = _templateKeys($root);
+        // The elements of the root by id, looked up as literal text: a selector built from an id would read quotes as
+        // selector syntax.
+        var elements = Object.create(null);
+        $root.find('[id]').each(function () {
+            elements[this.id] = (elements[this.id] || $()).add(this);
+        });
         $.each(data.attributes, function () {
             var id = this.id;
-            // The id is compared as literal text, as a selector built from it would read quotes as selector syntax.
-            var $input = $root.find('[id]').filter(function () {
-                return this.id === id;
-            });
+            var $input = elements[id] || $();
             if ($input.length > 0 && !_inRow($input)) {
                 return true;
             }
@@ -349,7 +353,7 @@
         $.each(state.ids, function (id) {
             $form.yiiActiveForm('remove', id);
         });
-        state.ids = {};
+        state.ids = Object.create(null);
     };
 
     var _deleteItem = function (widgetOptions, e, $elem) {

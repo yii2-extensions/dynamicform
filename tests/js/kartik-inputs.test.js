@@ -129,12 +129,21 @@ describe('Kartik input widgets', () => {
       'formmodel-0-total',
       'formmodel-1-total',
     ]);
-    expect(
-      [0, 1].map((index) => [Object.keys(handlerCounts(`formmodel-${index}-amount-disp`)), handlerCounts(`formmodel-${index}-amount-disp`).change]),
-      'Each MaskMoney display keeps its masking handlers and one handler that writes its value, not the server one.',
-    ).toEqual([
-      [masked, 1],
-      [masked, 1],
+    // A display MaskMoney masked once, with one `change` handler, is the reference for the handlers of every display.
+    $('#inputs-form').append('<input type="text" id="reference-disp">');
+    $('#reference-disp').maskMoney(window.maskmoney_kv).on('change', () => {});
+    const reference = handlerCounts('reference-disp');
+    const displays = () => [0, 1].map((index) => handlerCounts(`formmodel-${index}-amount-disp`));
+
+    expect(Object.keys(reference), 'The reference listens to the MaskMoney events and change.').toEqual(masked);
+    expect(displays(), 'Each display keeps one set of masking handlers and one handler writing its value, not the server one.').toEqual([
+      reference,
+      reference,
     ]);
+
+    insert(options(), button(1, '.add-item'));
+    remove(options(), button(2, '.remove-item'));
+
+    expect(displays(), 'Further insertions and deletions bind no handler twice.').toEqual([reference, reference]);
   });
 });

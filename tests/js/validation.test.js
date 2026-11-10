@@ -140,25 +140,27 @@ describe('row validators', () => {
     });
   });
 
-  test('a validated field inside the container but outside the rows keeps the validator ActiveForm registered', () => {
-    const $ = window.jQuery;
-    const fixture = tabularForm();
+  // `constructor` names a property every plain object inherits.
+  test.each(['order-total', 'constructor'])(
+    'a validated field inside the container but outside the rows keeps the validator ActiveForm registered: %s',
+    (id) => {
+      const $ = window.jQuery;
+      const fixture = tabularForm();
 
-    fixture.html = fixture.html.replace(
-      '<button type="button" class="add-item add-first">',
-      `${field('order-total', 'Total', textInput('order-total', 'Order[total]'))}<button type="button" class="add-item add-first">`,
-    );
-    fixture.validation['dynamic-form'].push(requiredAttribute('order-total', 'total', 'Total cannot be blank.'));
-    mount(fixture);
-    const registration = $('#dynamic-form').yiiActiveForm('find', 'order-total');
+      fixture.html = fixture.html.replace(
+        '<button type="button" class="add-item add-first">',
+        `${field(id, 'Total', textInput(id, 'Order[total]'))}<button type="button" class="add-item add-first">`,
+      );
+      fixture.validation['dynamic-form'].push(requiredAttribute(id, 'total', 'Total cannot be blank.'));
+      mount(fixture);
+      const registration = $('#dynamic-form').yiiActiveForm('find', id);
 
-    insert(options(), insertButton(0));
-    remove(options(), removeButton(1));
+      insert(options(), insertButton(0));
+      remove(options(), removeButton(1));
 
-    expect($('#dynamic-form').yiiActiveForm('find', 'order-total'), 'The field outside the rows is not a row field.').toBe(
-      registration,
-    );
-  });
+      expect($('#dynamic-form').yiiActiveForm('find', id), 'The field outside the rows is not a row field.').toBe(registration);
+    },
+  );
 
   test('an input inside the container but outside the rows with the id of a row field keeps its rule to itself', async () => {
     const $ = window.jQuery;
