@@ -14,8 +14,8 @@
     <a href="https://github.com/yii2-extensions/dynamicform/actions/workflows/build.yml" target="_blank">
         <img src="https://img.shields.io/github/actions/workflow/status/yii2-extensions/dynamicform/build.yml?style=for-the-badge&label=PHPUnit&logo=github" alt="PHPUnit">
     </a>
-    <a href="https://github.com/yii2-extensions/dynamicform/actions/workflows/mutation.yml" target="_blank">
-        <img src="https://img.shields.io/github/actions/workflow/status/yii2-extensions/dynamicform/mutation.yml?style=for-the-badge&label=Infection&logo=github" alt="Infection">
+    <a href="https://dashboard.stryker-mutator.io/reports/github.com/yii2-extensions/dynamicform/main" target="_blank">
+        <img src="https://img.shields.io/endpoint?style=for-the-badge&url=https%3A%2F%2Fbadge-api.stryker-mutator.io%2Fgithub.com%2Fyii2-extensions%2Fdynamicform%2Fmain" alt="Mutation Testing">
     </a>
     <a href="https://github.com/yii2-extensions/dynamicform/actions/workflows/static.yml" target="_blank">
         <img src="https://img.shields.io/github/actions/workflow/status/yii2-extensions/dynamicform/static.yml?style=for-the-badge&label=PHPStan&logo=github" alt="PHPStan">
@@ -34,7 +34,11 @@ Add and remove rows of form fields in the browser while the tabular input names,
 coherent. The widget wraps the rows rendered by `ActiveForm`, and the `Model` helper rebuilds the posted rows on the
 server.
 
-![Dynamic form widget](images/sample.jpeg)
+<picture>
+    <source media="(prefers-color-scheme: dark)" srcset="images/dynamicform-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="images/dynamicform-light.png">
+    <img src="images/dynamicform-light.png" alt="Example application with nested property and room fields, live totals and custom styling">
+</picture>
 
 ## Quick start
 
