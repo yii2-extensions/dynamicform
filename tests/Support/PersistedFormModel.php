@@ -10,7 +10,7 @@ namespace Yii2\Extensions\DynamicForm\Tests\Support;
 class PersistedFormModel extends FormModel
 {
     /**
-     * @var bool
+     * @var bool|null
      */
     public $isNewRecord = false;
 }

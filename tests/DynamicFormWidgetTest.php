@@ -23,6 +23,7 @@ use Yii2\Extensions\DynamicForm\Tests\Support\{
 };
 
 use function array_keys;
+use function array_replace;
 use function array_slice;
 use function array_values;
 use function count;
@@ -829,6 +830,37 @@ final class DynamicFormWidgetTest extends TestCase
             [],
             self::webView()->js,
             'Rejected configuration must not register scripts.',
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $overrides
+     */
+    #[DataProviderExternal(DynamicFormWidgetProvider::class, 'configurationsRejectedBeforeInitOptions')]
+    public function testThrowInvalidConfigExceptionForInvalidConfigurationBeforeTheInitOptionsHook(
+        array $overrides,
+        string $message,
+    ): void {
+        InspectableDynamicFormWidget::$initOptionsCalls = 0;
+
+        try {
+            new InspectableDynamicFormWidget(array_replace(WidgetRenderer::config(), $overrides));
+
+            self::fail(
+                'Invalid configuration must be rejected.',
+            );
+        } catch (InvalidConfigException $exception) {
+            self::assertSame(
+                $message,
+                $exception->getMessage(),
+                'Message must name the invalid property.',
+            );
+        }
+
+        self::assertSame(
+            0,
+            InspectableDynamicFormWidget::$initOptionsCalls,
+            'Overridden hook must receive a validated configuration only.',
         );
     }
 

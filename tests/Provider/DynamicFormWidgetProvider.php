@@ -19,6 +19,23 @@ use function ob_start;
 final class DynamicFormWidgetProvider
 {
     /**
+     * Invalid properties that `initOptions()` reads again; `init()` must reject them before calling the hook.
+     *
+     * @return iterable<string, array{array<string, mixed>, string}>
+     */
+    public static function configurationsRejectedBeforeInitOptions(): iterable
+    {
+        yield 'model missing' => [
+            ['model' => null],
+            "The 'model' property must be set and must extend from '\\yii\\base\\Model'.",
+        ];
+        yield 'formFields is a string' => [
+            ['formFields' => 'name'],
+            "The 'formFields' property must be set.",
+        ];
+    }
+
+    /**
      * @return iterable<string, array{array<string, mixed>, string, string}>
      */
     public static function incompatibleRenderings(): iterable
@@ -292,6 +309,12 @@ final class DynamicFormWidgetProvider
         ];
         yield 'zero minimum keeps rows of a persisted model' => [
             ['min' => 0, 'model' => new PersistedFormModel()],
+            '<div class="items"><div class="item">Row</div></div>',
+            '<div class="items"><div class="item">Row</div></div>',
+            '<div class="item">Row</div>',
+        ];
+        yield 'zero minimum keeps rows of a model whose record state is null' => [
+            ['min' => 0, 'model' => new PersistedFormModel(['isNewRecord' => null])],
             '<div class="items"><div class="item">Row</div></div>',
             '<div class="items"><div class="item">Row</div></div>',
             '<div class="item">Row</div>',
