@@ -180,10 +180,12 @@ describe('TomSelect instances', () => {
     kept.refreshOptions(false);
     kept.setActiveOption(kept.getOption('k2'), false);
     kept.close();
+    const scrolled = vi.spyOn(kept, 'scrollToOption');
 
     remove(options(), button(0, '.remove-item'));
 
     expect(kept.focus_node.getAttribute('aria-activedescendant'), 'reference after renumbering').toBe(kept.activeOption.id);
+    expect(scrolled, 'Renumbering must not scroll the closed listbox.').not.toHaveBeenCalled();
     expect(kept.activeOption.id).toMatch(/^formmodel-0-kind-opt-\d+$/);
 
     insert(options(), button(0, '.add-item'));

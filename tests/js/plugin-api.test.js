@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, test } from 'vitest';
+import { beforeAll, describe, expect, test, vi } from 'vitest';
 
 import { options, rows, tabularForm } from './fixtures/tabular.js';
 import { mount } from './support/dom.js';
@@ -30,6 +30,18 @@ describe('method dispatch', () => {
     expect(rows(), 'Initialization must not change the rendered rows.').toHaveLength(1);
   });
 
+  test('insertions clone the template parsed at initialization without parsing it again', () => {
+    const $ = window.jQuery;
+
+    mount(tabularForm());
+    const template = options().template;
+
+    $('.dynamicform_wrapper').yiiDynamicForm('addItem', options(), $.Event('click'), $('.add-item').first());
+
+    expect(options().template, 'The parsed template must be kept.').toBe(template);
+    expect(rows(), 'The clone must be inserted.').toHaveLength(2);
+  });
+
   test('an unknown method raises a jQuery error naming it', () => {
     const $ = window.jQuery;
 
@@ -38,5 +50,15 @@ describe('method dispatch', () => {
     expect(() => $('#dynamic-form').yiiDynamicForm('nope'), 'Unknown methods must not be ignored.').toThrow(
       'Method nope does not exist on jQuery.yiiDynamicForm',
     );
+  });
+
+  test('an unknown method returns false when the application makes jQuery errors non-throwing', () => {
+    const $ = window.jQuery;
+    const reported = vi.spyOn($, 'error').mockImplementation(() => {});
+
+    mount(tabularForm());
+
+    expect($('#dynamic-form').yiiDynamicForm('nope'), 'The call must report failure.').toBe(false);
+    expect(reported, 'The error must still be reported.').toHaveBeenCalledWith('Method nope does not exist on jQuery.yiiDynamicForm');
   });
 });

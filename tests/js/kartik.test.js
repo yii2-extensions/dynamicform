@@ -1,6 +1,7 @@
 import { beforeAll, describe, expect, test, vi } from 'vitest';
 
 import { enhanceKartik, handlerCounts, kartikForm } from './fixtures/kartik.js';
+import { buttons, select, widgetOptions } from './fixtures/markup.js';
 import { insert, mount, remove } from './support/dom.js';
 import { loadKartikEnvironment } from './support/environment.js';
 
@@ -178,6 +179,62 @@ describe('DepDrop rows', () => {
       'initDepdropS2() runs once per DepDrop, shows the loading text and triggers change around a load.',
     ).toEqual({ afterChange: [1, 1, 1], loading: 'Loading ...', changes: ['change', 'change'] });
   });
+  test("Kartik's Select2 handling of a new DepDrop shows the loading text of its options", () => {
+    setup();
+    window.depdrop_site_0.loadingText = 'Searching ...';
+    const handling = vi.spyOn(window, 'initDepdropS2');
+
+    insert(options(), button(0, '.add-item'));
+
+    expect(handling.mock.calls, 'The configured text replaces the default one.').toEqual([['formmodel-2-site', 'Searching ...']]);
+  });
+
+  test('a DepDrop whose own id has no row index keeps its configured dependencies in every row', () => {
+    const $ = window.jQuery;
+    const row =
+      '<div class="item">' +
+      select('formmodel-0-country', 'FormModel[0][country]', { es: 'Spain' }, { prompt: '-' }) +
+      select('region', 'Region', {}, { attributes: ' data-krajee-depdrop="depdrop_plain"' }) +
+      `${buttons()}</div>`;
+
+    mount({
+      html: `<form id="plain-form"><div class="dynamic_form" data-dynamicform="dynamicform_plain"><div class="items">${row}</div></div></form>`,
+      widgets: {
+        dynamicform_plain: widgetOptions({
+          widgetContainer: 'dynamic_form',
+          formId: 'plain-form',
+          fields: [{ id: 'formmodel-{}-country', name: 'FormModel[{}][country]' }],
+          template: row,
+        }),
+      },
+      globals: { depdrop_plain: { depends: ['formmodel-0-country'], url: '/depdrop/regions' } },
+    });
+    $('#region').depdrop(window.depdrop_plain);
+
+    insert(window.dynamicform_plain, document.querySelector('.add-item'));
+
+    expect(
+      Array.from(document.querySelectorAll('[data-krajee-depdrop]'), (element) => [element.id, $(element).data('depdrop').depends]),
+      'Without a row index of its own, a DepDrop cannot locate its row, so its dependencies stay as configured.',
+    ).toEqual([
+      ['region-0', ['formmodel-0-country']],
+      ['region-1', ['formmodel-0-country']],
+    ]);
+  });
+
+  test('a new DepDrop rendered as Select2 is created without the Select2 handling of older Kartik DepDrop scripts', () => {
+    const $ = window.jQuery;
+
+    setup();
+    vi.stubGlobal('initDepdropS2', undefined);
+
+    insert(options(), button(0, '.add-item'));
+
+    expect(
+      [$('#formmodel-2-site').data('depdrop').depends, handlerCounts('formmodel-2-site')['depdrop:afterChange']],
+      'The DepDrop belongs to its row and no Kartik handler is bound.',
+    ).toEqual([['formmodel-2-country'], undefined]);
+  });
 });
 
 describe('Select2 controls', () => {
@@ -222,6 +279,41 @@ describe('Select2 controls', () => {
       [2, 'select2-formmodel-0-kind'],
       [2, 'select2-formmodel-1-kind'],
     ]);
+  });
+
+  test('a Select2 whose id holds selector syntax keeps its instance and its clones are initialized', () => {
+    const $ = window.jQuery;
+    const row =
+      '<div class="item">' +
+      select('formmodel-0-kind.x', 'FormModel[0][kind]', { saved: 'Saved' }, {
+        attributes: ' data-krajee-select2="select2_kind" data-s2-options="s2options_kartik"',
+      }) +
+      `${buttons()}</div>`;
+
+    mount({
+      html: `<form id="syntax-form"><div class="dynamic_form" data-dynamicform="dynamicform_syntax"><div class="items">${row}</div></div></form>`,
+      widgets: {
+        dynamicform_syntax: widgetOptions({
+          widgetContainer: 'dynamic_form',
+          formId: 'syntax-form',
+          fields: [{ id: 'formmodel-{}-kind', name: 'FormModel[{}][kind]' }],
+          template: row,
+        }),
+      },
+      globals: { select2_kind: { width: 'auto' }, s2options_kartik: { themeCss: '', sizeCss: '', doReset: false, doToggle: false, doOrder: false } },
+    });
+    const control = (index) => $(document.getElementById(`formmodel-${index}-kind.x`));
+    control(0).select2(window.select2_kind);
+    const original = control(0).data('select2');
+    const loading = vi.spyOn(window, 'initS2Loading');
+
+    insert(window.dynamicform_syntax, document.querySelector('.add-item'));
+
+    expect(control(0).data('select2'), 'Select2 names the instance without the selector syntax.').toBe(original);
+    expect(
+      [control(1).data('select2')?.id, loading.mock.calls],
+      'The clone is initialized through its element.',
+    ).toEqual(['select2-formmodel-1-kindx', [['formmodel-1-kind.x', 's2options_kartik']]]);
   });
 
   test('the Select2 3.x open handler is bound once, and only when initSelect2DropStyle exists', () => {

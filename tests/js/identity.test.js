@@ -189,6 +189,39 @@ describe('tabular rows', () => {
     expect(document.getElementById('meta-0-ts').getAttribute('name'), 'The suffix must not be cut.').toBe('Meta[0][ts]suffix');
   });
 
+  test('an undeclared id or name with a line break around its row index is not cut at the line break', () => {
+    const fixture = tabularForm();
+
+    fixture.html = fixture.html.replace(
+      '<button type="button" class="add-item">',
+      '<input type="hidden" id="x&#10;meta-0-ts" name="x&#10;Meta[0][ts]"><input type="hidden" id="meta-0-ts&#10;x">' +
+        '<button type="button" class="add-item">',
+    );
+    mount(fixture);
+
+    window.jQuery('.dynamicform_wrapper').yiiDynamicForm('updateContainer');
+
+    expect(
+      Array.from(rows()[0].querySelectorAll('input[type=hidden]:not([name^="FormModel"])'), (input) => [input.id, input.getAttribute('name')]),
+      'Only an id or name matching the tabular shape as a whole is renumbered; others take the non-tabular index.',
+    ).toEqual([
+      ['x\nmeta-0-ts-0', 'x\nMeta[0][ts]'],
+      ['meta-0-ts\nx-0', null],
+    ]);
+  });
+
+  test('renumbering leaves the classes of a field whose id does not change as rendered', () => {
+    const fixture = tabularForm();
+
+    fixture.html = fixture.html.replace('field-formmodel-0-name"', 'field-formmodel-0-name required"');
+    mount(fixture);
+    insert(options(), insertButton(0));
+
+    expect(rows()[0].querySelector('.form-group').className, 'The class order of the unchanged field must be kept.').toBe(
+      'form-group field-formmodel-0-name required',
+    );
+  });
+
   test('controls with non-tabular names keep their names', () => {
     const fixture = tabularForm();
 

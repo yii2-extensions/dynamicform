@@ -145,12 +145,13 @@ Events are triggered on the container that owns the clicked button: `beforeInser
 ## Enhanced controls
 
 Tested versions are listed in `testing.md`: Select2 4.0.13 with Kartik Select2 2.2.5 and DepDrop 1.0.6, TomSelect 2.4.3,
-Inputmask 5.0.10 through `yii\widgets\MaskedInput`, and Kartik DatePicker 1.4.8 as a component, `TYPE_INPUT` and
-`TYPE_INLINE`. Mark TomSelect selects with `data-tomselect` and load a build with the `remove_button` and
+Inputmask 5.0.10 through `yii\widgets\MaskedInput`, Kartik DatePicker 1.4.8 as a component, `TYPE_INPUT` and
+`TYPE_INLINE`, and, in jsdom only, Kartik TimePicker 1.0.5, FileInput 1.1.1, TouchSpin 1.2.4, MaskMoney 1.2.3 and
+NumberControl 1.0.5. Mark TomSelect selects with `data-tomselect` and load a build with the `remove_button` and
 `dropdown_input` plugins; inserted rows get those fixed settings, not the settings of the rendered rows. Other versions,
-the time picker, maskMoney, fileinput, TouchSpin, Spectrum, NumberControl, DatePicker `TYPE_BUTTON`/`TYPE_RANGE` and
-DepDrop inside nested widgets are untested; state that instead of claiming support. Inputmask keeps the form handlers of
-deleted rows bound, and with `YII_DEBUG=false` Kartik's `depdrop.min.js` does not run its Select2 loading handling.
+DatePicker `TYPE_BUTTON`/`TYPE_RANGE` and DepDrop inside nested widgets are untested, and Kartik ColorInput (Spectrum)
+is not handled; state that instead of claiming support. Inputmask keeps the form handlers of deleted rows bound, and
+with `YII_DEBUG=false` Kartik's `depdrop.min.js` does not run its Select2 loading handling.
 
 ## Verify the integration
 

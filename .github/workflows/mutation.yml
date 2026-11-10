@@ -1,0 +1,26 @@
+---
+on:
+  pull_request: &ignore-paths
+    paths-ignore:
+      - ".gitattributes"
+      - ".gitignore"
+      - "CHANGELOG.md"
+      - "docs/**"
+      - "README.md"
+
+  push: *ignore-paths
+
+name: mutation test
+
+permissions:
+  contents: read
+
+jobs:
+  mutation:
+    uses: yii2-framework/actions/.github/workflows/infection.yml@f0e06ea5cc965cff4431177d448add7b7c98668b # v2.0.1
+    with:
+      command-options: --threads=max
+      phpstan: true
+    secrets:
+      # Only the workflow status is published; no Stryker dashboard upload is configured.
+      STRYKER_DASHBOARD_API_KEY: ""

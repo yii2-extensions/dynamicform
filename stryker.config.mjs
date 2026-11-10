@@ -15,12 +15,11 @@ const config = {
   reporters: ['clear-text', 'progress', 'json'],
   jsonReporter: { fileName: 'runtime/stryker/mutation.json' },
   tempDirName: 'runtime/stryker-tmp',
-  // `break` is the floor of the score measured when this layer was introduced (52.68%); surviving and uncovered
-  // mutants are classified in the private test-architecture record. Raise it with new tests; never lower it.
+  // Every mutant is killed: a new mutant needs a test, or the code it mutates is dead and goes. Never lower it.
   thresholds: {
-    high: 80,
-    low: 60,
-    break: 52,
+    high: 100,
+    low: 100,
+    break: 100,
   },
 };
 

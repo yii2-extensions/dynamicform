@@ -14,8 +14,8 @@
     <a href="https://github.com/yii2-extensions/dynamicform/actions/workflows/build.yml" target="_blank">
         <img src="https://img.shields.io/github/actions/workflow/status/yii2-extensions/dynamicform/build.yml?style=for-the-badge&label=PHPUnit&logo=github" alt="PHPUnit">
     </a>
-    <a href="https://github.com/yii2-extensions/dynamicform/actions/workflows/assets.yml" target="_blank">
-        <img src="https://img.shields.io/github/actions/workflow/status/yii2-extensions/dynamicform/assets.yml?style=for-the-badge&label=Assets&logo=github" alt="Assets">
+    <a href="https://github.com/yii2-extensions/dynamicform/actions/workflows/mutation.yml" target="_blank">
+        <img src="https://img.shields.io/github/actions/workflow/status/yii2-extensions/dynamicform/mutation.yml?style=for-the-badge&label=Infection&logo=github" alt="Infection">
     </a>
     <a href="https://github.com/yii2-extensions/dynamicform/actions/workflows/static.yml" target="_blank">
         <img src="https://img.shields.io/github/actions/workflow/status/yii2-extensions/dynamicform/static.yml?style=for-the-badge&label=PHPStan&logo=github" alt="PHPStan">
@@ -121,11 +121,12 @@ The hosted documentation covers Yii 22.0. If it does not match the installed rev
 [![Latest Stable Version](https://img.shields.io/packagist/v/yii2-extensions/dynamicform.svg?style=for-the-badge&logo=packagist&logoColor=white&label=Stable)](https://packagist.org/packages/yii2-extensions/dynamicform)
 [![Total Downloads](https://img.shields.io/packagist/dt/yii2-extensions/dynamicform.svg?style=for-the-badge&logo=composer&logoColor=white&label=Downloads)](https://packagist.org/packages/yii2-extensions/dynamicform)
 
-## Project status
+## Code quality
 
 [![Codecov](https://img.shields.io/codecov/c/github/yii2-extensions/dynamicform.svg?style=for-the-badge&logo=codecov&logoColor=white&label=Coverage)](https://codecov.io/github/yii2-extensions/dynamicform)
 [![PHPStan Level Max](https://img.shields.io/badge/PHPStan-Level%20Max-4F5D95.svg?style=for-the-badge&logo=github&logoColor=white)](https://github.com/yii2-extensions/dynamicform/actions/workflows/static.yml)
 [![Quality](https://img.shields.io/github/actions/workflow/status/yii2-extensions/dynamicform/quality.yml?style=for-the-badge&label=Quality&logo=github)](https://github.com/yii2-extensions/dynamicform/actions/workflows/quality.yml)
+[![Assets](https://img.shields.io/github/actions/workflow/status/yii2-extensions/dynamicform/assets.yml?style=for-the-badge&label=Assets&logo=github)](https://github.com/yii2-extensions/dynamicform/actions/workflows/assets.yml)
 [![ECS](https://img.shields.io/github/actions/workflow/status/yii2-extensions/dynamicform/ecs.yml?style=for-the-badge&label=ECS&logo=github)](https://github.com/yii2-extensions/dynamicform/actions/workflows/ecs.yml)
 
 ## Special thanks
