@@ -1,7 +1,5 @@
 # Installation guide
 
-This guide describes the upcoming 2.0 line. Match the documentation to the revision installed in your application.
-
 ## System requirements
 
 - [`PHP`](https://www.php.net/downloads) 8.1 or higher with the `dom` extension.
@@ -14,23 +12,9 @@ This guide describes the upcoming 2.0 line. Match the documentation to the revis
 
 ## Installation
 
-Install the stable 1.x line with [Composer](https://getcomposer.org/download/). Its requirements and behavior differ
-from the development version described here; use the documentation at the installed release tag.
-
 ```bash
-composer require --prefer-dist yii2-extensions/dynamicform:^1.0
+composer require --prefer-dist yii2-extensions/dynamicform:^2.0
 ```
-
-### Development version
-
-Until 2.0 is released, explicitly opt into the development branch if you need its changes:
-
-```bash
-composer require --prefer-dist yii2-extensions/dynamicform:dev-master
-```
-
-Development installations track a moving branch; verify the installed revision. The 1.x releases do not include the
-`yii2-dynamicform` agent skill. A stable `^2.0` requirement is usable only after a 2.0 release is published.
 
 ## Assets
 
@@ -41,9 +25,8 @@ needed for the widget. The application must provide jQuery at the path used by i
 
 ### Yii 22 client validation
 
-Yii 22 needs the 2.0 development installation above; the stable 1.x extension does not accept Yii 22. The framework only
-suggests the jQuery client-script implementation. Install it explicitly alongside the development Yii version (PHP 8.3
-or higher):
+Yii 22 only suggests the jQuery client-script implementation. Install it explicitly alongside the development Yii
+version (PHP 8.3 or higher):
 
 ```bash
 composer require --prefer-dist yiisoft/yii2:22.0.x-dev yiisoft/yii2-jquery:dev-master

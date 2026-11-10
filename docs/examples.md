@@ -73,12 +73,61 @@ above.
 ```php
 namespace app\models;
 
-use yii\web\BadRequestHttpException;
+use Yii;
+use yii\base\InvalidConfigException;
+use yii\web\{BadRequestHttpException, ConflictHttpException};
 
 final class AddressSubmission
 {
     public const MIN_ROWS = 1;
     public const MAX_ROWS = 4;
+
+    public static function snapshot(int|string $customerID, array $existing): string
+    {
+        return base64_encode(Yii::$app->security->hashData(
+            self::snapshotPayload($customerID, self::addressIDs($existing)),
+            self::snapshotKey(),
+        ));
+    }
+
+    public static function validateSnapshot(mixed $snapshot, int|string $customerID, array $existing): array
+    {
+        $signed = is_string($snapshot) ? base64_decode($snapshot, true) : false;
+        $payload = $signed === false ? false : Yii::$app->security->validateData($signed, self::snapshotKey());
+
+        if ($payload === false) {
+            throw new BadRequestHttpException('Invalid address snapshot. Reload the form.');
+        }
+
+        $ids = self::addressIDs($existing);
+        if ($payload !== self::snapshotPayload($customerID, $ids)) {
+            throw new ConflictHttpException('The address list changed. Reload the form before saving.');
+        }
+
+        return $ids;
+    }
+
+    private static function addressIDs(array $existing): array
+    {
+        return array_map(static fn($address): string => (string) $address->id, $existing);
+    }
+
+    private static function snapshotPayload(int|string $customerID, array $ids): string
+    {
+        sort($ids, SORT_STRING);
+
+        return json_encode([(string) $customerID, $ids], JSON_THROW_ON_ERROR);
+    }
+
+    private static function snapshotKey(): string
+    {
+        $key = Yii::$app->params['addressSnapshotKey'] ?? null;
+        if (!is_string($key) || strlen($key) < 32) {
+            throw new InvalidConfigException('Configure a random addressSnapshotKey of at least 32 bytes.');
+        }
+
+        return $key;
+    }
 
     public static function validate(mixed $rows, array $existing = []): array
     {
@@ -127,8 +176,19 @@ final class AddressSubmission
 
 `array_is_list()` requires indexes in order from zero; do not sort or reindex only one side of the
 `createMultiple()`/`loadMultiple()` flow. These checks also run for AJAX validation and before any database writes. Only
-an authorized, valid submission may delete stored rows that were intentionally omitted. Missing address groups are
-rejected here, not interpreted as "delete all".
+an authorized, valid submission with an unchanged address snapshot may delete stored rows that were intentionally
+omitted. Missing address groups are rejected here, not interpreted as "delete all".
+
+Configure `Yii::$app->params['addressSnapshotKey']` with a dedicated, random server-side secret of at least 32 bytes,
+loaded from the application's secret configuration and shared by its web instances. Never send the key to the browser.
+The signed snapshot binds the customer and the IDs rendered when the form opens. The update action rejects missing,
+modified or stale snapshots before calculating deletions. Keep the original token when redisplaying validation errors;
+forward `addressSnapshot` from the update view to this shared form when using a partial.
+
+This snapshot detects changes to list membership, not concurrent edits to existing row values. Applications requiring
+full lost-update protection also need a version check covering all writers. IDs must not be reused for different
+records. Additions after the snapshot check are safe from deletion because the action deletes only validated snapshot
+IDs, never a newly queried set of omitted IDs.
 
 ## Create action
 
@@ -221,8 +281,9 @@ class CustomerController extends Controller
 ## Update action
 
 Passing the stored addresses and their primary key to `Model::createMultiple()` reuses the models whose key was posted
-and creates the rest; validated keys that are no longer posted are deleted after all models pass validation. Adapt
-`findModel()` to the application's authorization policy; the usual Gii lookup below does not enforce ownership itself.
+and creates the rest; keys in the validated snapshot that are no longer posted are deleted after all models pass
+validation. Adapt `findModel()` to the application's authorization policy; the usual Gii lookup below does not enforce
+ownership itself.
 
 ```php
 namespace app\controllers;
@@ -251,16 +312,18 @@ class CustomerController extends Controller
         $modelCustomer = $this->findModel($id);
 
         $modelsAddress = $modelCustomer->addresses;
+        $addressSnapshot = AddressSubmission::snapshot($modelCustomer->id, $modelsAddress);
 
         // primary key of $modelsAddress
         $pkey = 'id';
 
         if ($modelCustomer->load(Yii::$app->request->post())) {
+            $addressSnapshot = Yii::$app->request->post('addressSnapshot');
+            $oldIDs = AddressSubmission::validateSnapshot($addressSnapshot, $modelCustomer->id, $modelsAddress);
             $postedIDs = AddressSubmission::validate(
                 Yii::$app->request->post((new Address())->formName()),
                 $modelsAddress,
             );
-            $oldIDs = ArrayHelper::map($modelsAddress, $pkey, $pkey);
             $modelsAddress = Model::createMultiple(Address::class, $modelsAddress, $pkey);
 
             Model::loadMultiple($modelsAddress, Yii::$app->request->post());
@@ -288,7 +351,7 @@ class CustomerController extends Controller
                 try {
                     if ($flag = $modelCustomer->save(false)) {
                         if (!empty($deletedIDs)) {
-                            Address::deleteAll([$pkey => $deletedIDs]);
+                            Address::deleteAll([$pkey => $deletedIDs, 'customer_id' => $modelCustomer->id]);
                         }
 
                         foreach ($modelsAddress as $modelAddress) {
@@ -322,6 +385,7 @@ class CustomerController extends Controller
         }
 
         return $this->render('update', [
+            'addressSnapshot' => $addressSnapshot,
             'modelCustomer' => $modelCustomer,
             'modelsAddress' => empty($modelsAddress) ? [new Address()] : $modelsAddress,
         ]);
@@ -343,6 +407,9 @@ use Yii2\Extensions\DynamicForm\DynamicFormWidget;
 
 <div class="customer-form">
     <?php $form = ActiveForm::begin(['id' => 'dynamic-form']); ?>
+    <?php if (!$modelCustomer->isNewRecord): ?>
+        <?= Html::hiddenInput('addressSnapshot', $addressSnapshot) ?>
+    <?php endif; ?>
     <div class="row">
         <div class="col-sm-6">
             <?= $form->field($modelCustomer, 'first_name')->textInput(['maxlength' => true]) ?>

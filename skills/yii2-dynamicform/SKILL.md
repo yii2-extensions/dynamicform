@@ -33,9 +33,7 @@ report the gap.
 
 The package requires PHP 8.1 or higher with `dom`, `yiisoft/yii2` `^2.0.55 || ^22.0` and Symfony `css-selector` and
 `dom-crawler` 6.4 or 7.x. The Yii 22 line needs PHP 8.3 and an explicit `yiisoft/yii2:22.0.x-dev` requirement in the
-application. Before a stable 2.0 release, `^2.0` does not resolve: use
-`composer require yii2-extensions/dynamicform:dev-master` only when the user wants the development version. For stable
-1.x, use `^1.0` and its matching documentation; those releases do not ship this skill.
+application. Install with `composer require yii2-extensions/dynamicform:^2.0`.
 
 `DynamicFormAsset` depends on `yii\web\JqueryAsset` and `yii\widgets\ActiveFormAsset`. On Yii 22, also install
 `yiisoft/yii2-jquery:dev-master` and register `\yii\jquery\Bootstrap::class` in the application's `bootstrap` list;
@@ -105,9 +103,13 @@ Authorize the parent first and obtain existing children from its permitted relat
 schema's key normalization. The helper treats unknown keys as new rows and can reuse the same instance for repeated
 keys, so it does not reject either case. Use an explicit empty-key convention for new rows; do not treat a valid key
 such as `0` as empty. Keep primary and parent foreign keys out of mass assignment; select existing records by their
-validated keys and assign the authorized parent on the server. Only after the parent, all rows and counts pass
-validation, delete intentionally omitted stored children and save the remaining rows inside one transaction with a
-guarded rollback. A hidden key is user input, not authorization.
+validated keys and assign the authorized parent on the server. Use a signed snapshot of the originally rendered child
+IDs, bound to the authorized parent, to reject stale membership before calculating deletions. Delete only IDs from that
+validated snapshot, so later additions cannot become omissions; scope deletion to the parent too. Preserve the original
+snapshot after validation errors. The example does not detect concurrent edits to existing values; use a version check
+covering all writers when that is required. Only after the parent, all rows and counts pass validation, delete
+intentionally omitted stored children and save the remaining rows inside one transaction with a guarded rollback. A
+hidden key is user input, not authorization.
 
 The flat flow requires contiguous zero-based row indexes. `createMultiple()` returns a reindexed list, whereas
 `loadMultiple()` uses those indexes against the original payload; sparse indexes can leave rows empty or load the wrong
