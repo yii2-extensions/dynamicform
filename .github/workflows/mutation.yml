@@ -22,5 +22,4 @@ jobs:
       command-options: --threads=max
       phpstan: true
     secrets:
-      # Only the workflow status is published; no Stryker dashboard upload is configured.
-      STRYKER_DASHBOARD_API_KEY: ""
+      STRYKER_DASHBOARD_API_KEY: ${{ secrets.STRYKER_DASHBOARD_API_KEY }}
