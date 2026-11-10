@@ -34,7 +34,7 @@
         "ext-dom": "*",
         "yiisoft/yii2": "^2.0.55 || ^22.0",
         "symfony/css-selector": "^6.4||^7.0",
-        "symfony/dom-crawler": "^6.4||^7.0"
+        "symfony/dom-crawler": "^8.1.10"
     },
     "require-dev": {
         "bower-asset/inputmask": "5.0.10",
