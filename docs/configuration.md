@@ -30,9 +30,11 @@ click handler directly to the form and can prevent unrelated click defaults, inc
 use a non-empty selector that matches no element. Use `type="button"` on insert and delete controls.
 
 When redisplaying a failed POST with `min=0`, a configured `model` that still counts as new removes all rendered rows
-and their errors, even if their models hold submitted values. Preserve that markup through an application-specific
-rendering strategy and verify that users can still delete all optional rows. Do not mark an unsaved ActiveRecord as
-persisted to bypass this behavior.
+and their errors, even if their models hold submitted values. If the application can require at least one row, use
+`min=1` consistently in the view and server-side count checks. This retains failed-POST rows but does not support
+deleting all rows. The current API has no independent option to preserve new rows while allowing deletion to zero;
+account for that limitation before adopting optional lists. Do not mark an unsaved ActiveRecord as persisted to bypass
+it.
 
 ## Several widgets on a page
 
@@ -41,6 +43,11 @@ container, such as an inner widget rendered once per outer row, reuses that regi
 the same options; only its rendered rows may differ. Rendering the same container in the same form with other options
 throws `InvalidConfigException` naming the options that differ. Forms are independent: two forms may use the same
 container name with different options.
+
+The `min=0` rule applies to each nested widget too: a new configured model removes all its child rows, including any
+persisted child markup. A missing child group caused by rendering is not an authorized request to delete those records.
+When an outer template contains inner rows, cloning the outer row retains the first inner row even if its widget has
+`min=0`; the minimum does not force a cloned inner list to start empty.
 
 Insert and delete buttons act on the widget whose container holds them most closely, so nested widgets may share button
 selectors. Place the buttons of a widget inside its container and outside the containers nested in it. With `min=0`,

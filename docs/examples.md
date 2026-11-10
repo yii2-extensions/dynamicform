@@ -58,6 +58,78 @@ class Address extends ActiveRecord
 }
 ```
 
+## Request checks
+
+These actions require one to four addresses, matching the view below. Authorize customer creation through the
+application's access rules, and make `findModel()` return only a customer the current user may edit. The relation
+`$modelCustomer->addresses` is then the allowed set of existing children. A hidden id is not authorization.
+
+Use this application helper before constructing or loading row models. It rejects missing, empty, excessive, sparse or
+permuted lists, malformed rows, ids outside the permitted relation and duplicate ids. This schema uses non-negative
+integer ids in canonical decimal form; an omitted id or `''` means a new row, but `0` is a real key. Adapt this policy
+for other key schemas or optional lists. Keep `id` and `customer_id` out of the address model's safe attributes, as
+above.
+
+```php
+namespace app\models;
+
+use yii\web\BadRequestHttpException;
+
+final class AddressSubmission
+{
+    public const MIN_ROWS = 1;
+    public const MAX_ROWS = 4;
+
+    public static function validate(mixed $rows, array $existing = []): array
+    {
+        if (!is_array($rows) || !array_is_list($rows)
+            || count($rows) < self::MIN_ROWS || count($rows) > self::MAX_ROWS
+        ) {
+            throw new BadRequestHttpException('Submit between one and four consecutively indexed addresses.');
+        }
+
+        $allowed = [];
+
+        foreach ($existing as $address) {
+            $allowed[(string) $address->id] = true;
+        }
+
+        $seen = [];
+        $postedIDs = [];
+
+        foreach ($rows as $row) {
+            if (!is_array($row)) {
+                throw new BadRequestHttpException('Invalid address row.');
+            }
+
+            $id = array_key_exists('id', $row) ? $row['id'] : '';
+            if ($id === '') {
+                continue;
+            }
+
+            if ((!is_int($id) && !is_string($id)) || preg_match('/^(?:0|[1-9][0-9]*)$/D', (string) $id) !== 1) {
+                throw new BadRequestHttpException('Invalid address id.');
+            }
+
+            $id = (string) $id;
+            if (!isset($allowed[$id]) || isset($seen[$id])) {
+                throw new BadRequestHttpException('Unknown or repeated address id.');
+            }
+
+            $seen[$id] = true;
+            $postedIDs[] = $id;
+        }
+
+        return $postedIDs;
+    }
+}
+```
+
+`array_is_list()` requires indexes in order from zero; do not sort or reindex only one side of the
+`createMultiple()`/`loadMultiple()` flow. These checks also run for AJAX validation and before any database writes. Only
+an authorized, valid submission may delete stored rows that were intentionally omitted. Missing address groups are
+rejected here, not interpreted as "delete all".
+
 ## Create action
 
 `Model::createMultiple()` creates one `Address` per posted row; the rows are loaded, validated and saved inside one
@@ -66,8 +138,8 @@ transaction, which is rolled back when any save is vetoed.
 ```php
 namespace app\controllers;
 
-use app\models\{Address, Customer};
-use Exception;
+use app\models\{Address, AddressSubmission, Customer};
+use Throwable;
 use Yii;
 use yii\helpers\ArrayHelper;
 use yii\web\{Controller, Response};
@@ -79,9 +151,12 @@ class CustomerController extends Controller
     public function actionCreate()
     {
         $modelCustomer = new Customer();
+
         $modelsAddress = [new Address()];
 
         if ($modelCustomer->load(Yii::$app->request->post())) {
+            AddressSubmission::validate(Yii::$app->request->post((new Address())->formName()));
+
             $modelsAddress = Model::createMultiple(Address::class);
 
             Model::loadMultiple($modelsAddress, Yii::$app->request->post());
@@ -125,8 +200,12 @@ class CustomerController extends Controller
                     if ($transaction->isActive) {
                         $transaction->rollBack();
                     }
-                } catch (Exception $e) {
-                    $transaction->rollBack();
+                } catch (Throwable $e) {
+                    if ($transaction->isActive) {
+                        $transaction->rollBack();
+                    }
+
+                    throw $e;
                 }
             }
         }
@@ -142,13 +221,14 @@ class CustomerController extends Controller
 ## Update action
 
 Passing the stored addresses and their primary key to `Model::createMultiple()` reuses the models whose key was posted
-and creates the rest; the keys that are no longer posted are deleted. `findModel()` is the usual Gii helper.
+and creates the rest; validated keys that are no longer posted are deleted after all models pass validation. Adapt
+`findModel()` to the application's authorization policy; the usual Gii lookup below does not enforce ownership itself.
 
 ```php
 namespace app\controllers;
 
-use app\models\{Address, Customer};
-use Exception;
+use app\models\{Address, AddressSubmission, Customer};
+use Throwable;
 use Yii;
 use yii\helpers\ArrayHelper;
 use yii\web\{Controller, NotFoundHttpException, Response};
@@ -169,18 +249,23 @@ class CustomerController extends Controller
     public function actionUpdate($id)
     {
         $modelCustomer = $this->findModel($id);
+
         $modelsAddress = $modelCustomer->addresses;
 
         // primary key of $modelsAddress
         $pkey = 'id';
 
         if ($modelCustomer->load(Yii::$app->request->post())) {
+            $postedIDs = AddressSubmission::validate(
+                Yii::$app->request->post((new Address())->formName()),
+                $modelsAddress,
+            );
             $oldIDs = ArrayHelper::map($modelsAddress, $pkey, $pkey);
             $modelsAddress = Model::createMultiple(Address::class, $modelsAddress, $pkey);
 
             Model::loadMultiple($modelsAddress, Yii::$app->request->post());
 
-            $deletedIDs = array_diff($oldIDs, array_filter(ArrayHelper::map($modelsAddress, $pkey, $pkey)));
+            $deletedIDs = array_diff($oldIDs, $postedIDs);
 
             // ajax validation
             if (Yii::$app->request->isAjax) {
@@ -194,6 +279,7 @@ class CustomerController extends Controller
 
             // validate all models
             $valid = $modelCustomer->validate();
+
             $valid = Model::validateMultiple($modelsAddress) && $valid;
 
             if ($valid) {
@@ -225,8 +311,12 @@ class CustomerController extends Controller
                     if ($transaction->isActive) {
                         $transaction->rollBack();
                     }
-                } catch (Exception $e) {
-                    $transaction->rollBack();
+                } catch (Throwable $e) {
+                    if ($transaction->isActive) {
+                        $transaction->rollBack();
+                    }
+
+                    throw $e;
                 }
             }
         }
@@ -245,6 +335,7 @@ The view renders the customer fields and, inside the widget, one panel per addre
 and delete buttons, and stored addresses keep their hidden primary key.
 
 ```php
+use app\models\AddressSubmission;
 use yii\helpers\Html;
 use yii\widgets\ActiveForm;
 use Yii2\Extensions\DynamicForm\DynamicFormWidget;
@@ -264,25 +355,27 @@ use Yii2\Extensions\DynamicForm\DynamicFormWidget;
     <div class="panel panel-default">
         <div class="panel-heading"><h4><i class="glyphicon glyphicon-envelope"></i> Addresses</h4></div>
         <div class="panel-body">
-            <?php DynamicFormWidget::begin([
-                'widgetContainer' => 'dynamicform_wrapper', // required: only alphanumeric characters plus "_" [A-Za-z0-9_]
-                'widgetBody' => '.container-items', // required: css class selector
-                'widgetItem' => '.item', // required: css class
-                'limit' => 4, // the maximum times, an element can be cloned (default 999)
-                'min' => 1, // 0 or 1 (default 1)
-                'insertButton' => '.add-item', // css class
-                'deleteButton' => '.remove-item', // css class
-                'model' => $modelsAddress[0],
-                'formId' => 'dynamic-form',
-                'formFields' => [
-                    'full_name',
-                    'address_line1',
-                    'address_line2',
-                    'city',
-                    'state',
-                    'postal_code',
+            <?php DynamicFormWidget::begin(
+                [
+                    'widgetContainer' => 'dynamicform_wrapper', // required: only alphanumeric characters plus "_" [A-Za-z0-9_]
+                    'widgetBody' => '.container-items', // required: css class selector
+                    'widgetItem' => '.item', // required: css class
+                    'limit' => AddressSubmission::MAX_ROWS, // enforced by the request guard too
+                    'min' => AddressSubmission::MIN_ROWS,
+                    'insertButton' => '.add-item', // css class
+                    'deleteButton' => '.remove-item', // css class
+                    'model' => $modelsAddress[0],
+                    'formId' => 'dynamic-form',
+                    'formFields' => [
+                        'full_name',
+                        'address_line1',
+                        'address_line2',
+                        'city',
+                        'state',
+                        'postal_code',
+                    ],
                 ],
-            ]); ?>
+            ); ?>
 
             <div class="container-items"><!-- widgetBody -->
             <?php foreach ($modelsAddress as $i => $modelAddress): ?>

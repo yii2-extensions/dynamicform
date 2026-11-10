@@ -41,11 +41,14 @@ server.
 ### Installation
 
 ```bash
-composer require --prefer-dist yii2-extensions/dynamicform:^2.0
+composer require --prefer-dist yii2-extensions/dynamicform:^1.0
 ```
 
-Yii publishes the jQuery plugin through `DynamicFormAsset`; no Node.js toolchain is needed. See
-[installation](docs/installation.md).
+This installs the stable 1.x line. For the upcoming 2.0 version described by this checkout, explicitly opt into
+[the development version](docs/installation.md#development-version).
+
+Yii publishes the jQuery plugin through `DynamicFormAsset`; no Node.js toolchain is needed to build the widget. See
+[installation](docs/installation.md), including the additional jQuery setup for Yii 22.
 
 ### Basic usage
 

@@ -1,14 +1,15 @@
 ---
 name: yii2-dynamicform
-description: Use when adding, nesting, validating or debugging repeatable rows of ActiveForm fields with DynamicFormWidget and Model::createMultiple() in a Yii2 application using yii2-extensions/dynamicform.
+description: Use when adding or removing dynamic form rows, cloning or nesting ActiveForm fields, validating or debugging DynamicFormWidget and Model::createMultiple(), or migrating from wbraganca/yii2-dynamicform to yii2-extensions/dynamicform.
 license: BSD-3-Clause
 ---
 
 # Repeatable form rows with yii2-dynamicform
 
 Use `Yii2\Extensions\DynamicForm\DynamicFormWidget` for the rows in the view and
-`Yii2\Extensions\DynamicForm\Models\Model::createMultiple()` for the posted rows. Do not use the namespace or options of
-the original `wbraganca/yii2-dynamicform` or of another fork. Match the application's installed package revision.
+`Yii2\Extensions\DynamicForm\Models\Model::createMultiple()` for the posted rows. Use this package's namespace, not
+`wbraganca\dynamicform`. Option names overlap with the original `wbraganca/yii2-dynamicform`; verify their semantics and
+validation against this package's PHPDoc and the application's installed revision, rather than assuming fork parity.
 
 ## Read the relevant contract
 
@@ -32,10 +33,16 @@ report the gap.
 
 The package requires PHP 8.1 or higher with `dom`, `yiisoft/yii2` `^2.0.55 || ^22.0` and Symfony `css-selector` and
 `dom-crawler` 6.4 or 7.x. The Yii 22 line needs PHP 8.3 and an explicit `yiisoft/yii2:22.0.x-dev` requirement in the
-application. Install with `composer require yii2-extensions/dynamicform:^2.0`. `DynamicFormAsset` depends on
-`yii\web\JqueryAsset` and `yii\widgets\ActiveFormAsset`, so the application provides jQuery through its `@bower` alias,
-as the Yii application templates do; no Node.js toolchain or build is needed. `YII_DEBUG=false` loads
-`yii2-dynamic-form.min.js`; preserve any `assetManager.bundles` override of the bundle.
+application. Before a stable 2.0 release, `^2.0` does not resolve: use
+`composer require yii2-extensions/dynamicform:dev-master` only when the user wants the development version. For stable
+1.x, use `^1.0` and its matching documentation; those releases do not ship this skill.
+
+`DynamicFormAsset` depends on `yii\web\JqueryAsset` and `yii\widgets\ActiveFormAsset`. On Yii 22, also install
+`yiisoft/yii2-jquery:dev-master` and register `\yii\jquery\Bootstrap::class` in the application's `bootstrap` list;
+without that client-script implementation, registering assets does not enable `ActiveForm` client validation. Provide
+jQuery at the path expected by `JqueryAsset`: `@bower/jquery/dist` on Yii 2.0.55, `@npm/jquery/dist` on Yii 22, or a
+deliberate bundle override. No Node.js build is needed for the widget. `YII_DEBUG=false` loads
+`yii2-dynamic-form.min.js`; preserve any `assetManager.bundles` override.
 
 ## Render the rows
 
@@ -52,8 +59,10 @@ With integer `min=0`, the configured `model` controls the entire rendering: if i
 property is absent, every rendered `widgetItem` is removed, including markup for any persisted sibling rows. Otherwise
 all rendered rows remain, including new ones. The widget does not inspect each row model separately. If the configured
 model still counts as new when redisplaying a failed POST, this also removes submitted rows and their rendered errors.
-Preserve the posted rows through an application-specific rendering strategy and verify that users can still delete all
-optional rows. Do not mark an unsaved ActiveRecord as persisted to bypass this behavior.
+If requiring at least one row is acceptable, use `min=1` consistently on the client and server to retain failed-POST
+rows. This does not meet an optional zero-row requirement: the current API has no separate option for preserving new
+rows while allowing deletion to zero. Flag that limitation before implementing such a form. Do not mark an unsaved
+ActiveRecord as persisted to bypass it.
 
 - Render one element per row matching `widgetItem` inside `widgetBody`; the first one becomes the client template, so
   pass a non-empty list of row models, such as `[new Address()]` for a create form, and its first element as `model`.
@@ -67,11 +76,15 @@ optional rows. Do not mark an unsaved ActiveRecord as persisted to bypass this b
 Nested widgets render the inner widget inside each outer row with tabular names `"[{$i}][{$j}]attribute"`, a distinct
 `widgetContainer` and identical options in every outer row; only the rendered rows may differ. Rendering the same
 container in the same form with other options throws `InvalidConfigException` naming the differing options. Two forms
-may reuse a container name with different options.
+may reuse a container name with different options. The `min=0` rendering rule also applies to each inner widget: a new
+configured model removes its persisted child markup too. Do not interpret that omission as an authorized deletion. When
+the outer template contains inner rows, cloning it retains the first inner row even when the inner `min` is zero.
 
 ## Handle the posted rows
 
-For one flat list of rows, after the request checks below:
+For a flat list, validate the payload before calling either helper. The
+[guarded create and update examples](../../docs/examples.md#request-checks) show one complete application policy; follow
+the revision routing above if `docs/` is not installed. Never use this sequence alone on unchecked input:
 
 ```php
 $models = Model::createMultiple(Address::class, $customer->addresses, 'id');
