@@ -30,12 +30,12 @@ jobs:
           persist-credentials: false
 
       # Vitest loads yii.js, yii.validation.js and yii.activeForm.js from vendor/yiisoft/yii2, and Playwright serves the
-      # fixture with this PHP. PHP 8.1 is the supported floor; PHPUnit covers the rendered output on PHP 8.1-8.5.
+      # fixture with this PHP. PHP 8.3 is the supported floor; Testo covers the rendered output on PHP 8.3-8.5.
       - name: Install PHP dependencies.
-        uses: yii2-framework/actions/actions/php-setup@f0e06ea5cc965cff4431177d448add7b7c98668b # v2.0.1
+        uses: yii2-framework/actions/actions/php-setup@7a2d60325d59c5c9377fd445c912f2f1bfacf9d9 # v2.0.2
         with:
           coverage-driver: none
-          php-version: "8.1"
+          php-version: "8.3"
 
       - name: Install node.js.
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0

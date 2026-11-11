@@ -30,7 +30,7 @@
         }
     ],
     "require": {
-        "php": ">=8.1",
+        "php": ">=8.3",
         "ext-dom": "*",
         "yiisoft/yii2": "^2.0.55 || ^22.0",
         "symfony/css-selector": "^6.4||^7.0",
@@ -38,7 +38,7 @@
     },
     "require-dev": {
         "bower-asset/inputmask": "5.0.10",
-        "infection/infection": "^0.27 || ^0.35",
+        "infection/infection": "^0.35",
         "kartik-v/dependent-dropdown": "1.4.9",
         "kartik-v/yii2-krajee-base": "3.0.5",
         "kartik-v/yii2-money": "1.2.3",
@@ -52,10 +52,10 @@
         "maglnet/composer-require-checker": "^4.7",
         "php-forge/coding-standard": "^0.3",
         "phpstan/extension-installer": "^1.4",
-        "phpstan/phpstan-phpunit": "^2.0",
         "phpstan/phpstan-strict-rules": "^2.0.3",
-        "phpunit/phpunit": "^10.5",
         "select2/select2": "4.0.13",
+        "testo/bridge-infection": "^0.1.9",
+        "testo/testo": "^0.10.56",
         "yii2-extensions/phpstan": "^0.4 || ^0.5",
         "yiisoft/yii2-bootstrap5": "^2.0.50"
     },
@@ -115,7 +115,7 @@
             "@gitleaks"
         ],
         "static": "phpstan --memory-limit=-1",
-        "tests": "phpunit",
+        "tests": "testo",
         "yamllint": "yamllint -c .github/linters/.yamllint.yml .github",
         "zizmor": "zizmor --persona=pedantic .github"
     },
@@ -136,7 +136,7 @@
         "rector-check": "Previews Rector refactoring without modifying files.",
         "security": "Runs the workflow security and secret scanning checks.",
         "static": "Runs static analysis with PHPStan.",
-        "tests": "Runs PHPUnit.",
+        "tests": "Runs the Testo test suite.",
         "yamllint": "Lints YAML files with yamllint.",
         "zizmor": "Audits GitHub Actions workflows with zizmor."
     },

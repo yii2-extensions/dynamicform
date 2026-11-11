@@ -16,8 +16,8 @@ use function ob_start;
 /**
  * Renders {@see DynamicFormWidget} through the real `begin()`/`end()` widget stack.
  *
- * Only the buffer opened here is closed when rendering fails; a buffer or stack entry left by the widget itself is
- * reported by {@see TestCase::tearDown()}.
+ * Only the buffer opened here is closed when rendering fails; a buffer or stack entry left by the widget itself stays,
+ * so the rejection tests can assert the output buffer level and the widget stack.
  */
 final class WidgetRenderer
 {

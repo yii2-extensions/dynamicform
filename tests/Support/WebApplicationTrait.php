@@ -6,45 +6,52 @@ namespace Yii2\Extensions\DynamicForm\Tests\Support;
 
 use ReflectionClass;
 use ReflectionMethod;
+use Testo\Assert;
+use Testo\Lifecycle\BeforeTest;
 use Yii;
 use yii\di\Container;
 use yii\web\{Application, AssetManager, View};
 
 use function array_keys;
+use function array_values;
 use function dirname;
 use function ob_get_clean;
 use function ob_start;
 use function strstr;
 
 /**
- * Creates an isolated Yii web application for each test.
+ * Creates an isolated Yii web application before each test and reads the scripts registered in its view.
  *
- * PHPUnit restores globals and static properties, including Yii's widget stack, after every test (`backupGlobals` and
- * `backupStaticProperties` in `phpunit.xml.dist`) and reports output buffers left open.
+ * Testo restores no global state between tests, so {@see self::createWebApplication()} also replaces the DI container.
  */
-abstract class TestCase extends \PHPUnit\Framework\TestCase
+trait WebApplicationTrait
 {
     /**
-     * @return array<string, mixed>
+     * Replaces the DI container and creates a web application whose asset bundles resolve to dummies without files, so
+     * rendered pages contain only the inline scripts.
      */
-    protected function applicationConfig(): array
+    #[BeforeTest]
+    protected function createWebApplication(): void
     {
-        return [
-            'id' => 'dynamicform-tests',
-            'basePath' => __DIR__,
-            'vendorPath' => dirname(__DIR__, 2) . '/vendor',
-            'runtimePath' => dirname(__DIR__, 2) . '/runtime',
-            'aliases' => ['@bower' => '@vendor/bower-asset', '@npm' => '@vendor/npm-asset'],
-            'components' => [
-                'request' => [
-                    'cookieValidationKey' => 'test-only',
-                    'scriptFile' => __FILE__,
-                    'scriptUrl' => '/index.php',
+        Yii::$container = new Container();
+
+        new Application(
+            [
+                'id' => 'dynamicform-tests',
+                'basePath' => __DIR__,
+                'vendorPath' => dirname(__DIR__, 2) . '/vendor',
+                'runtimePath' => dirname(__DIR__, 2) . '/runtime',
+                'aliases' => ['@bower' => '@vendor/bower-asset', '@npm' => '@vendor/npm-asset'],
+                'components' => [
+                    'request' => [
+                        'cookieValidationKey' => 'test-only',
+                        'scriptFile' => __FILE__,
+                        'scriptUrl' => '/index.php',
+                    ],
+                    'assetManager' => ['class' => AssetManager::class, 'bundles' => false],
                 ],
-                // Bundles resolve to dummies without files, so rendered pages contain only the inline scripts.
-                'assetManager' => ['class' => AssetManager::class, 'bundles' => false],
             ],
-        ];
+        );
     }
 
     /**
@@ -56,17 +63,10 @@ abstract class TestCase extends \PHPUnit\Framework\TestCase
     {
         $scripts = self::webView()->js[$position] ?? [];
 
-        self::assertIsArray($scripts, 'Registered scripts must be a list.');
+        Assert::iterable($scripts)->allOf('string');
 
-        $list = [];
-
-        foreach ($scripts as $script) {
-            self::assertIsString($script, 'Registered scripts must be strings.');
-
-            $list[] = $script;
-        }
-
-        return $list;
+        /** @var array<string> $scripts */
+        return array_values($scripts);
     }
 
     /**
@@ -121,28 +121,22 @@ abstract class TestCase extends \PHPUnit\Framework\TestCase
         foreach (['wrapReadyScript', 'wrapLoadScript'] as $method) {
             $wrapped = (new ReflectionMethod(View::class, $method))->invoke(self::webView(), '');
 
-            self::assertIsString($wrapped, 'Wrapped script must be a string.');
+            Assert::string($wrapped);
 
             $openings[] = (string) strstr($wrapped, "\n", true);
         }
 
-        return [$openings[0], $openings[1]];
-    }
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        Yii::$container = new Container();
-
-        new Application($this->applicationConfig());
+        return [
+            $openings[0],
+            $openings[1],
+        ];
     }
 
     protected static function webView(): View
     {
         $view = Yii::$app->getView();
 
-        self::assertInstanceOf(View::class, $view, 'The test application must use a web view.');
+        Assert::instanceOf($view, View::class, 'The test application must use a web view.');
 
         return $view;
     }

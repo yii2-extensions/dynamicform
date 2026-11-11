@@ -7,7 +7,7 @@ use PhpCsFixer\Fixer\Strict\{DeclareStrictTypesFixer, StrictComparisonFixer, Str
 use Symplify\CodingStandard\Fixer\Commenting\RemoveDeadVarThisFixer;
 
 /** @var \Symplify\EasyCodingStandard\Configuration\ECSConfigBuilder $builder */
-$builder = require __DIR__ . '/vendor/php-forge/coding-standard/src/ecs-81.php';
+$builder = require __DIR__ . '/vendor/php-forge/coding-standard/src/ecs-83.php';
 
 // Preserve the extension's existing scalar coercion and comparison contracts in the distributed sources; tests declare
 // strict types and keep explicit weak-comparison cases where the product contract relies on coercion.

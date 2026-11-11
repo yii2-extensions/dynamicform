@@ -5,7 +5,7 @@ parameters:
     bootstrapFiles:
         - tests/bootstrap.php
     level: max
-    phpVersion: 80100
+    phpVersion: 80300
     paths:
         - src
         - tests

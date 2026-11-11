@@ -2,13 +2,13 @@
 
 ## System requirements
 
-- [`PHP`](https://www.php.net/downloads) 8.1 or higher with the `dom` extension.
+- [`PHP`](https://www.php.net/downloads) 8.3 or higher with the `dom` extension.
 - [`Composer`](https://getcomposer.org/download/) for dependency management.
-- [`Yii2`](https://github.com/yiisoft/yii2) 2.0.55 or higher, or the `22.0.x` development line, which needs PHP 8.3 or
-  higher; the application opts into it by requiring `yiisoft/yii2:22.0.x-dev`. Earlier 2.0 releases are affected by
-  security advisories, the most recent being CVE-2026-39850.
+- [`Yii2`](https://github.com/yiisoft/yii2) 2.0.55 or higher, or the `22.0.x` development line; the application opts
+  into it by requiring `yiisoft/yii2:22.0.x-dev`. Earlier 2.0 releases are affected by security advisories, the most
+  recent being CVE-2026-39850.
 - [`symfony/css-selector`](https://github.com/symfony/css-selector) and
-  [`symfony/dom-crawler`](https://github.com/symfony/dom-crawler) 6.4 or 7.x; Composer selects 6.4 on PHP 8.1.
+  [`symfony/dom-crawler`](https://github.com/symfony/dom-crawler) 6.4 or 7.x.
 
 ## Installation
 
@@ -26,7 +26,7 @@ needed for the widget. The application must provide jQuery at the path used by i
 ### Yii 22 client validation
 
 Yii 22 only suggests the jQuery client-script implementation. Install it explicitly alongside the development Yii
-version (PHP 8.3 or higher):
+version:
 
 ```bash
 composer require --prefer-dist yiisoft/yii2:22.0.x-dev yiisoft/yii2-jquery:dev-master

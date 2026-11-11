@@ -3,10 +3,7 @@
     "source": {
         "directories": ["src"]
     },
-    "phpUnit": {
-        "configDir": ".",
-        "customPath": "vendor/bin/phpunit"
-    },
+    "testFramework": "testo",
     "phpStan": {
         "configDir": ".",
         "customPath": "vendor/bin/phpstan"

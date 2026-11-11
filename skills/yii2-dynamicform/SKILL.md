@@ -31,9 +31,9 @@ report the gap.
 
 ## Install
 
-The package requires PHP 8.1 or higher with `dom`, `yiisoft/yii2` `^2.0.55 || ^22.0` and Symfony `css-selector` and
-`dom-crawler` 6.4 or 7.x. The Yii 22 line needs PHP 8.3 and an explicit `yiisoft/yii2:22.0.x-dev` requirement in the
-application. Install with `composer require yii2-extensions/dynamicform:^2.0`.
+The package requires PHP 8.3 or higher with `dom`, `yiisoft/yii2` `^2.0.55 || ^22.0` and Symfony `css-selector` and
+`dom-crawler` 6.4 or 7.x. The Yii 22 line needs an explicit `yiisoft/yii2:22.0.x-dev` requirement in the application.
+Install with `composer require yii2-extensions/dynamicform:^2.0`.
 
 `DynamicFormAsset` depends on `yii\web\JqueryAsset` and `yii\widgets\ActiveFormAsset`. On Yii 22, also install
 `yiisoft/yii2-jquery:dev-master` and register `\yii\jquery\Bootstrap::class` in the application's `bootstrap` list;

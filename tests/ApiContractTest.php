@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Yii2\Extensions\DynamicForm\Tests;
 
-use PHPUnit\Framework\Attributes\{DataProviderExternal, Group};
-use PHPUnit\Framework\TestCase;
+use Testo\Assert;
+use Testo\Data\DataProvider;
+use Testo\Filter\Group;
+use Testo\Test;
 use Yii2\Extensions\DynamicForm\Tests\Provider\ApiContractProvider;
 use Yii2\Extensions\DynamicForm\Tests\Support\ApiSignature;
 
@@ -18,19 +20,20 @@ use Yii2\Extensions\DynamicForm\Tests\Support\ApiSignature;
  *
  * {@see ApiContractProvider} for test case data providers.
  */
+#[Test]
 #[Group('api')]
-final class ApiContractTest extends TestCase
+final class ApiContractTest
 {
     /**
      * @param class-string $class
      * @param array<string, string> $expected
      */
-    #[DataProviderExternal(ApiContractProvider::class, 'releasedApi')]
-    public function testDeclaredMembersMatchTheReleasedApi(string $class, array $expected): void
+    #[DataProvider(ApiContractProvider::class . '::releasedApi')]
+    public function declaredMembersMatchTheReleasedApi(string $class, array $expected): void
     {
-        self::assertSame(
-            $expected,
+        Assert::same(
             ApiSignature::describe($class),
+            $expected,
             'Members must keep the 1.0.2 signatures.',
         );
     }

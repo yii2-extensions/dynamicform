@@ -46,7 +46,7 @@ node_modules
 # private maintainer files (if present)
 /internal/
 
-# runtime artifacts (phpunit, phpstan, infection and browser fixture output)
+# runtime artifacts (testo, phpstan, infection and browser fixture output)
 /runtime/
 
 # vagrant (if present)

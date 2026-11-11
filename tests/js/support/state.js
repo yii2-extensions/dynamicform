@@ -1,3 +1,5 @@
+import { vi } from 'vitest';
+
 /**
  * Reads the observable state of rendered rows, controls and client validation.
  */
@@ -52,8 +54,25 @@ export function validatorIds(formId) {
 /**
  * Runs the submit-time client validation of a form without submitting it and resolves with the error text of every
  * registered attribute once ActiveForm reports `afterValidate` (jQuery 3 resolves it on a later task).
+ *
+ * A submitting form shows its errors after a 200 ms `setTimeout`; fake timers run that delay and jQuery's deferred
+ * tasks in order without waiting for them.
  */
-export function validate(formId) {
+export async function validate(formId) {
+  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+
+  try {
+    const errors = submitValidation(formId);
+
+    await vi.runAllTimersAsync();
+
+    return await errors;
+  } finally {
+    vi.useRealTimers();
+  }
+}
+
+function submitValidation(formId) {
   const $ = window.jQuery;
   const $form = $(`#${formId}`);
   const data = $form.data('yiiActiveForm');

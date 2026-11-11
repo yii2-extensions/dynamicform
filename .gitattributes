@@ -51,11 +51,11 @@
 /package.json                   export-ignore
 /package-lock.json              export-ignore
 /phpstan*.neon*                 export-ignore
-/phpunit.xml.dist               export-ignore
 /playwright.config.mjs          export-ignore
 /rector.php                     export-ignore
 /runtime                        export-ignore
 /stryker.config.mjs             export-ignore
+/testo.php                      export-ignore
 /tests                          export-ignore
 /tools                          export-ignore
 /vitest*.config.mjs             export-ignore

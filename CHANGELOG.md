@@ -5,9 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## 2.0.1 Under development
+## 3.0.0 Under development
 
 - docs: complete widget, asset and model PHPDoc for warning-free API documentation.
+- build!: require PHP `8.3`, migrate the PHP tests from PHPUnit to Testo and speed up the JavaScript mutation run.
 
 ## 2.0.0 November 10, 2026
 
