@@ -34,7 +34,7 @@ class DynamicFormWidget extends \yii\base\Widget
 {
     public const WIDGET_NAME = 'dynamicform';
     /**
-     * @var string
+     * @var string Non-empty CSS selector of the buttons that delete a row.
      */
     public $deleteButton;
     /**
@@ -46,7 +46,7 @@ class DynamicFormWidget extends \yii\base\Widget
      */
     public $formId;
     /**
-     * @var string
+     * @var string Non-empty CSS selector of the buttons that insert a row.
      */
     public $insertButton;
     /**
@@ -54,11 +54,11 @@ class DynamicFormWidget extends \yii\base\Widget
      */
     public $insertPosition = 'bottom';
     /**
-     * @var int
+     * @var int Maximum row count for client-side insertion.
      */
     public $limit = 999;
     /**
-     * @var int
+     * @var int Minimum row count for client-side deletion.
      */
     public $min = 1;
     /**
@@ -66,15 +66,15 @@ class DynamicFormWidget extends \yii\base\Widget
      */
     public $model;
     /**
-     * @var string
+     * @var string CSS selector of the element that holds the rows.
      */
     public $widgetBody;
     /**
-     * @var string
+     * @var string Class of the container rendered around the rows; letters, digits and underscores only.
      */
     public $widgetContainer;
     /**
-     * @var string
+     * @var string CSS selector of one row; the first matching element supplies the client template.
      */
     public $widgetItem;
     /**
@@ -229,6 +229,9 @@ class DynamicFormWidget extends \yii\base\Widget
         return true;
     }
 
+    /**
+     * Renders the buffered rows and registers their template and client behavior.
+     */
     public function run()
     {
         $content = (string) ob_get_clean();

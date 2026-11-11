@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## 2.0.1 Under development
 
+- docs: complete widget, asset and model PHPDoc for warning-free API documentation.
+
 ## 2.0.0 November 10, 2026
 
 - chore: isolate quality tools, add PHP-rendered browser and compatibility tests, and align repository config with the template.
