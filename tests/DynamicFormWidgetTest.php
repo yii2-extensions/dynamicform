@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace Yii2\Extensions\DynamicForm\Tests;
 
 use Closure;
-use PHPUnit\Framework\Attributes\{DataProviderExternal, Group};
 use ReflectionProperty;
+use Testo\Assert;
+use Testo\Data\DataProvider;
+use Testo\Filter\Group;
+use Testo\Test;
 use WeakMap;
 use Yii;
 use yii\base\{InvalidCallException, InvalidConfigException};
@@ -18,7 +21,7 @@ use Yii2\Extensions\DynamicForm\Tests\Provider\DynamicFormWidgetProvider;
 use Yii2\Extensions\DynamicForm\Tests\Support\{
     FormModel,
     InspectableDynamicFormWidget,
-    TestCase,
+    WebApplicationTrait,
     WidgetRenderer,
 };
 
@@ -45,9 +48,12 @@ use const ENT_QUOTES;
  *
  * {@see DynamicFormWidgetProvider} for test case data providers.
  */
+#[Test]
 #[Group('widget')]
-final class DynamicFormWidgetTest extends TestCase
+final class DynamicFormWidgetTest
 {
+    use WebApplicationTrait;
+
     /**
      * Options of {@see WidgetRenderer::config()} as serialized by `Json::htmlEncode()`.
      */
@@ -55,20 +61,20 @@ final class DynamicFormWidgetTest extends TestCase
         {"widgetContainer":"dynamic_form","widgetBody":".items","widgetItem":".item","limit":999,"insertButton":".add","deleteButton":".remove","insertPosition":"bottom","formId":"test-form","min":1,"fields":[{"id":"formmodel-{}-name","name":"FormModel[{}][name]"}],"template":"\u003Cdiv class=\u0022item\u0022\u003ERow\u003C\/div\u003E"}
         JSON;
 
-    public function testDefaultsMatchTheDocumentedConfiguration(): void
+    public function defaultsMatchTheDocumentedConfiguration(): void
     {
         $widget = new DynamicFormWidget(WidgetRenderer::config());
 
         ob_end_clean();
 
-        self::assertSame(
-            ['bottom', 999, 1, 'dynamicform'],
+        Assert::same(
             [$widget->insertPosition, $widget->limit, $widget->min, DynamicFormWidget::WIDGET_NAME],
+            ['bottom', 999, 1, 'dynamicform'],
             'Defaults: bottom insertion, limit 999, minimum 1, registry key `dynamicform`.',
         );
     }
 
-    public function testDiscardsRegistrationsOfEndedPagesWhenTheViewIsReused(): void
+    public function discardsRegistrationsOfEndedPagesWhenTheViewIsReused(): void
     {
         // A long-lived process reuses one view for many pages, each with its own form ids.
         foreach (['page-1', 'page-2', 'page-3'] as $formId) {
@@ -82,25 +88,22 @@ final class DynamicFormWidgetTest extends TestCase
 
         $registrations = (new ReflectionProperty(DynamicFormWidget::class, 'registrations'))->getValue();
 
-        self::assertInstanceOf(
-            WeakMap::class,
+        Assert::instanceOf(
             $registrations,
+            WeakMap::class,
             'Registrations must be kept per view.',
         );
         $page = $registrations[self::webView()] ?? null;
 
-        self::assertIsArray(
-            $page,
-            'The reused view must hold the registrations of its current page.',
-        );
-        self::assertSame(
-            ['dynamicform/current/dynamic_form', 'dynamicform/current/nested_form'],
+        Assert::array($page);
+        Assert::same(
             array_keys($page),
+            ['dynamicform/current/dynamic_form', 'dynamicform/current/nested_form'],
             'Only the registrations of the current page may be retained.',
         );
     }
 
-    public function testEmitsInitEventBeforeValidatingTheConfiguration(): void
+    public function emitsInitEventBeforeValidatingTheConfiguration(): void
     {
         $events = [];
 
@@ -116,14 +119,14 @@ final class DynamicFormWidgetTest extends TestCase
         } catch (InvalidConfigException) {
         }
 
-        self::assertSame(
-            ['init'],
+        Assert::same(
             $events,
+            ['init'],
             'Init event must be triggered once.',
         );
     }
 
-    public function testEncodesFormIdAndSelectorsInTheGeneratedScripts(): void
+    public function encodesFormIdAndSelectorsInTheGeneratedScripts(): void
     {
         $html = WidgetRenderer::render(
             [
@@ -133,14 +136,15 @@ final class DynamicFormWidgetTest extends TestCase
             ],
         );
 
-        self::assertSame(
+        Assert::same(
+            $html,
             <<<HTML
                 <div class="dynamic_form" data-dynamicform="dynamicform_81ae8e79"><div class="items"><div class="item">Row</div></div></div>
                 HTML,
-            $html,
             'Container must reference the hashed variable.',
         );
-        self::assertSame(
+        Assert::same(
+            self::registeredJs(View::POS_READY),
             [
                 <<<'JS'
                     jQuery(document.getElementById("form\u0022a\u0027b\u003C\/script\u003E\u0026")).on("click", "button[data-role=\u0022add\u0022]", function(e) {
@@ -164,22 +168,21 @@ final class DynamicFormWidgetTest extends TestCase
 
                     JS,
             ],
-            self::registeredJs(View::POS_READY),
             'Form id and selectors must be emitted as HTML-safe JavaScript string literals.',
         );
-        self::assertSame(
+        Assert::same(
+            self::registeredJs(View::POS_LOAD),
             [
                 <<<'JS'
                     jQuery(document.getElementById("form\u0022a\u0027b\u003C\/script\u003E\u0026")).yiiDynamicForm(dynamicform_81ae8e79);
 
                     JS,
             ],
-            self::registeredJs(View::POS_LOAD),
             'Initialization must look up the form by its encoded id.',
         );
     }
 
-    public function testEncodesTemplateMarkupForTheInlineOptionsScript(): void
+    public function encodesTemplateMarkupForTheInlineOptionsScript(): void
     {
         $html = WidgetRenderer::render(
             [],
@@ -188,21 +191,21 @@ final class DynamicFormWidgetTest extends TestCase
 
         $hashVar = self::hashVar($html);
 
-        self::assertSame(
+        Assert::same(
+            self::optionsJson($hashVar),
             <<<JS
                 {"widgetContainer":"dynamic_form","widgetBody":".items","widgetItem":".item","limit":999,"insertButton":".add","deleteButton":".remove","insertPosition":"bottom","formId":"test-form","min":1,"fields":[{"id":"formmodel-{}-name","name":"FormModel[{}][name]"}],"template":"\u003Cdiv class=\u0022item\u0022\u003E\u0026amp; \u0027quote\u0027 \u003Cscript\u003Eunexpected()\u003C\/script\u003E\u003C\/div\u003E"}
                 JS,
-            self::optionsJson($hashVar),
             'Markup characters must be escaped so the options cannot end the inline script.',
         );
-        self::assertSame(
-            '<div class="item">&amp; \'quote\' <script>unexpected()</script></div>',
+        Assert::same(
             self::decodedOptions($hashVar)['template'],
+            '<div class="item">&amp; \'quote\' <script>unexpected()</script></div>',
             'Template must decode to the first item; the parser drops the stray end tag.',
         );
     }
 
-    public function testExposesProtectedHashHooks(): void
+    public function exposesProtectedHashHooks(): void
     {
         $widget = new InspectableDynamicFormWidget(WidgetRenderer::config());
 
@@ -210,18 +213,18 @@ final class DynamicFormWidgetTest extends TestCase
 
         $widget->callHashOptions();
 
-        self::assertSame(
-            'dynamicform_f0f724cb',
+        Assert::same(
             $widget->callGetHashVarName(),
+            'dynamicform_f0f724cb',
             'Unregistered containers must use their own hashed variable.',
         );
 
         WidgetRenderer::render(['widgetContainer' => 'nested_form']);
         $widget->callRegisterOptions(self::webView());
 
-        self::assertSame(
-            'dynamicform_f0f724cb',
+        Assert::same(
             $widget->callGetHashVarName(),
+            'dynamicform_f0f724cb',
             'Options declared without a registration must not count as a registration.',
         );
 
@@ -229,14 +232,14 @@ final class DynamicFormWidgetTest extends TestCase
 
         WidgetRenderer::render([], '<div class="items"><div class="item">Row 1</div></div>');
 
-        self::assertSame(
-            'dynamicform_0b052ad0',
+        Assert::same(
             $widget->callGetHashVarName(),
+            'dynamicform_0b052ad0',
             'A container registered in the same form of the page must use the registered variable.',
         );
     }
 
-    public function testProtectedOptionHooksAreCallableFromSubclasses(): void
+    public function protectedOptionHooksAreCallableFromSubclasses(): void
     {
         $widget = new InspectableDynamicFormWidget(WidgetRenderer::config());
 
@@ -247,9 +250,9 @@ final class DynamicFormWidgetTest extends TestCase
 
         $widget->callInitOptions();
 
-        self::assertSame(
-            $level + 1,
+        Assert::same(
             ob_get_level(),
+            $level + 1,
             'Option initialization must open the content buffer.',
         );
 
@@ -258,18 +261,18 @@ final class DynamicFormWidgetTest extends TestCase
         $widget->callHashOptions();
         $widget->callRegisterOptions(self::webView());
 
-        self::assertSame(
+        Assert::same(
+            self::registeredJs(View::POS_HEAD),
             [
                 <<<JS
                     var dynamicform_c99d6213 = {"widgetContainer":"dynamic_form","widgetBody":".items","widgetItem":".item","limit":999,"insertButton":".add","deleteButton":".remove","insertPosition":"bottom","formId":"test-form","min":1,"fields":[{"id":"formmodel-{}-code","name":"FormModel[{}][code]"}]};
                     JS . "\n",
             ],
-            self::registeredJs(View::POS_HEAD),
             'Re-initialized options must replace the configured fields.',
         );
     }
 
-    public function testPublicRegisterAssetsRegistersBundleHandlersAndInitialization(): void
+    public function publicRegisterAssetsRegistersBundleHandlersAndInitialization(): void
     {
         $widget = new InspectableDynamicFormWidget(WidgetRenderer::config());
 
@@ -278,19 +281,15 @@ final class DynamicFormWidgetTest extends TestCase
         $widget->callHashOptions();
         $widget->registerAssets(self::webView());
 
-        self::assertSame(
-            [View::POS_READY, View::POS_LOAD],
+        Assert::same(
             self::registeredJsPositions(),
+            [View::POS_READY, View::POS_LOAD],
             'Assets must register handlers and initialization only.',
         );
-        self::assertArrayHasKey(
-            DynamicFormAsset::class,
-            self::webView()->assetBundles,
-            'Bundle must be registered.',
-        );
-        self::assertSame(
-            ["jQuery(document.getElementById(\"test-form\")).yiiDynamicForm(dynamicform_f0f724cb);\n"],
+        Assert::array(self::webView()->assetBundles)->hasKeys(DynamicFormAsset::class);
+        Assert::same(
             self::registeredJs(View::POS_LOAD),
+            ["jQuery(document.getElementById(\"test-form\")).yiiDynamicForm(dynamicform_f0f724cb);\n"],
             'Initialization must use the hashed variable.',
         );
     }
@@ -298,8 +297,8 @@ final class DynamicFormWidgetTest extends TestCase
     /**
      * @param Closure(View): void $startPage Ends the current page of the view or replaces the view.
      */
-    #[DataProviderExternal(DynamicFormWidgetProvider::class, 'newPages')]
-    public function testRegistersAgainInANewPage(Closure $startPage): void
+    #[DataProvider(DynamicFormWidgetProvider::class . '::newPages')]
+    public function registersAgainInANewPage(Closure $startPage): void
     {
         WidgetRenderer::render();
 
@@ -310,34 +309,31 @@ final class DynamicFormWidgetTest extends TestCase
         // A head script of the application registered first in the new page must not revive the ended registration.
         self::webView()->registerJs("var application = {};\n", View::POS_HEAD);
 
-        self::assertSame(
+        Assert::same(
+            WidgetRenderer::render(),
             <<<HTML
                 <div class="dynamic_form" data-dynamicform="dynamicform_a2c36ba3"><div class="items"><div class="item">Row</div></div></div>
                 HTML,
-            WidgetRenderer::render(),
             'Container must reference its own variable in the new page.',
         );
 
         foreach ($scripts as $position => $registered) {
-            self::assertIsArray(
-                $registered,
-                'Registered scripts must be grouped by position.',
-            );
-            self::assertSame(
-                array_values($registered),
+            Assert::array($registered);
+            Assert::same(
                 array_slice(self::registeredJs($position), -count($registered)),
+                array_values($registered),
                 'New page must declare the options, handlers and initialization again.',
             );
         }
 
-        self::assertSame(
-            [],
+        Assert::same(
             Yii::$app->params,
+            [],
             'Registry must not be kept in the application parameters.',
         );
     }
 
-    public function testRegistersAssetBundleWithItsDependencies(): void
+    public function registersAssetBundleWithItsDependencies(): void
     {
         WidgetRenderer::render();
 
@@ -345,14 +341,14 @@ final class DynamicFormWidgetTest extends TestCase
 
         sort($bundles);
 
-        self::assertSame(
-            [DynamicFormAsset::class, JqueryAsset::class, YiiAsset::class, ActiveFormAsset::class],
+        Assert::same(
             $bundles,
+            [DynamicFormAsset::class, JqueryAsset::class, YiiAsset::class, ActiveFormAsset::class],
             'Bundle and its dependency chain must be registered.',
         );
     }
 
-    public function testRegistersEveryConfiguredOption(): void
+    public function registersEveryConfiguredOption(): void
     {
         $html = WidgetRenderer::render(
             [
@@ -363,23 +359,23 @@ final class DynamicFormWidgetTest extends TestCase
             ],
         );
 
-        self::assertSame(
+        Assert::same(
+            self::registeredJs(View::POS_HEAD)[0] ?? null,
             <<<JS
                 var dynamicform_e1befe0c = {"widgetContainer":"dynamic_form","widgetBody":".items","widgetItem":".item","limit":4,"insertButton":".add","deleteButton":".remove","insertPosition":"top","formId":"test-form","min":2,"fields":[{"id":"formmodel-{}-name","name":"FormModel[{}][name]"},{"id":"formmodel-{}-code","name":"FormModel[{}][code]"}],"template":"\u003Cdiv class=\u0022item\u0022\u003ERow\u003C\/div\u003E"};
 
                 JS,
-            self::registeredJs(View::POS_HEAD)[0] ?? null,
             'Every option must be serialized in the declared order.',
         );
-        self::assertSame(
+        Assert::same(
+            $html,
             '<div class="dynamic_form" data-dynamicform="dynamicform_e1befe0c"><div class="items"><div class="item">'
             . 'Row</div></div></div>',
-            $html,
             'Container must reference the hashed variable.',
         );
     }
 
-    public function testRegistersHashVarWidgetOncePerPage(): void
+    public function registersHashVarWidgetOncePerPage(): void
     {
         $widget = new InspectableDynamicFormWidget(WidgetRenderer::config());
 
@@ -388,53 +384,54 @@ final class DynamicFormWidgetTest extends TestCase
         // `run()` hashes the options, registers the widget and then declares the options in the page.
         $widget->callHashOptions();
 
-        self::assertTrue(
+        Assert::true(
             $widget->registerHashVarWidget(),
             'First registration must succeed.',
         );
 
         $widget->callRegisterOptions(self::webView());
 
-        self::assertFalse(
+        Assert::false(
             $widget->registerHashVarWidget(),
             'Repeated registration in the same page must be refused.',
         );
-        self::assertSame(
-            [],
+        Assert::same(
             Yii::$app->params,
+            [],
             'Registry must not be kept in the application parameters.',
         );
 
         self::webView()->clear();
 
-        self::assertTrue(
+        Assert::true(
             $widget->registerHashVarWidget(),
             'Registration must succeed again once the page is cleared.',
         );
     }
 
-    public function testRegistersOptionsHandlersAndInitializationScripts(): void
+    public function registersOptionsHandlersAndInitializationScripts(): void
     {
         $html = WidgetRenderer::render();
 
-        self::assertSame(
+        Assert::same(
+            $html,
             <<<HTML
                 <div class="dynamic_form" data-dynamicform="dynamicform_a2c36ba3"><div class="items"><div class="item">Row</div></div></div>
                 HTML,
-            $html,
             'Container must reference the hashed variable.',
         );
-        self::assertSame(
-            [View::POS_HEAD, View::POS_READY, View::POS_LOAD],
+        Assert::same(
             self::registeredJsPositions(),
+            [View::POS_HEAD, View::POS_READY, View::POS_LOAD],
             'Scripts must use the head, ready and load positions only.',
         );
-        self::assertSame(
-            ['var dynamicform_a2c36ba3 = ' . self::DEFAULT_OPTIONS . ";\n"],
+        Assert::same(
             self::registeredJs(View::POS_HEAD),
+            ['var dynamicform_a2c36ba3 = ' . self::DEFAULT_OPTIONS . ";\n"],
             'Options must be declared once in the head.',
         );
-        self::assertSame(
+        Assert::same(
+            self::registeredJs(View::POS_READY),
             [
                 <<<'JS'
                     jQuery(document.getElementById("test-form")).on("click", ".add", function(e) {
@@ -458,71 +455,70 @@ final class DynamicFormWidgetTest extends TestCase
 
                     JS,
             ],
-            self::registeredJs(View::POS_READY),
             'Handlers must be delegated from the form and act only on the container that owns the button.',
         );
-        self::assertSame(
-            ["jQuery(document.getElementById(\"test-form\")).yiiDynamicForm(dynamicform_a2c36ba3);\n"],
+        Assert::same(
             self::registeredJs(View::POS_LOAD),
+            ["jQuery(document.getElementById(\"test-form\")).yiiDynamicForm(dynamicform_a2c36ba3);\n"],
             'Plugin must be initialized on window load.',
         );
     }
 
-    public function testRegistersRepeatedContainerOnlyOnce(): void
+    public function registersRepeatedContainerOnlyOnce(): void
     {
         $first = WidgetRenderer::render();
 
         $scripts = self::webView()->js;
 
-        self::assertSame(
-            $first,
+        Assert::same(
             WidgetRenderer::render(),
+            $first,
             'Repeated rendering must produce identical markup.',
         );
-        self::assertSame(
-            $scripts,
+        Assert::same(
             self::webView()->js,
+            $scripts,
             'Repeated rendering must not register scripts again.',
         );
     }
 
-    public function testRegistersSeparateContainersIndependently(): void
+    public function registersSeparateContainersIndependently(): void
     {
         WidgetRenderer::render();
 
         $html = WidgetRenderer::render(['widgetContainer' => 'nested_form']);
 
-        self::assertSame(
+        Assert::same(
+            $html,
             <<<HTML
                 <div class="nested_form" data-dynamicform="dynamicform_d3cee06d"><div class="items"><div class="item">Row</div></div></div>
                 HTML,
-            $html,
             'Second container must reference its own variable.',
         );
-        self::assertSame(
-            [2, 4, 2],
+        Assert::same(
             [
                 count(self::registeredJs(View::POS_HEAD)),
                 count(self::registeredJs(View::POS_READY)),
                 count(self::registeredJs(View::POS_LOAD)),
             ],
+            [2, 4, 2],
             'Each container must register its own options, handlers and initialization.',
         );
-        self::assertSame(
+        Assert::same(
+            WidgetRenderer::render([], '<div class="items"><div class="item">Row 1</div></div>'),
             <<<HTML
                 <div class="dynamic_form" data-dynamicform="dynamicform_a2c36ba3"><div class="items"><div class="item">Row 1</div></div></div>
                 HTML,
-            WidgetRenderer::render([], '<div class="items"><div class="item">Row 1</div></div>'),
             'Registering another container must keep the first registration.',
         );
-        self::assertCount(
-            2,
+        Assert::count(
             self::registeredJs(View::POS_HEAD),
+            2,
             'Repeated rendering of the first container must not declare its options again.',
         );
     }
 
-    public function testRegistersTheSameContainerInEachFormIndependently(): void
+    public function registersTheSameContainerInEachFormIndependently(): void
     {
         $page = self::renderPage(
             static function (): void {
@@ -541,7 +537,8 @@ final class DynamicFormWidgetTest extends TestCase
         $options = self::DEFAULT_OPTIONS;
         [$ready, $load] = self::scriptWrapperOpenings();
 
-        self::assertSame(
+        Assert::same(
+            $page,
             <<<HTML
                 <script>var dynamicform_a2c36ba3 = {$options};
 
@@ -589,12 +586,11 @@ final class DynamicFormWidgetTest extends TestCase
 
                 });</script>
                 HTML,
-            $page,
             'Each form must declare its own options, handlers and initialization for the shared container name.',
         );
     }
 
-    public function testRendersCompletePageWithOptionsBeforeContentAndHandlersAfterIt(): void
+    public function rendersCompletePageWithOptionsBeforeContentAndHandlersAfterIt(): void
     {
         $page = self::renderPage(
             static function (): void {
@@ -605,7 +601,8 @@ final class DynamicFormWidgetTest extends TestCase
         $options = self::DEFAULT_OPTIONS;
         [$ready, $load] = self::scriptWrapperOpenings();
 
-        self::assertSame(
+        Assert::same(
+            $page,
             <<<HTML
                 <script>var dynamicform_a2c36ba3 = {$options};
                 </script><div class="dynamic_form" data-dynamicform="dynamicform_a2c36ba3"><div class="items"><div class="item">Row</div></div></div><script>{$ready}
@@ -632,7 +629,6 @@ final class DynamicFormWidgetTest extends TestCase
 
                 });</script>
                 HTML,
-            $page,
             'Options must precede the content; handlers run on DOM ready and initialization on window load.',
         );
     }
@@ -640,8 +636,8 @@ final class DynamicFormWidgetTest extends TestCase
     /**
      * @param array<string, mixed> $overrides
      */
-    #[DataProviderExternal(DynamicFormWidgetProvider::class, 'renderedFragments')]
-    public function testRendersContainerAndTemplate(
+    #[DataProvider(DynamicFormWidgetProvider::class . '::renderedFragments')]
+    public function rendersContainerAndTemplate(
         array $overrides,
         string $content,
         string $expectedContent,
@@ -651,42 +647,42 @@ final class DynamicFormWidgetTest extends TestCase
 
         $hashVar = self::hashVar($html);
 
-        self::assertSame(
-            sprintf('<div class="dynamic_form" data-dynamicform="%s">%s</div>', $hashVar, $expectedContent),
+        Assert::same(
             $html,
+            sprintf('<div class="dynamic_form" data-dynamicform="%s">%s</div>', $hashVar, $expectedContent),
             'Container must wrap the content and reference the options variable.',
         );
-        self::assertSame(
-            $expectedTemplate,
+        Assert::same(
             self::decodeNonAsciiEntities(self::decodedOptions($hashVar)['template']),
+            $expectedTemplate,
             'Template must be the first item.',
         );
     }
 
-    #[DataProviderExternal(DynamicFormWidgetProvider::class, 'validContainerNames')]
-    public function testRendersContainerWithValidName(string $name): void
+    #[DataProvider(DynamicFormWidgetProvider::class . '::validContainerNames')]
+    public function rendersContainerWithValidName(string $name): void
     {
         $html = WidgetRenderer::render(['widgetContainer' => $name]);
 
         $hashVar = self::hashVar($html);
 
-        self::assertSame(
+        Assert::same(
+            $html,
             sprintf(
                 '<div class="%s" data-dynamicform="%s"><div class="items"><div class="item">Row</div></div></div>',
                 $name,
                 $hashVar,
             ),
-            $html,
             'Class attribute must hold the name unchanged.',
         );
-        self::assertSame(
-            $name,
+        Assert::same(
             self::decodedOptions($hashVar)['widgetContainer'] ?? null,
+            $name,
             'Option must hold the name unchanged.',
         );
     }
 
-    public function testReusesTheCompatibleRegistrationForRepeatedRenderingsInOneForm(): void
+    public function reusesTheCompatibleRegistrationForRepeatedRenderingsInOneForm(): void
     {
         // A nested widget renders once per outer row: the options match, the first row of each rendering differs.
         $page = self::renderPage(
@@ -702,7 +698,8 @@ final class DynamicFormWidgetTest extends TestCase
         $options = self::DEFAULT_OPTIONS;
         [$ready, $load] = self::scriptWrapperOpenings();
 
-        self::assertSame(
+        Assert::same(
+            $page,
             <<<HTML
                 <script>var dynamicform_a2c36ba3 = {$options};
                 </script><div class="dynamic_form" data-dynamicform="dynamicform_a2c36ba3"><div class="items"><div class="item">Row</div></div></div><div class="dynamic_form" data-dynamicform="dynamicform_a2c36ba3"><div class="items"><div class="item">Row 1</div></div></div><script>{$ready}
@@ -729,7 +726,6 @@ final class DynamicFormWidgetTest extends TestCase
 
                 });</script>
                 HTML,
-            $page,
             'Repeated rendering must reference the first registration without declaring options or handlers again.',
         );
     }
@@ -738,8 +734,8 @@ final class DynamicFormWidgetTest extends TestCase
      * @param array<string, mixed> $overrides
      * @param string $content Markup echoed between `begin()` and `end()`.
      */
-    #[DataProviderExternal(DynamicFormWidgetProvider::class, 'incompatibleRenderings')]
-    public function testThrowInvalidConfigExceptionForIncompatibleRenderingInTheSameForm(
+    #[DataProvider(DynamicFormWidgetProvider::class . '::incompatibleRenderings')]
+    public function throwInvalidConfigExceptionForIncompatibleRenderingInTheSameForm(
         array $overrides,
         string $content,
         string $message,
@@ -752,32 +748,32 @@ final class DynamicFormWidgetTest extends TestCase
         try {
             WidgetRenderer::render($overrides, $content);
 
-            self::fail(
+            Assert::fail(
                 'Incompatible rendering must be rejected.',
             );
         } catch (InvalidConfigException $exception) {
-            self::assertSame(
-                $message,
+            Assert::same(
                 $exception->getMessage(),
+                $message,
                 'Message must name the container, the form and the differing options.',
             );
         }
 
-        self::assertSame(
-            $level,
+        Assert::same(
             ob_get_level(),
+            $level,
             'Rejected rendering must not leave an output buffer.',
         );
-        self::assertSame(
-            $scripts,
+        Assert::same(
             self::webView()->js,
+            $scripts,
             'Rejected rendering must not register scripts.',
         );
-        self::assertSame(
+        Assert::same(
+            WidgetRenderer::render([], '<div class="items"><div class="item">Row 1</div></div>'),
             <<<HTML
                 <div class="dynamic_form" data-dynamicform="dynamicform_a2c36ba3"><div class="items"><div class="item">Row 1</div></div></div>
                 HTML,
-            WidgetRenderer::render([], '<div class="items"><div class="item">Row 1</div></div>'),
             'Registry must keep the first registration after the rejection.',
         );
     }
@@ -786,8 +782,8 @@ final class DynamicFormWidgetTest extends TestCase
      * @param array<string, mixed> $overrides
      * @param string $content Markup echoed between `begin()` and `end()`.
      */
-    #[DataProviderExternal(DynamicFormWidgetProvider::class, 'invalidConfigurations')]
-    public function testThrowInvalidConfigExceptionForInvalidConfiguration(
+    #[DataProvider(DynamicFormWidgetProvider::class . '::invalidConfigurations')]
+    public function throwInvalidConfigExceptionForInvalidConfiguration(
         array $overrides,
         string $message,
         string $content = WidgetRenderer::DEFAULT_CONTENT,
@@ -797,38 +793,38 @@ final class DynamicFormWidgetTest extends TestCase
         try {
             WidgetRenderer::render($overrides, $content);
 
-            self::fail(
+            Assert::fail(
                 'Invalid configuration must be rejected.',
             );
         } catch (InvalidConfigException $exception) {
-            self::assertSame(
-                $message,
+            Assert::same(
                 $exception->getMessage(),
+                $message,
                 'Message must name the invalid property.',
             );
         }
 
-        self::assertSame(
-            $level,
+        Assert::same(
             ob_get_level(),
+            $level,
             'Rejected configuration must not open an output buffer.',
         );
         try {
             DynamicFormWidget::end();
 
-            self::fail(
+            Assert::fail(
                 'Rejected configuration must not stay on the widget stack.',
             );
         } catch (InvalidCallException $exception) {
-            self::assertSame(
-                'Unexpected ' . DynamicFormWidget::class . '::end() call. A matching begin() is not found.',
+            Assert::same(
                 $exception->getMessage(),
+                'Unexpected ' . DynamicFormWidget::class . '::end() call. A matching begin() is not found.',
                 'No widget may be pending after the rejection.',
             );
         }
-        self::assertSame(
-            [],
+        Assert::same(
             self::webView()->js,
+            [],
             'Rejected configuration must not register scripts.',
         );
     }
@@ -836,8 +832,8 @@ final class DynamicFormWidgetTest extends TestCase
     /**
      * @param array<string, mixed> $overrides
      */
-    #[DataProviderExternal(DynamicFormWidgetProvider::class, 'configurationsRejectedBeforeInitOptions')]
-    public function testThrowInvalidConfigExceptionForInvalidConfigurationBeforeTheInitOptionsHook(
+    #[DataProvider(DynamicFormWidgetProvider::class . '::configurationsRejectedBeforeInitOptions')]
+    public function throwInvalidConfigExceptionForInvalidConfigurationBeforeTheInitOptionsHook(
         array $overrides,
         string $message,
     ): void {
@@ -846,20 +842,20 @@ final class DynamicFormWidgetTest extends TestCase
         try {
             new InspectableDynamicFormWidget(array_replace(WidgetRenderer::config(), $overrides));
 
-            self::fail(
+            Assert::fail(
                 'Invalid configuration must be rejected.',
             );
         } catch (InvalidConfigException $exception) {
-            self::assertSame(
-                $message,
+            Assert::same(
                 $exception->getMessage(),
+                $message,
                 'Message must name the invalid property.',
             );
         }
 
-        self::assertSame(
-            0,
+        Assert::same(
             InspectableDynamicFormWidget::$initOptionsCalls,
+            0,
             'Overridden hook must receive a validated configuration only.',
         );
     }
@@ -867,8 +863,8 @@ final class DynamicFormWidgetTest extends TestCase
     /**
      * @param array<string, mixed> $overrides
      */
-    #[DataProviderExternal(DynamicFormWidgetProvider::class, 'weakScalarConfigurations')]
-    public function testWeakScalarConfiguration(
+    #[DataProvider(DynamicFormWidgetProvider::class . '::weakScalarConfigurations')]
+    public function weakScalarConfiguration(
         array $overrides,
         string $expectedContent,
         string $option,
@@ -878,14 +874,14 @@ final class DynamicFormWidgetTest extends TestCase
 
         $hashVar = self::hashVar($html);
 
-        self::assertSame(
-            sprintf('<div class="dynamic_form" data-dynamicform="%s">%s</div>', $hashVar, $expectedContent),
+        Assert::same(
             $html,
+            sprintf('<div class="dynamic_form" data-dynamicform="%s">%s</div>', $hashVar, $expectedContent),
             'Container content must follow the strict server-side comparison.',
         );
-        self::assertSame(
-            $expected,
+        Assert::same(
             self::decodedOptions($hashVar)[$option] ?? null,
+            $expected,
             'Option must be emitted with its configured type.',
         );
     }
@@ -897,10 +893,7 @@ final class DynamicFormWidgetTest extends TestCase
     {
         $options = Json::decode(self::optionsJson($hashVar));
 
-        self::assertIsArray(
-            $options,
-            'Options must decode to an object.',
-        );
+        Assert::array($options);
 
         /** @var array<string, mixed> $options */
         return $options;
@@ -914,10 +907,7 @@ final class DynamicFormWidgetTest extends TestCase
      */
     private static function decodeNonAsciiEntities(mixed $html): string
     {
-        self::assertIsString(
-            $html,
-            'Template must be a string.',
-        );
+        Assert::string($html);
 
         return (string) preg_replace_callback(
             '/&(?:#\d+|#x[0-9a-f]+|[a-z][a-z0-9]*);/i',
@@ -932,11 +922,9 @@ final class DynamicFormWidgetTest extends TestCase
 
     private static function hashVar(string $html): string
     {
-        self::assertSame(
-            1,
-            preg_match('/^<div class="[^"]*" data-dynamicform="(dynamicform_[0-9a-f]{8})">/', $html, $match),
-            'Container must reference a hashed options variable.',
-        );
+        if (preg_match('/^<div class="[^"]*" data-dynamicform="(dynamicform_[0-9a-f]{8})">/', $html, $match) !== 1) {
+            Assert::fail('Container must reference a hashed options variable.');
+        }
 
         return $match[1];
     }
@@ -945,16 +933,14 @@ final class DynamicFormWidgetTest extends TestCase
     {
         $head = self::registeredJs(View::POS_HEAD);
 
-        self::assertCount(
-            1,
+        Assert::count(
             $head,
+            1,
             'Options must be declared once.',
         );
-        self::assertSame(
-            1,
-            preg_match('/^var ' . $hashVar . ' = (.*);\n$/s', $head[0], $match),
-            'Head script must declare the referenced variable.',
-        );
+        if (preg_match('/^var ' . $hashVar . ' = (.*);\n$/s', $head[0], $match) !== 1) {
+            Assert::fail('Head script must declare the referenced variable.');
+        }
 
         return $match[1];
     }

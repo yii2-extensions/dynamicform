@@ -10,6 +10,8 @@ const config = {
   testRunner: 'vitest',
   vitest: {
     configFile: 'vitest.mutation.config.mjs',
+    // Each mutant run evaluates jsdom and the client libraries again; VM contexts reuse the worker instead of a thread.
+    pool: 'vmThreads',
   },
   concurrency: 4,
   reporters: ['clear-text', 'progress', 'json'],

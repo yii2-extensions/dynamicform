@@ -14,7 +14,7 @@ use Yii2\Extensions\DynamicForm\DynamicFormWidget;
 final class InspectableDynamicFormWidget extends DynamicFormWidget
 {
     /**
-     * @var int Number of {@see initOptions()} calls; PHPUnit restores static properties after each test.
+     * @var int Number of {@see initOptions()} calls; a test resets it before counting.
      */
     public static int $initOptionsCalls = 0;
 

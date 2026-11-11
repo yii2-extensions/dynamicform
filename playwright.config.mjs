@@ -1,7 +1,7 @@
 import { defineConfig } from '@playwright/test';
 
 // Rendered acceptance pages are served by PHP. Set DYNAMICFORM_BASE_URL to use an already running server (for example
-// a PHP 8.1 container); otherwise the PHP binary from PHP_BINARY (default: php) starts the built-in server.
+// a PHP 8.3 container); otherwise the PHP binary from PHP_BINARY (default: php) starts the built-in server.
 const port = Number(process.env.DYNAMICFORM_PORT ?? 8090);
 const externalBaseUrl = process.env.DYNAMICFORM_BASE_URL;
 const baseUrl = (externalBaseUrl ?? `http://127.0.0.1:${port}`).replace(/\/$/, '');

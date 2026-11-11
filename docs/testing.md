@@ -16,10 +16,10 @@ Tool references:
 - [Infection](https://infection.github.io/) for PHP mutation testing.
 - [Markdownlint-cli2](https://github.com/DavidAnson/markdownlint-cli2) for Markdown linting.
 - [PHPStan](https://phpstan.org/) for static analysis.
-- [PHPUnit](https://phpunit.de/) for unit tests.
 - [Playwright](https://playwright.dev/) for PHP-rendered browser acceptance tests.
 - [Prettier](https://prettier.io/) for Markdown and YAML formatting checks.
 - [StrykerJS](https://stryker-mutator.io/) for JavaScript mutation testing.
+- [Testo](https://php-testo.github.io/) for PHP unit tests.
 - [Vitest](https://vitest.dev/) with [jsdom](https://github.com/jsdom/jsdom) for JavaScript unit tests.
 - [Yamllint](https://github.com/adrienverge/yamllint) for YAML linting.
 - [Zizmor](https://github.com/zizmorcore/zizmor) for GitHub Actions security audits.
@@ -64,7 +64,8 @@ Run mutation testing with PHPStan static analysis enabled.
 composer mutation-static
 ```
 
-Options live in `infection.json5`; the reports are written to `runtime/infection`.
+Options live in `infection.json5`, which runs the mutants through the Testo adapter (`testo/bridge-infection`); the
+reports are written to `runtime/infection`.
 
 ## Repository quality checks
 
@@ -97,9 +98,9 @@ Run static analysis.
 composer static
 ```
 
-## Unit tests (PHPUnit)
+## Unit tests (Testo)
 
-Run the full test suite.
+Run the full test suite configured in `testo.php`.
 
 ```bash
 composer tests
@@ -108,17 +109,17 @@ composer tests
 Run one group (`api`, `asset`, `model`, `widget`).
 
 ```bash
-composer tests -- --group widget
+composer tests -- --group=widget
 ```
 
 The production-mode asset cases (`YII_DEBUG=false`) need the [runkit7](https://github.com/runkit7/runkit7) extension;
-PHPUnit skips them without it. In the `build` workflow, setup-php installs runkit7 only on the Windows jobs for PHP 8.1,
-8.2 and 8.3, so the other jobs skip these cases. The browser acceptance tests cover the default selection of the
-minified asset in their `rendered-production` project on every run.
+Testo skips them without it. In the `build` workflow, setup-php installs runkit7 only on the Windows jobs for PHP 8.3,
+so the other jobs skip these cases. The browser acceptance tests cover the default selection of the minified asset in
+their `rendered-production` project on every run.
 
-The `build` workflow runs PHPUnit on PHP 8.1 to 8.5, on Ubuntu and Windows: with the Composer resolution of each PHP
-version (Symfony 6.4 on PHP 8.1, 7.x otherwise), with Symfony 6.4 on PHP 8.2 to 8.5, and with `yiisoft/yii2:22.0.x-dev`
-on PHP 8.3 to 8.5. Static analysis runs on PHP 8.5; the `assets` workflow serves the browser fixture with PHP 8.1.
+The `build` workflow runs Testo on PHP 8.3 to 8.5, on Ubuntu and Windows: with the Composer resolution of each PHP
+version, with Symfony 6.4, and with `yiisoft/yii2:22.0.x-dev`. Static analysis runs on PHP 8.5; the `assets` workflow
+serves the browser fixture with PHP 8.3.
 
 ## Workflow security checks
 
@@ -155,16 +156,16 @@ Report hosted CI execution and its PHP/OS matrix separately from these local com
 
 Composer scripts support forwarding additional arguments using `--`.
 
-Run PHPUnit with code coverage report generation.
+Run Testo with a Clover code coverage report (needs PCOV or Xdebug).
 
 ```bash
-composer tests -- --coverage-html internal/coverage
+composer tests -- --coverage-clover=internal/coverage/clover.xml
 ```
 
-Run one PHPUnit test class.
+Run one test class.
 
 ```bash
-composer tests -- --filter DynamicFormWidgetTest
+composer tests -- --filter=DynamicFormWidgetTest
 ```
 
 ## JavaScript tests (Vitest)
@@ -199,7 +200,8 @@ npm run test:js:strict
 ## JavaScript mutation testing (Stryker)
 
 Run mutation testing for the plugin source. Thresholds live in `stryker.config.mjs`; the report is written to
-`runtime/stryker`.
+`runtime/stryker`. Stryker runs only the tests that cover each mutant, in the `source` project of
+`vitest.mutation.config.mjs` on the `vmThreads` pool, so each run reuses its worker instead of starting a thread.
 
 ```bash
 npm run test:mutation
@@ -226,7 +228,7 @@ npm run test:browser
 Environment variables:
 
 - `PHP_BINARY`: PHP executable that serves the fixture (default `php`).
-- `DYNAMICFORM_BASE_URL`: use an already running fixture server instead, for example a PHP 8.1 container.
+- `DYNAMICFORM_BASE_URL`: use an already running fixture server instead, for example a PHP 8.3 container.
 - `CHROMIUM_PATH`: use an installed Chromium instead of the Playwright download.
 
 ```bash

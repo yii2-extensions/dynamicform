@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## 2.0.1 Under development
 
 - docs: complete widget, asset and model PHPDoc for warning-free API documentation.
+- build!: require PHP `8.3`, migrate the PHP tests from PHPUnit to Testo and speed up the JavaScript mutation run.
 
 ## 2.0.0 November 10, 2026
 
