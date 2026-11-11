@@ -7,12 +7,17 @@ namespace Yii2\Extensions\DynamicForm;
  */
 class DynamicFormAsset extends \yii\web\AssetBundle
 {
+    /**
+     * Dependencies that provide jQuery and ActiveForm client validation.
+     */
     public $depends = [
         'yii\web\JqueryAsset',
         'yii\widgets\ActiveFormAsset',
     ];
 
     /**
+     * Sets the default asset directory and scripts while preserving bundle overrides.
+     *
      * @return void
      */
     public function init()

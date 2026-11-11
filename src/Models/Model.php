@@ -9,6 +9,9 @@ use function is_array;
 use function is_int;
 use function is_string;
 
+/**
+ * Creates or reuses row models for tabular form submissions.
+ */
 class Model extends \yii\base\Model
 {
     /**
