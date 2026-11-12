@@ -139,34 +139,34 @@ final class DynamicFormWidgetTest
         Assert::same(
             $html,
             <<<HTML
-                <div class="dynamic_form" data-dynamicform="dynamicform_81ae8e79"><div class="items"><div class="item">Row</div></div></div>
-                HTML,
+            <div class="dynamic_form" data-dynamicform="dynamicform_81ae8e79"><div class="items"><div class="item">Row</div></div></div>
+            HTML,
             'Container must reference the hashed variable.',
         );
         Assert::same(
             self::registeredJs(View::POS_READY),
             [
                 <<<'JS'
-                    jQuery(document.getElementById("form\u0022a\u0027b\u003C\/script\u003E\u0026")).on("click", "button[data-role=\u0022add\u0022]", function(e) {
-                        e.preventDefault();
-                        var $container = jQuery(this).closest("div[data-dynamicform]");
-                        if ($container.attr("data-dynamicform") === "dynamicform_81ae8e79") {
-                            $container.triggerHandler("beforeInsert", [jQuery(this)]);
-                            $container.yiiDynamicForm("addItem", dynamicform_81ae8e79, e, jQuery(this));
-                        }
-                    });
+                jQuery(document.getElementById("form\u0022a\u0027b\u003C\/script\u003E\u0026")).on("click", "button[data-role=\u0022add\u0022]", function(e) {
+                    e.preventDefault();
+                    var $container = jQuery(this).closest("div[data-dynamicform]");
+                    if ($container.attr("data-dynamicform") === "dynamicform_81ae8e79") {
+                        $container.triggerHandler("beforeInsert", [jQuery(this)]);
+                        $container.yiiDynamicForm("addItem", dynamicform_81ae8e79, e, jQuery(this));
+                    }
+                });
 
-                    JS,
+                JS,
                 <<<'JS'
-                    jQuery(document.getElementById("form\u0022a\u0027b\u003C\/script\u003E\u0026")).on("click", "[data-role=\u0027remove\u0027] \u003E b", function(e) {
-                        e.preventDefault();
-                        var $container = jQuery(this).closest("div[data-dynamicform]");
-                        if ($container.attr("data-dynamicform") === "dynamicform_81ae8e79") {
-                            $container.yiiDynamicForm("deleteItem", dynamicform_81ae8e79, e, jQuery(this));
-                        }
-                    });
+                jQuery(document.getElementById("form\u0022a\u0027b\u003C\/script\u003E\u0026")).on("click", "[data-role=\u0027remove\u0027] \u003E b", function(e) {
+                    e.preventDefault();
+                    var $container = jQuery(this).closest("div[data-dynamicform]");
+                    if ($container.attr("data-dynamicform") === "dynamicform_81ae8e79") {
+                        $container.yiiDynamicForm("deleteItem", dynamicform_81ae8e79, e, jQuery(this));
+                    }
+                });
 
-                    JS,
+                JS,
             ],
             'Form id and selectors must be emitted as HTML-safe JavaScript string literals.',
         );
@@ -174,9 +174,9 @@ final class DynamicFormWidgetTest
             self::registeredJs(View::POS_LOAD),
             [
                 <<<'JS'
-                    jQuery(document.getElementById("form\u0022a\u0027b\u003C\/script\u003E\u0026")).yiiDynamicForm(dynamicform_81ae8e79);
+                jQuery(document.getElementById("form\u0022a\u0027b\u003C\/script\u003E\u0026")).yiiDynamicForm(dynamicform_81ae8e79);
 
-                    JS,
+                JS,
             ],
             'Initialization must look up the form by its encoded id.',
         );
@@ -194,8 +194,8 @@ final class DynamicFormWidgetTest
         Assert::same(
             self::optionsJson($hashVar),
             <<<JS
-                {"widgetContainer":"dynamic_form","widgetBody":".items","widgetItem":".item","limit":999,"insertButton":".add","deleteButton":".remove","insertPosition":"bottom","formId":"test-form","min":1,"fields":[{"id":"formmodel-{}-name","name":"FormModel[{}][name]"}],"template":"\u003Cdiv class=\u0022item\u0022\u003E\u0026amp; \u0027quote\u0027 \u003Cscript\u003Eunexpected()\u003C\/script\u003E\u003C\/div\u003E"}
-                JS,
+            {"widgetContainer":"dynamic_form","widgetBody":".items","widgetItem":".item","limit":999,"insertButton":".add","deleteButton":".remove","insertPosition":"bottom","formId":"test-form","min":1,"fields":[{"id":"formmodel-{}-name","name":"FormModel[{}][name]"}],"template":"\u003Cdiv class=\u0022item\u0022\u003E\u0026amp; \u0027quote\u0027 \u003Cscript\u003Eunexpected()\u003C\/script\u003E\u003C\/div\u003E"}
+            JS,
             'Markup characters must be escaped so the options cannot end the inline script.',
         );
         Assert::same(
@@ -265,8 +265,8 @@ final class DynamicFormWidgetTest
             self::registeredJs(View::POS_HEAD),
             [
                 <<<JS
-                    var dynamicform_c99d6213 = {"widgetContainer":"dynamic_form","widgetBody":".items","widgetItem":".item","limit":999,"insertButton":".add","deleteButton":".remove","insertPosition":"bottom","formId":"test-form","min":1,"fields":[{"id":"formmodel-{}-code","name":"FormModel[{}][code]"}]};
-                    JS . "\n",
+                var dynamicform_c99d6213 = {"widgetContainer":"dynamic_form","widgetBody":".items","widgetItem":".item","limit":999,"insertButton":".add","deleteButton":".remove","insertPosition":"bottom","formId":"test-form","min":1,"fields":[{"id":"formmodel-{}-code","name":"FormModel[{}][code]"}]};
+                JS . "\n",
             ],
             'Re-initialized options must replace the configured fields.',
         );
@@ -312,8 +312,8 @@ final class DynamicFormWidgetTest
         Assert::same(
             WidgetRenderer::render(),
             <<<HTML
-                <div class="dynamic_form" data-dynamicform="dynamicform_a2c36ba3"><div class="items"><div class="item">Row</div></div></div>
-                HTML,
+            <div class="dynamic_form" data-dynamicform="dynamicform_a2c36ba3"><div class="items"><div class="item">Row</div></div></div>
+            HTML,
             'Container must reference its own variable in the new page.',
         );
 
@@ -362,9 +362,9 @@ final class DynamicFormWidgetTest
         Assert::same(
             self::registeredJs(View::POS_HEAD)[0] ?? null,
             <<<JS
-                var dynamicform_e1befe0c = {"widgetContainer":"dynamic_form","widgetBody":".items","widgetItem":".item","limit":4,"insertButton":".add","deleteButton":".remove","insertPosition":"top","formId":"test-form","min":2,"fields":[{"id":"formmodel-{}-name","name":"FormModel[{}][name]"},{"id":"formmodel-{}-code","name":"FormModel[{}][code]"}],"template":"\u003Cdiv class=\u0022item\u0022\u003ERow\u003C\/div\u003E"};
+            var dynamicform_e1befe0c = {"widgetContainer":"dynamic_form","widgetBody":".items","widgetItem":".item","limit":4,"insertButton":".add","deleteButton":".remove","insertPosition":"top","formId":"test-form","min":2,"fields":[{"id":"formmodel-{}-name","name":"FormModel[{}][name]"},{"id":"formmodel-{}-code","name":"FormModel[{}][code]"}],"template":"\u003Cdiv class=\u0022item\u0022\u003ERow\u003C\/div\u003E"};
 
-                JS,
+            JS,
             'Every option must be serialized in the declared order.',
         );
         Assert::same(
@@ -416,8 +416,8 @@ final class DynamicFormWidgetTest
         Assert::same(
             $html,
             <<<HTML
-                <div class="dynamic_form" data-dynamicform="dynamicform_a2c36ba3"><div class="items"><div class="item">Row</div></div></div>
-                HTML,
+            <div class="dynamic_form" data-dynamicform="dynamicform_a2c36ba3"><div class="items"><div class="item">Row</div></div></div>
+            HTML,
             'Container must reference the hashed variable.',
         );
         Assert::same(
@@ -434,26 +434,26 @@ final class DynamicFormWidgetTest
             self::registeredJs(View::POS_READY),
             [
                 <<<'JS'
-                    jQuery(document.getElementById("test-form")).on("click", ".add", function(e) {
-                        e.preventDefault();
-                        var $container = jQuery(this).closest("div[data-dynamicform]");
-                        if ($container.attr("data-dynamicform") === "dynamicform_a2c36ba3") {
-                            $container.triggerHandler("beforeInsert", [jQuery(this)]);
-                            $container.yiiDynamicForm("addItem", dynamicform_a2c36ba3, e, jQuery(this));
-                        }
-                    });
+                jQuery(document.getElementById("test-form")).on("click", ".add", function(e) {
+                    e.preventDefault();
+                    var $container = jQuery(this).closest("div[data-dynamicform]");
+                    if ($container.attr("data-dynamicform") === "dynamicform_a2c36ba3") {
+                        $container.triggerHandler("beforeInsert", [jQuery(this)]);
+                        $container.yiiDynamicForm("addItem", dynamicform_a2c36ba3, e, jQuery(this));
+                    }
+                });
 
-                    JS,
+                JS,
                 <<<'JS'
-                    jQuery(document.getElementById("test-form")).on("click", ".remove", function(e) {
-                        e.preventDefault();
-                        var $container = jQuery(this).closest("div[data-dynamicform]");
-                        if ($container.attr("data-dynamicform") === "dynamicform_a2c36ba3") {
-                            $container.yiiDynamicForm("deleteItem", dynamicform_a2c36ba3, e, jQuery(this));
-                        }
-                    });
+                jQuery(document.getElementById("test-form")).on("click", ".remove", function(e) {
+                    e.preventDefault();
+                    var $container = jQuery(this).closest("div[data-dynamicform]");
+                    if ($container.attr("data-dynamicform") === "dynamicform_a2c36ba3") {
+                        $container.yiiDynamicForm("deleteItem", dynamicform_a2c36ba3, e, jQuery(this));
+                    }
+                });
 
-                    JS,
+                JS,
             ],
             'Handlers must be delegated from the form and act only on the container that owns the button.',
         );
@@ -491,8 +491,8 @@ final class DynamicFormWidgetTest
         Assert::same(
             $html,
             <<<HTML
-                <div class="nested_form" data-dynamicform="dynamicform_d3cee06d"><div class="items"><div class="item">Row</div></div></div>
-                HTML,
+            <div class="nested_form" data-dynamicform="dynamicform_d3cee06d"><div class="items"><div class="item">Row</div></div></div>
+            HTML,
             'Second container must reference its own variable.',
         );
         Assert::same(
@@ -507,8 +507,8 @@ final class DynamicFormWidgetTest
         Assert::same(
             WidgetRenderer::render([], '<div class="items"><div class="item">Row 1</div></div>'),
             <<<HTML
-                <div class="dynamic_form" data-dynamicform="dynamicform_a2c36ba3"><div class="items"><div class="item">Row 1</div></div></div>
-                HTML,
+            <div class="dynamic_form" data-dynamicform="dynamicform_a2c36ba3"><div class="items"><div class="item">Row 1</div></div></div>
+            HTML,
             'Registering another container must keep the first registration.',
         );
         Assert::count(
@@ -540,52 +540,52 @@ final class DynamicFormWidgetTest
         Assert::same(
             $page,
             <<<HTML
-                <script>var dynamicform_a2c36ba3 = {$options};
+            <script>var dynamicform_a2c36ba3 = {$options};
 
-                var dynamicform_ce0f18cb = {"widgetContainer":"dynamic_form","widgetBody":".items","widgetItem":".item","limit":2,"insertButton":".add","deleteButton":".remove","insertPosition":"bottom","formId":"other-form","min":1,"fields":[{"id":"formmodel-{}-code","name":"FormModel[{}][code]"}],"template":"\u003Cdiv class=\u0022item\u0022\u003EOther\u003C\/div\u003E"};
-                </script><div class="dynamic_form" data-dynamicform="dynamicform_a2c36ba3"><div class="items"><div class="item">Row</div></div></div><div class="dynamic_form" data-dynamicform="dynamicform_ce0f18cb"><div class="items"><div class="item">Other</div></div></div><script>{$ready}
-                jQuery(document.getElementById("test-form")).on("click", ".add", function(e) {
-                    e.preventDefault();
-                    var \$container = jQuery(this).closest("div[data-dynamicform]");
-                    if (\$container.attr("data-dynamicform") === "dynamicform_a2c36ba3") {
-                        \$container.triggerHandler("beforeInsert", [jQuery(this)]);
-                        \$container.yiiDynamicForm("addItem", dynamicform_a2c36ba3, e, jQuery(this));
-                    }
-                });
+            var dynamicform_ce0f18cb = {"widgetContainer":"dynamic_form","widgetBody":".items","widgetItem":".item","limit":2,"insertButton":".add","deleteButton":".remove","insertPosition":"bottom","formId":"other-form","min":1,"fields":[{"id":"formmodel-{}-code","name":"FormModel[{}][code]"}],"template":"\u003Cdiv class=\u0022item\u0022\u003EOther\u003C\/div\u003E"};
+            </script><div class="dynamic_form" data-dynamicform="dynamicform_a2c36ba3"><div class="items"><div class="item">Row</div></div></div><div class="dynamic_form" data-dynamicform="dynamicform_ce0f18cb"><div class="items"><div class="item">Other</div></div></div><script>{$ready}
+            jQuery(document.getElementById("test-form")).on("click", ".add", function(e) {
+                e.preventDefault();
+                var \$container = jQuery(this).closest("div[data-dynamicform]");
+                if (\$container.attr("data-dynamicform") === "dynamicform_a2c36ba3") {
+                    \$container.triggerHandler("beforeInsert", [jQuery(this)]);
+                    \$container.yiiDynamicForm("addItem", dynamicform_a2c36ba3, e, jQuery(this));
+                }
+            });
 
-                jQuery(document.getElementById("test-form")).on("click", ".remove", function(e) {
-                    e.preventDefault();
-                    var \$container = jQuery(this).closest("div[data-dynamicform]");
-                    if (\$container.attr("data-dynamicform") === "dynamicform_a2c36ba3") {
-                        \$container.yiiDynamicForm("deleteItem", dynamicform_a2c36ba3, e, jQuery(this));
-                    }
-                });
+            jQuery(document.getElementById("test-form")).on("click", ".remove", function(e) {
+                e.preventDefault();
+                var \$container = jQuery(this).closest("div[data-dynamicform]");
+                if (\$container.attr("data-dynamicform") === "dynamicform_a2c36ba3") {
+                    \$container.yiiDynamicForm("deleteItem", dynamicform_a2c36ba3, e, jQuery(this));
+                }
+            });
 
-                jQuery(document.getElementById("other-form")).on("click", ".add", function(e) {
-                    e.preventDefault();
-                    var \$container = jQuery(this).closest("div[data-dynamicform]");
-                    if (\$container.attr("data-dynamicform") === "dynamicform_ce0f18cb") {
-                        \$container.triggerHandler("beforeInsert", [jQuery(this)]);
-                        \$container.yiiDynamicForm("addItem", dynamicform_ce0f18cb, e, jQuery(this));
-                    }
-                });
+            jQuery(document.getElementById("other-form")).on("click", ".add", function(e) {
+                e.preventDefault();
+                var \$container = jQuery(this).closest("div[data-dynamicform]");
+                if (\$container.attr("data-dynamicform") === "dynamicform_ce0f18cb") {
+                    \$container.triggerHandler("beforeInsert", [jQuery(this)]);
+                    \$container.yiiDynamicForm("addItem", dynamicform_ce0f18cb, e, jQuery(this));
+                }
+            });
 
-                jQuery(document.getElementById("other-form")).on("click", ".remove", function(e) {
-                    e.preventDefault();
-                    var \$container = jQuery(this).closest("div[data-dynamicform]");
-                    if (\$container.attr("data-dynamicform") === "dynamicform_ce0f18cb") {
-                        \$container.yiiDynamicForm("deleteItem", dynamicform_ce0f18cb, e, jQuery(this));
-                    }
-                });
+            jQuery(document.getElementById("other-form")).on("click", ".remove", function(e) {
+                e.preventDefault();
+                var \$container = jQuery(this).closest("div[data-dynamicform]");
+                if (\$container.attr("data-dynamicform") === "dynamicform_ce0f18cb") {
+                    \$container.yiiDynamicForm("deleteItem", dynamicform_ce0f18cb, e, jQuery(this));
+                }
+            });
 
-                });</script>
-                <script>{$load}
-                jQuery(document.getElementById("test-form")).yiiDynamicForm(dynamicform_a2c36ba3);
+            });</script>
+            <script>{$load}
+            jQuery(document.getElementById("test-form")).yiiDynamicForm(dynamicform_a2c36ba3);
 
-                jQuery(document.getElementById("other-form")).yiiDynamicForm(dynamicform_ce0f18cb);
+            jQuery(document.getElementById("other-form")).yiiDynamicForm(dynamicform_ce0f18cb);
 
-                });</script>
-                HTML,
+            });</script>
+            HTML,
             'Each form must declare its own options, handlers and initialization for the shared container name.',
         );
     }
@@ -604,31 +604,31 @@ final class DynamicFormWidgetTest
         Assert::same(
             $page,
             <<<HTML
-                <script>var dynamicform_a2c36ba3 = {$options};
-                </script><div class="dynamic_form" data-dynamicform="dynamicform_a2c36ba3"><div class="items"><div class="item">Row</div></div></div><script>{$ready}
-                jQuery(document.getElementById("test-form")).on("click", ".add", function(e) {
-                    e.preventDefault();
-                    var \$container = jQuery(this).closest("div[data-dynamicform]");
-                    if (\$container.attr("data-dynamicform") === "dynamicform_a2c36ba3") {
-                        \$container.triggerHandler("beforeInsert", [jQuery(this)]);
-                        \$container.yiiDynamicForm("addItem", dynamicform_a2c36ba3, e, jQuery(this));
-                    }
-                });
+            <script>var dynamicform_a2c36ba3 = {$options};
+            </script><div class="dynamic_form" data-dynamicform="dynamicform_a2c36ba3"><div class="items"><div class="item">Row</div></div></div><script>{$ready}
+            jQuery(document.getElementById("test-form")).on("click", ".add", function(e) {
+                e.preventDefault();
+                var \$container = jQuery(this).closest("div[data-dynamicform]");
+                if (\$container.attr("data-dynamicform") === "dynamicform_a2c36ba3") {
+                    \$container.triggerHandler("beforeInsert", [jQuery(this)]);
+                    \$container.yiiDynamicForm("addItem", dynamicform_a2c36ba3, e, jQuery(this));
+                }
+            });
 
-                jQuery(document.getElementById("test-form")).on("click", ".remove", function(e) {
-                    e.preventDefault();
-                    var \$container = jQuery(this).closest("div[data-dynamicform]");
-                    if (\$container.attr("data-dynamicform") === "dynamicform_a2c36ba3") {
-                        \$container.yiiDynamicForm("deleteItem", dynamicform_a2c36ba3, e, jQuery(this));
-                    }
-                });
+            jQuery(document.getElementById("test-form")).on("click", ".remove", function(e) {
+                e.preventDefault();
+                var \$container = jQuery(this).closest("div[data-dynamicform]");
+                if (\$container.attr("data-dynamicform") === "dynamicform_a2c36ba3") {
+                    \$container.yiiDynamicForm("deleteItem", dynamicform_a2c36ba3, e, jQuery(this));
+                }
+            });
 
-                });</script>
-                <script>{$load}
-                jQuery(document.getElementById("test-form")).yiiDynamicForm(dynamicform_a2c36ba3);
+            });</script>
+            <script>{$load}
+            jQuery(document.getElementById("test-form")).yiiDynamicForm(dynamicform_a2c36ba3);
 
-                });</script>
-                HTML,
+            });</script>
+            HTML,
             'Options must precede the content; handlers run on DOM ready and initialization on window load.',
         );
     }
@@ -701,31 +701,31 @@ final class DynamicFormWidgetTest
         Assert::same(
             $page,
             <<<HTML
-                <script>var dynamicform_a2c36ba3 = {$options};
-                </script><div class="dynamic_form" data-dynamicform="dynamicform_a2c36ba3"><div class="items"><div class="item">Row</div></div></div><div class="dynamic_form" data-dynamicform="dynamicform_a2c36ba3"><div class="items"><div class="item">Row 1</div></div></div><script>{$ready}
-                jQuery(document.getElementById("test-form")).on("click", ".add", function(e) {
-                    e.preventDefault();
-                    var \$container = jQuery(this).closest("div[data-dynamicform]");
-                    if (\$container.attr("data-dynamicform") === "dynamicform_a2c36ba3") {
-                        \$container.triggerHandler("beforeInsert", [jQuery(this)]);
-                        \$container.yiiDynamicForm("addItem", dynamicform_a2c36ba3, e, jQuery(this));
-                    }
-                });
+            <script>var dynamicform_a2c36ba3 = {$options};
+            </script><div class="dynamic_form" data-dynamicform="dynamicform_a2c36ba3"><div class="items"><div class="item">Row</div></div></div><div class="dynamic_form" data-dynamicform="dynamicform_a2c36ba3"><div class="items"><div class="item">Row 1</div></div></div><script>{$ready}
+            jQuery(document.getElementById("test-form")).on("click", ".add", function(e) {
+                e.preventDefault();
+                var \$container = jQuery(this).closest("div[data-dynamicform]");
+                if (\$container.attr("data-dynamicform") === "dynamicform_a2c36ba3") {
+                    \$container.triggerHandler("beforeInsert", [jQuery(this)]);
+                    \$container.yiiDynamicForm("addItem", dynamicform_a2c36ba3, e, jQuery(this));
+                }
+            });
 
-                jQuery(document.getElementById("test-form")).on("click", ".remove", function(e) {
-                    e.preventDefault();
-                    var \$container = jQuery(this).closest("div[data-dynamicform]");
-                    if (\$container.attr("data-dynamicform") === "dynamicform_a2c36ba3") {
-                        \$container.yiiDynamicForm("deleteItem", dynamicform_a2c36ba3, e, jQuery(this));
-                    }
-                });
+            jQuery(document.getElementById("test-form")).on("click", ".remove", function(e) {
+                e.preventDefault();
+                var \$container = jQuery(this).closest("div[data-dynamicform]");
+                if (\$container.attr("data-dynamicform") === "dynamicform_a2c36ba3") {
+                    \$container.yiiDynamicForm("deleteItem", dynamicform_a2c36ba3, e, jQuery(this));
+                }
+            });
 
-                });</script>
-                <script>{$load}
-                jQuery(document.getElementById("test-form")).yiiDynamicForm(dynamicform_a2c36ba3);
+            });</script>
+            <script>{$load}
+            jQuery(document.getElementById("test-form")).yiiDynamicForm(dynamicform_a2c36ba3);
 
-                });</script>
-                HTML,
+            });</script>
+            HTML,
             'Repeated rendering must reference the first registration without declaring options or handlers again.',
         );
     }
@@ -772,8 +772,8 @@ final class DynamicFormWidgetTest
         Assert::same(
             WidgetRenderer::render([], '<div class="items"><div class="item">Row 1</div></div>'),
             <<<HTML
-                <div class="dynamic_form" data-dynamicform="dynamicform_a2c36ba3"><div class="items"><div class="item">Row 1</div></div></div>
-                HTML,
+            <div class="dynamic_form" data-dynamicform="dynamicform_a2c36ba3"><div class="items"><div class="item">Row 1</div></div></div>
+            HTML,
             'Registry must keep the first registration after the rejection.',
         );
     }

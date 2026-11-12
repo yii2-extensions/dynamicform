@@ -38,14 +38,14 @@ $colors = ['red' => 'Red', 'blue' => 'Blue'];
 // listbox of `kind` is mounted in the body, outside its row.
 $this->registerJs(
     <<<'JS'
-        window.tomSelectSettings = {
-            kind: { plugins: ['clear_button'], allowEmptyOption: true, maxOptions: 20, dropdownParent: 'body' },
-            tags: { plugins: ['remove_button'], maxItems: 3 },
-        };
-        document.querySelectorAll('select[data-tomselect]').forEach(function (select) {
-            new TomSelect(select, window.tomSelectSettings[select.getAttribute('data-tomselect')]);
-        });
-        JS,
+    window.tomSelectSettings = {
+        kind: { plugins: ['clear_button'], allowEmptyOption: true, maxOptions: 20, dropdownParent: 'body' },
+        tags: { plugins: ['remove_button'], maxItems: 3 },
+    };
+    document.querySelectorAll('select[data-tomselect]').forEach(function (select) {
+        new TomSelect(select, window.tomSelectSettings[select.getAttribute('data-tomselect')]);
+    });
+    JS,
     View::POS_READY,
 );
 
