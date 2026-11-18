@@ -145,7 +145,7 @@ Events are triggered on the container that owns the clicked button: `beforeInser
 
 ## Enhanced controls
 
-Tested versions are listed in `testing.md`: Select2 4.0.13 with Kartik Select2 2.2.5 and DepDrop 1.0.6, TomSelect 2.4.3,
+Tested versions are listed in `testing.md`: Select2 4.1.0 with Kartik Select2 2.2.5 and DepDrop 1.0.6, TomSelect 2.4.3,
 Inputmask 5.0.10 through `yii\widgets\MaskedInput`, Kartik DatePicker 1.4.8 as a component, `TYPE_INPUT` and
 `TYPE_INLINE`, and, in jsdom only, Kartik TimePicker 1.0.5, FileInput 1.1.1, TouchSpin 1.2.4, MaskMoney 1.2.3 and
 NumberControl 1.0.5. Mark TomSelect selects with `data-tomselect` and load a build with the `remove_button` and
