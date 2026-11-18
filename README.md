@@ -14,14 +14,14 @@
     <a href="https://github.com/yii2-extensions/dynamicform/actions/workflows/build.yml" target="_blank">
         <img src="https://img.shields.io/github/actions/workflow/status/yii2-extensions/dynamicform/build.yml?style=for-the-badge&label=Testo&logo=github" alt="Testo">
     </a>
+    <a href="https://codecov.io/github/yii2-extensions/dynamicform" target="_blank">
+        <img src="https://img.shields.io/codecov/c/github/yii2-extensions/dynamicform.svg?style=for-the-badge&logo=codecov&logoColor=white&label=Coverage" alt="Coverage">
+    </a>
     <a href="https://dashboard.stryker-mutator.io/reports/github.com/yii2-extensions/dynamicform/main" target="_blank">
         <img src="https://img.shields.io/endpoint?style=for-the-badge&url=https%3A%2F%2Fbadge-api.stryker-mutator.io%2Fgithub.com%2Fyii2-extensions%2Fdynamicform%2Fmain" alt="Mutation Testing">
     </a>
     <a href="https://github.com/yii2-extensions/dynamicform/actions/workflows/static.yml" target="_blank">
         <img src="https://img.shields.io/github/actions/workflow/status/yii2-extensions/dynamicform/static.yml?style=for-the-badge&label=PHPStan&logo=github" alt="PHPStan">
-    </a>
-    <a href="https://github.com/yii2-extensions/dynamicform/actions/workflows/security.yml" target="_blank">
-        <img src="https://img.shields.io/github/actions/workflow/status/yii2-extensions/dynamicform/security.yml?style=for-the-badge&label=Security&logo=github" alt="Security">
     </a>
 </p>
 
@@ -93,14 +93,15 @@ ActiveForm::end();
 ```
 
 On the server, `Model::createMultiple()` builds one `Address` model per posted row; the
-[usage examples](docs/examples.md) show the complete create and update actions.
+[usage examples](https://github.com/yii2-extensions/dynamicform/blob/main/docs/examples.md) show the complete create and
+update actions.
 
 ## Documentation
 
-- 📚 [Installation guide](docs/installation.md)
-- ⚙️ [Configuration guide](docs/configuration.md)
-- 💡 [Usage examples](docs/examples.md)
-- 🧪 [Testing guide](docs/testing.md)
+- 📚 [Installation guide](https://github.com/yii2-extensions/dynamicform/blob/main/docs/installation.md)
+- ⚙️ [Configuration guide](https://github.com/yii2-extensions/dynamicform/blob/main/docs/configuration.md)
+- 💡 [Usage examples](https://github.com/yii2-extensions/dynamicform/blob/main/docs/examples.md)
+- 🧪 [Testing guide](https://github.com/yii2-extensions/dynamicform/blob/main/docs/testing.md)
 
 ## AI assistance
 
@@ -109,7 +110,9 @@ of a page by appending `index.md` to its URL. The
 [AI agents guide](https://yii2-framework.github.io/docs/project/ai-agents/) covers skill installation, client setup and
 verification.
 
-- 🤖 [`yii2-dynamicform` skill](docs/agents.md): Dynamic form rows.
+- 🤖 [`yii2-dynamicform` skill](https://github.com/yii2-extensions/dynamicform/blob/main/docs/agents.md):
+  `DynamicFormWidget` rows, nesting, client validation, events and enhanced controls, and server-side rebuilding of
+  posted rows with `Model::createMultiple()`.
 - 🧭 [`yii2-framework` skill](https://yii2-framework.github.io/docs/guide/skills/yii2-framework/): Yii 22.0 application
   conventions.
 
@@ -128,10 +131,20 @@ The hosted documentation covers Yii 22.0. If it does not match the installed rev
 
 ## Code quality
 
-[![Codecov](https://img.shields.io/codecov/c/github/yii2-extensions/dynamicform.svg?style=for-the-badge&logo=codecov&logoColor=white&label=Coverage)](https://codecov.io/github/yii2-extensions/dynamicform)
 [![Quality](https://img.shields.io/github/actions/workflow/status/yii2-extensions/dynamicform/quality.yml?style=for-the-badge&label=Quality&logo=github)](https://github.com/yii2-extensions/dynamicform/actions/workflows/quality.yml)
 [![Assets](https://img.shields.io/github/actions/workflow/status/yii2-extensions/dynamicform/assets.yml?style=for-the-badge&label=Assets&logo=github)](https://github.com/yii2-extensions/dynamicform/actions/workflows/assets.yml)
 [![ECS](https://img.shields.io/github/actions/workflow/status/yii2-extensions/dynamicform/ecs.yml?style=for-the-badge&label=ECS&logo=github)](https://github.com/yii2-extensions/dynamicform/actions/workflows/ecs.yml)
+
+## Security
+
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/yii2-extensions/dynamicform/badge?style=for-the-badge)](https://scorecard.dev/viewer/?uri=github.com/yii2-extensions/dynamicform)
+[![Zizmor](https://img.shields.io/github/actions/workflow/status/yii2-extensions/dynamicform/security.yml?style=for-the-badge&label=Zizmor&logo=github)](https://github.com/yii2-extensions/dynamicform/actions/workflows/security.yml)
+
+## Built with AI
+
+[![Built with Claude Code](https://img.shields.io/badge/Built%20with-Claude%20Code-D97757.svg?style=for-the-badge&logo=claude&logoColor=white)](https://claude.com/claude-code)
+[![Built with Codex](https://img.shields.io/badge/Built%20with-Codex-10A37F.svg?style=for-the-badge&logo=openaigym&logoColor=white)](https://openai.com/codex)
+[![Reviewed by CodeRabbit](https://img.shields.io/badge/Reviewed%20by-CodeRabbit-FF570A.svg?style=for-the-badge&logo=coderabbit&logoColor=white)](https://www.coderabbit.ai)
 
 ## Special thanks
 
@@ -145,12 +158,6 @@ and maintenance we have moved a copy here and preserve his identity throughout t
 [![Follow on Facebook](https://img.shields.io/badge/-Follow%20on%20Facebook-1877F2.svg?style=for-the-badge&logo=facebook&logoColor=white&labelColor=000000)](https://www.facebook.com/wilmer.arambula.9)
 [![Join our Subreddit](https://img.shields.io/badge/-Join%20our%20Subreddit-FF4500.svg?style=for-the-badge&logo=reddit&logoColor=white&labelColor=000000)](https://www.reddit.com/r/Yii2/)
 [![Join on Telegram](https://img.shields.io/badge/-Join%20on%20Telegram-26A5E4.svg?style=for-the-badge&logo=telegram&logoColor=white&labelColor=000000)](https://t.me/yii_framework_in_english)
-
-## Built with AI
-
-[![Built with Claude Code](https://img.shields.io/badge/Built%20with-Claude%20Code-D97757.svg?style=for-the-badge&logo=claude&logoColor=white)](https://claude.com/claude-code)
-[![Built with Codex](https://img.shields.io/badge/Built%20with-Codex-10A37F.svg?style=for-the-badge&logo=openaigym&logoColor=white)](https://openai.com/codex)
-[![Reviewed by CodeRabbit](https://img.shields.io/badge/Reviewed%20by-CodeRabbit-FF570A.svg?style=for-the-badge&logo=coderabbit&logoColor=white)](https://www.coderabbit.ai)
 
 ## License
 

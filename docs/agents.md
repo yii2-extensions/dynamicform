@@ -79,4 +79,34 @@ two aliases; the installer needs only its `.agents/skills/` installation.
 `--list` verifies the installer's discovery only; it does not run Claude, Codex, or OpenCode. Application instructions
 and permissions still apply when a skill is activated.
 
+## Example prompts
+
+Start a fresh client session at the application root. The explicit example uses Codex's `$skill-name` notation; use
+`/yii2-dynamicform` in Claude Code or the installed client's native skill mechanism. Do not paste the skill body and
+count that as native activation. These are tasks to execute and verify, not claims that an evaluation has passed.
+
+### Explicit invocation
+
+```text
+$yii2-dynamicform
+Show a repeatable ActiveForm with add/remove rows and server-side Model::createMultiple() handling for the installed
+DynamicForm version. Include checks for row names, validation errors and empty submissions before persistence.
+Inspect the installed revision first. Do not install dependencies or change files without authorization.
+```
+
+### Natural selection
+
+```text
+After removing and adding a dynamic form row, the posted names and validation errors no longer match. How can I
+reproduce and diagnose the row identity problem without disabling validation?
+```
+
+### Verify the outcome
+
+Exercise insert, delete and renumber behavior in the browser and inspect the posted payload plus server validation; a
+screenshot is not an executed form. Record native loading evidence separately from configuration review, executable
+checks and browser/runtime results. For a negative selection control, ask an unrelated question in a fresh session and
+confirm this package skill is not loaded. Keep evaluation traces private; report unavailable checks rather than treating
+discovery as execution.
+
 [Back to documentation](../README.md#documentation)
