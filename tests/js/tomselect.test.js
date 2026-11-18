@@ -5,7 +5,7 @@ import { insert, mount, remove } from './support/dom.js';
 import { loadTomSelectEnvironment } from './support/environment.js';
 
 /**
- * TomSelect integration contracts with the real TomSelect 2.4.3 complete build: the elements TomSelect generates in a
+ * TomSelect integration contracts with the real TomSelect complete build: the elements TomSelect generates in a
  * row (`.item` for each selected value, its wrapper, control and listbox) never count as rows, every instance refers to
  * its own row after renumbering, and the instance of a deleted row is released. The PHP-rendered browser tests cover
  * the same integration in Chromium with the page's own initialization.

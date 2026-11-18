@@ -276,13 +276,14 @@ markup those widgets render; no browser scenario renders them.
 
 | Library                                                                               | Version | Installed by                                                   |
 | ------------------------------------------------------------------------------------- | ------- | -------------------------------------------------------------- |
-| [Select2](https://github.com/select2/select2)                                         | 4.0.13  | npm (`select2`) and Composer (`select2/select2`)               |
+| [Select2](https://github.com/select2/select2)                                         | 4.1.0   | npm (`select2`), JavaScript tests                              |
+| [Select2](https://github.com/select2/select2)                                         | 4.0.13  | Composer (`select2/select2`), PHP-rendered browser tests       |
 | [kartik-v/yii2-widget-select2](https://github.com/kartik-v/yii2-widget-select2)       | 2.2.5   | Composer                                                       |
 | [kartik-v/yii2-widget-depdrop](https://github.com/kartik-v/yii2-widget-depdrop)       | 1.0.6   | Composer                                                       |
 | [kartik-v/dependent-dropdown](https://github.com/kartik-v/dependent-dropdown)         | 1.4.9   | Composer                                                       |
 | [kartik-v/yii2-krajee-base](https://github.com/kartik-v/yii2-krajee-base)             | 3.0.5   | Composer                                                       |
 | [yiisoft/yii2-bootstrap5](https://github.com/yiisoft/yii2-bootstrap5)                 | ^2.0.50 | Composer; Krajee widgets require a Bootstrap extension         |
-| [TomSelect](https://github.com/orchidjs/tom-select)                                   | 2.4.3   | npm (`tom-select`), complete build                             |
+| [TomSelect](https://github.com/orchidjs/tom-select)                                   | 2.7.0   | npm (`tom-select`), complete build                             |
 | [Inputmask](https://github.com/RobinHerbots/Inputmask)                                | 5.0.10  | Composer (`bower-asset/inputmask`), jQuery build               |
 | [kartik-v/yii2-widget-datepicker](https://github.com/kartik-v/yii2-widget-datepicker) | 1.4.8   | Composer; bundles bootstrap-datepicker 1.8.0 as `kvDatepicker` |
 | [kartik-v/yii2-widget-timepicker](https://github.com/kartik-v/yii2-widget-timepicker) | 1.0.5   | Composer; bundles bootstrap-timepicker                         |

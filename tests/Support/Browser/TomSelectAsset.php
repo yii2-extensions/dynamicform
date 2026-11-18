@@ -9,7 +9,7 @@ use yii\web\AssetBundle;
 use function dirname;
 
 /**
- * Publishes the TomSelect 2.4.3 distribution the `tom-select` npm development dependency installs, so the browser
+ * Publishes the TomSelect distribution the `tom-select` npm development dependency installs, so the browser
  * fixture serves it locally: the complete build (core and bundled plugins), unminified with `YII_DEBUG` and minified
  * otherwise, as an application would choose it.
  */
