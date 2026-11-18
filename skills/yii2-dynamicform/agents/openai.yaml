@@ -1,0 +1,4 @@
+interface:
+  display_name: "Yii2 Dynamic Form"
+  short_description: "Build and validate repeatable Yii2 ActiveForm rows"
+  default_prompt: "Use $yii2-dynamicform to add repeatable ActiveForm rows and rebuild the posted rows on the server."

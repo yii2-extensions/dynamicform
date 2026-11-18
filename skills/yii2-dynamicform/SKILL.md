@@ -1,6 +1,6 @@
 ---
 name: yii2-dynamicform
-description: Use when adding or removing dynamic form rows, cloning or nesting ActiveForm fields, validating or debugging DynamicFormWidget and Model::createMultiple(), or migrating from wbraganca/yii2-dynamicform to yii2-extensions/dynamicform.
+description: Use when adding or removing dynamic form rows, cloning or nesting ActiveForm fields, validating or debugging DynamicFormWidget and Model::createMultiple(), or migrating from wbraganca/yii2-dynamicform to yii2-extensions/dynamicform. Not for tabular forms without DynamicFormWidget, other row-repeater widgets, or applications that keep the original wbraganca/yii2-dynamicform package.
 license: BSD-3-Clause
 ---
 
@@ -24,10 +24,11 @@ Compare `composer.lock`; it may differ from the inspected installation.
 The package archive ships `README.md`, `CHANGELOG.md`, `src/` and this skill, but not the `docs/` guides. Read them from
 a checkout, or from `https://github.com/yii2-extensions/dynamicform/blob/<verified-reference>/docs/<guide>.md` after
 verifying the reference: `installation.md`, `configuration.md` (properties, row identity, validation selectors,
-integrations, events), `examples.md` (create, update and view) and `testing.md` (tested library versions). There is no
-hosted documentation site for this package. If the guides are unavailable or offline, use the PHPDoc of
-`src/DynamicFormWidget.php`, `src/Models/Model.php`, the plugin `src/assets/yii2-dynamic-form.js` and the changelog, and
-report the gap.
+integrations, events), `examples.md` (create, update and view) and `testing.md` (tested library versions). The
+documentation site renders the same guides from the `main` branch at
+<https://yii2-framework.github.io/docs/extensions/dynamicform/>; use it only when `main` matches the installed revision.
+If the guides are unavailable or offline, use the PHPDoc of `src/DynamicFormWidget.php`, `src/Models/Model.php`, the
+plugin `src/assets/yii2-dynamic-form.js` and the changelog, and report the gap.
 
 ## Install
 
