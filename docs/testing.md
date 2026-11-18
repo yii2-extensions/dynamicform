@@ -277,7 +277,7 @@ markup those widgets render; no browser scenario renders them.
 | Library                                                                               | Version | Installed by                                                   |
 | ------------------------------------------------------------------------------------- | ------- | -------------------------------------------------------------- |
 | [Select2](https://github.com/select2/select2)                                         | 4.1.0   | npm (`select2`), JavaScript tests                              |
-| [Select2](https://github.com/select2/select2)                                         | 4.0.13  | Composer (`select2/select2`), PHP-rendered browser tests       |
+| [Select2](https://github.com/select2/select2)                                         | 4.1.0   | Composer (`select2/select2`), PHP-rendered browser tests       |
 | [kartik-v/yii2-widget-select2](https://github.com/kartik-v/yii2-widget-select2)       | 2.2.5   | Composer                                                       |
 | [kartik-v/yii2-widget-depdrop](https://github.com/kartik-v/yii2-widget-depdrop)       | 1.0.6   | Composer                                                       |
 | [kartik-v/dependent-dropdown](https://github.com/kartik-v/dependent-dropdown)         | 1.4.9   | Composer                                                       |

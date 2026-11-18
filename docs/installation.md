@@ -8,7 +8,7 @@
   into it by requiring `yiisoft/yii2:22.0.x-dev`. Earlier 2.0 releases are affected by security advisories, the most
   recent being CVE-2026-39850.
 - [`symfony/css-selector`](https://github.com/symfony/css-selector) and
-  [`symfony/dom-crawler`](https://github.com/symfony/dom-crawler) 6.4 or 7.x.
+  [`symfony/dom-crawler`](https://github.com/symfony/dom-crawler) 6.4, 7.x or 8.x (8.x requires PHP 8.4).
 
 ## Installation
 

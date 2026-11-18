@@ -1,4 +1,4 @@
-// PHP-rendered integration tests with the real Kartik widgets: kartik-v/yii2-widget-select2 2.2.5 (Select2 4.0.13) and
+// PHP-rendered integration tests with the real Kartik widgets: kartik-v/yii2-widget-select2 2.2.5 (Select2 4.1.0) and
 // kartik-v/yii2-widget-depdrop 1.0.6 (dependent-dropdown 1.4.9), pinned in composer.json. The `kartik` scenario renders
 // them through ActiveForm::field()->widget(); every Kartik script and every DepDrop or Select2 AJAX request is the real
 // one, answered by the deterministic endpoints of tests/Support/Browser/router.php. Controls are operated through
@@ -89,6 +89,7 @@ const rowState = (page, idOf) =>
               select2: $el.data('select2') !== undefined,
               containers: group.find('.select2-container').length,
               rendered: group.find('.select2-selection__rendered').text(),
+              clear: group.find('.select2-selection__clear').length,
               options: $el.find('option').map((i, option) => option.value).get(),
               name: $el.attr('name'),
               label: group.find(`label[for="${id}"]`).length,
@@ -149,8 +150,10 @@ test('Select2 clones are blank, show their placeholder and own one Select2 each,
   const original = await rowState(page, (attribute) => rowId('production', 0, attribute));
 
   expect(Object.fromEntries(attributes.map((a) => [a, original[rowId('production', 0, a)].value]))).toEqual(originalProduction);
-  expect(original[rowId('production', 0, 'branch')].rendered).toBe('×North');
-  expect(original[rowId('production', 0, 'site')].rendered).toBe('×Main site es');
+  expect(original[rowId('production', 0, 'branch')].rendered).toBe('North');
+  expect(original[rowId('production', 0, 'branch')].clear).toBe(1);
+  expect(original[rowId('production', 0, 'site')].rendered).toBe('Main site es');
+  expect(original[rowId('production', 0, 'site')].clear).toBe(1);
 
   // Up to the limit, every row keeps exactly one Select2 container per enhanced control and no loading indicator.
   await page.locator('.dynamicform_production .add-first').click();
