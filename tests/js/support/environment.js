@@ -45,7 +45,7 @@ const kartikLibraries = [
   'vendor/kartik-v/yii2-widget-select2/src/assets/js/select2-krajee.js',
 ];
 
-/** TomSelect 2.4.3 pinned in package.json: the complete build, with the plugins it bundles. */
+/** The TomSelect complete build, pinned in package.json, includes the plugins used by the fixtures. */
 const tomSelectLibrary = 'node_modules/tom-select/dist/js/tom-select.complete.js';
 
 /** Inputmask 5.0.10 pinned in composer.json (`bower-asset/inputmask`): the build Yii's `MaskedInputAsset` publishes. */

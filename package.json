@@ -18,12 +18,13 @@
     "test:mutation": "stryker run"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.65.0",
     "@stryker-mutator/core": "^10.1.1",
     "@stryker-mutator/vitest-runner": "^10.1.1",
     "@vitest/coverage-v8": "^5.1.0",
     "eslint": "^10.14.0",
-    "jquery": "4.0.0",
+    "jquery": "3.7.1",
     "jsdom": "^31.0.0",
     "select2": "4.1.0",
     "terser": "^5.44.0",

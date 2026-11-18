@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /**
- * Renders real TomSelect 2.4.3 controls inside DynamicFormWidget rows, next to Kartik Select2 and plain selects.
+ * Renders real TomSelect controls inside DynamicFormWidget rows, next to Kartik Select2 and plain selects.
  *
  * The page initializes TomSelect on the selects marked with `data-tomselect` on DOM ready, as an application does, with
  * its own settings per marker value; DynamicForm initializes the marked selects of inserted rows. Three forms:

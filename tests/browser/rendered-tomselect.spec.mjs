@@ -1,4 +1,4 @@
-// PHP-rendered integration tests with the real TomSelect 2.4.3 (npm `tom-select`, pinned in package.json), served
+// PHP-rendered integration tests with the real TomSelect (npm `tom-select`, pinned in package.json), served
 // locally by the fixture's asset bundle. The `tomselect` scenario renders the selects through ActiveForm::field(); the
 // page initializes TomSelect on the marked selects with its own settings, as an application does, and DynamicForm
 // initializes the marked selects of inserted rows. Controls are operated through the TomSelect UI or its documented

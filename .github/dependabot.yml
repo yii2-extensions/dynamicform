@@ -37,3 +37,7 @@ updates:
     groups:
       npm:
         patterns: ["*"]
+    ignore:
+      # The supported Yii 2.0 client scripts still use APIs removed in jQuery 4.
+      - dependency-name: "jquery"
+        update-types: ["version-update:semver-major"]
