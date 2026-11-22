@@ -15,52 +15,26 @@ name: assets
 permissions:
   contents: read
 
-concurrency:
-  cancel-in-progress: true
-  group: assets-${{ github.workflow }}-${{ github.ref }}
-
 jobs:
   assets:
-    name: Lint, test and mutation test the plugin; run the PHP-rendered browser acceptance.
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout.
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
+    uses: yii2-framework/actions/.github/workflows/assets.yml@e3e99bd1c54fb350911bf446690e6146acf7660d # v2.0.6
+    with:
+      # Vitest loads Yii JavaScript from vendor/yiisoft/yii2.
+      php-version: "8.3"
+      install-command: npm ci --ignore-scripts
+      commands: |
+        npm run lint
+        npm run test:js
+        npm run test:mutation
+        npm run build
+      drift-paths: src/assets/yii2-dynamic-form.min.js
 
-      # Vitest loads yii.js, yii.validation.js and yii.activeForm.js from vendor/yiisoft/yii2, and Playwright serves the
-      # fixture with this PHP. PHP 8.3 is the supported floor; Testo covers the rendered output on PHP 8.3-8.5.
-      - name: Install PHP dependencies.
-        uses: yii2-framework/actions/actions/php-setup@7a2d60325d59c5c9377fd445c912f2f1bfacf9d9 # v2.0.2
-        with:
-          coverage-driver: none
-          php-version: "8.3"
-
-      - name: Install node.js.
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-          cache-dependency-path: package-lock.json
-
-      - name: Install dependencies.
-        run: npm ci --ignore-scripts
-
-      - name: Lint the plugin, tests, tools and configuration.
-        run: npm run lint
-
-      - name: Verify that the committed minified asset matches a fresh build.
-        run: npm run build && git diff --exit-code -- src/assets/yii2-dynamic-form.min.js
-
-      - name: Test JavaScript.
-        run: npm run test:js
-
-      - name: Test JavaScript mutations.
-        run: npm run test:mutation
-
-      - name: Install Playwright Chromium.
-        run: npx playwright install --with-deps chromium
-
-      - name: Run PHP-rendered browser acceptance for the source and minified assets.
-        run: npm run test:browser
+  playwright:
+    uses: yii2-framework/actions/.github/workflows/playwright.yml@e3e99bd1c54fb350911bf446690e6146acf7660d # v2.0.6
+    with:
+      # The fixture server runs at the minimum supported PHP version.
+      php-version: "8.3"
+      install-command: npm ci --ignore-scripts
+      only-shell: true
+      commands: npm run test:browser
+      artifact-path: runtime/playwright/

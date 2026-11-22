@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - build!: require PHP `8.3`, migrate the PHP tests from PHPUnit to Testo and speed up the JavaScript mutation run.
 - chore: update ECS configuration and improve test assertions for dynamic form rendering.
 - docs: align `README.md` badges and Security section with the standard, add skill prompt examples and Codex metadata, and add Scorecard.
+- ci: update shared workflows and add PHP `8.6` to the test matrix.
 
 ## 2.0.0 November 10, 2026
 
