@@ -22,7 +22,7 @@ jobs:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     with:
       concurrency-group: testo-${{ github.workflow }}-${{ github.ref }}
-      extensions: runkit7
+      extensions: runkit7, sodium
       ignore-platform-reqs-php-version: "[8.6]"
       php-version: "[8.3, 8.4, 8.5, 8.6]"
 
@@ -34,7 +34,7 @@ jobs:
       # The released yiisoft/yii2-bootstrap5 lines require yiisoft/yii2 ^2.0; its `22` branch is the Yii 22 line.
       composer-command: require yiisoft/yii2:22.0.x-dev yiisoft/yii2-bootstrap5:22.x-dev
       concurrency-group: testo-compatibility-${{ github.workflow }}-${{ github.ref }}
-      extensions: runkit7
+      extensions: runkit7, sodium
       ignore-platform-reqs-php-version: "[8.6]"
       php-version: "[8.3, 8.4, 8.5, 8.6]"
 
@@ -45,6 +45,6 @@ jobs:
     with:
       composer-command: update --with symfony/css-selector:^6.4 --with symfony/dom-crawler:^6.4
       concurrency-group: testo-crawler-${{ github.workflow }}-${{ github.ref }}
-      extensions: runkit7
+      extensions: runkit7, sodium
       ignore-platform-reqs-php-version: "[8.6]"
       php-version: "[8.3, 8.4, 8.5, 8.6]"
