@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - chore: update ECS configuration and improve test assertions for dynamic form rendering.
 - docs: align `README.md` badges and Security section with the standard, add skill prompt examples and Codex metadata, and add Scorecard.
 - ci: update shared workflows and add PHP `8.6` to the test matrix.
+- ci: use the shared quality and security defaults and remove the local lint configuration files and their Composer scripts.
 
 ## 2.0.0 November 10, 2026
 
