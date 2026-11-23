@@ -69,26 +69,15 @@ reports are written to `runtime/infection`.
 
 ## Repository quality checks
 
-Make the CLI tools used by the shared quality workflow available on `PATH`: actionlint with its ShellCheck helper,
-codespell, EditorConfig Checker, markdownlint-cli2, Prettier and yamllint. Run all checks:
+The shared quality workflow runs codespell, EditorConfig Checker, markdownlint-cli2, Prettier and yamllint in CI with
+the configuration bundled in [yii2-framework/actions](https://github.com/yii2-framework/actions); this repository
+carries no configuration files for them. The EditorConfig rules stay in `.editorconfig`.
 
-```bash
-composer quality
-```
-
-Each tool also has its own script:
+Lint the GitHub Actions workflows locally with actionlint and its ShellCheck helper available on `PATH`:
 
 ```bash
 composer actionlint
-composer codespell
-composer editorconfig-checker
-composer markdownlint
-composer prettier
-composer yamllint
 ```
-
-The linter configuration lives in `.github/linters`, and the Prettier configuration in `.prettierrc.json` and
-`.prettierignore`. CI uses the same files.
 
 ## Static analysis (PHPStan)
 
@@ -123,24 +112,14 @@ serves the browser fixture with PHP 8.3.
 
 ## Workflow security checks
 
-Make zizmor and Gitleaks available on `PATH`. Audit the current workflow files with the same pedantic persona used by
-the shared security workflow:
+The shared security workflow runs zizmor and Gitleaks in CI; Gitleaks scans the Git history with its default rules. Make
+zizmor available on `PATH` to audit the current workflow files with the same pedantic persona:
 
 ```bash
 composer zizmor
 ```
 
-Scan Git history for secrets with the repository's Gitleaks configuration:
-
-```bash
-composer gitleaks
-```
-
-Run both checks. Findings make the command fail; inspect them rather than disabling the checks.
-
-```bash
-composer security
-```
+Findings make the command fail; inspect them rather than disabling the check.
 
 Zizmor needs GitHub API access for its online audits. If the tool runs offline, report that limit separately. To request
 an offline audit explicitly:
