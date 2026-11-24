@@ -24,7 +24,7 @@
     "@stryker-mutator/vitest-runner": "^10.1.1",
     "@vitest/coverage-v8": "^5.1.0",
     "eslint": "^10.15.0",
-    "jquery": "3.7.1",
+    "jquery": "3.8.0",
     "jsdom": "^31.0.1",
     "select2": "4.1.0",
     "terser": "^5.44.0",
